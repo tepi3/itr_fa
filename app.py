@@ -93,9 +93,6 @@ def api_list_users():
     for d in PORTFOLIOS_DIR.iterdir():
         if d.is_dir():
             users.append(d.name)
-    if not users:
-        users = ["Default"]
-        (PORTFOLIOS_DIR / "Default").mkdir(exist_ok=True)
     return jsonify({"users": sorted(users)})
 
 @app.route("/api/users", methods=["POST"])

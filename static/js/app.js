@@ -132,7 +132,15 @@ function renderUserList(users) {
     list.innerHTML = "";
     
     if (users.length === 0) {
-        list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:10px;">No users found</div>`;
+        list.innerHTML = `
+            <div style="text-align:center;padding:18px 12px;">
+                <div style="font-size:2rem;margin-bottom:8px;">👤</div>
+                <div style="font-weight:600;color:var(--text-primary);margin-bottom:6px;">No users found</div>
+                <div style="color:var(--text-muted);font-size:0.875rem;">
+                    Use the form below to create your first user profile before continuing.
+                </div>
+            </div>
+        `;
         return;
     }
     
