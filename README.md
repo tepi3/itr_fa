@@ -17,8 +17,11 @@ python3 app.py
 ## Features
 
 - **Auto stock lookup** — Enter ticker symbol (QCOM, VWRA, etc.), company info auto-filled via Yahoo Finance
-- **SBI TT rates** — Auto-fetches SBI TT Buying Rate of last working day of previous month for all conversions
+- **SBI TT rates** — Auto-fetches SBI TT Buying Rate of last working day of previous month for all conversions. Supports multiple currencies (₹, $, £, €)
+- **Historical SBI Rates** — View and edit SBI rates for any year going back to 2000
+- **Explicit Dividends** — Auto-fetches dividends from Yahoo Finance, displays them in an editable table for manual adjustment
 - **All 12 A3 columns** — Auto-calculates initial value, peak value, closing balance, dividends, sale proceeds
+- **Per-Stock Summary** — Automatically aggregates all lots to provide a clear per-stock dividend summary
 - **FIFO sells** — Supports partial sells and fractional shares
 - **Manual override** — Click any calculated value in the A3 table to override manually
 - **Year selector** — Pick calendar year, import previous year's data
