@@ -22,13 +22,46 @@
         </div>
     </div>
 
+    <!-- User Selection Screen -->
+    <div id="userSelectionScreen">
+        <div class="user-card">
+            <h2>Welcome to ITR Schedule FA</h2>
+            <p class="subtitle">Select your profile to continue</p>
+            
+            <div class="user-list-container">
+                <h3>Existing Users</h3>
+                <div id="userList" class="user-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="new-user-container">
+                <h3>Or Create New User</h3>
+                <div class="new-user-input">
+                    <input type="text" id="newUsernameInput" placeholder="Enter username...">
+                    <button id="createUserBtn" class="btn btn-primary">Create</button>
+                </div>
+            </div>
+
+            <div class="year-selection-container" style="margin-top: 24px; text-align: center;">
+                <label for="initialYearSelect" style="font-weight: 500;">Select Calendar Year:</label>
+                <select id="initialYearSelect" style="margin-left: 8px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main);"></select>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
-    <header id="appHeader">
+    <header id="appHeader" class="hidden">
         <div class="header-left">
             <h1>📋 Schedule FA — Section A3</h1>
             <span class="subtitle">Foreign Equity & Debt Interest</span>
         </div>
         <div class="header-right">
+            <div class="user-display" style="display: flex; align-items: center; margin-right: 16px;">
+                <span style="font-size: 1.2rem; margin-right: 8px;">👤</span>
+                <span id="activeUserDisplay" style="font-weight: 600; margin-right: 12px; font-size: 1.1rem; color: var(--accent);">Default</span>
+                <button id="switchUserBtn" class="btn btn-sm btn-outline" title="Switch User">Switch</button>
+            </div>
             <div class="year-selector">
                 <label for="yearSelect">Calendar Year:</label>
                 <select id="yearSelect"></select>
@@ -43,7 +76,7 @@
         </div>
     </header>
 
-    <main id="appMain">
+    <main id="appMain" class="hidden">
         <!-- SBI Monthly Rates Manager (always available) -->
         <section id="monthlyRatesSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('monthlyRatesContent')">

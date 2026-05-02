@@ -5,6 +5,7 @@
 
 // ===== State =====
 const state = {
+    username: null,
     portfolio: {
         calendar_year: new Date().getFullYear() - 1,
         stocks: [],
@@ -17,31 +18,43 @@ const state = {
 
 // ===== Initialization =====
 document.addEventListener("DOMContentLoaded", () => {
-    initYearSelector();
+    initYearSelectors();
     bindEvents();
-    checkSavedData();
+    initUserSelection();
 });
 
-function initYearSelector() {
-    const select = document.getElementById("yearSelect");
+function initYearSelectors() {
+    const mainSelect = document.getElementById("yearSelect");
     const rateYearSelect = document.getElementById("ratesYearSelect");
+    const initialSelect = document.getElementById("initialYearSelect");
+    
     const currentYear = new Date().getFullYear();
     for (let y = currentYear; y >= 2000; y--) {
         const opt = document.createElement("option");
         opt.value = y;
         opt.textContent = y;
         if (y === state.portfolio.calendar_year) opt.selected = true;
-        select.appendChild(opt);
+        mainSelect.appendChild(opt);
 
         const rOpt = document.createElement("option");
         rOpt.value = y;
         rOpt.textContent = y;
         if (y === state.portfolio.calendar_year) rOpt.selected = true;
         rateYearSelect.appendChild(rOpt);
+        
+        const iOpt = document.createElement("option");
+        iOpt.value = y;
+        iOpt.textContent = y;
+        if (y === state.portfolio.calendar_year) iOpt.selected = true;
+        initialSelect.appendChild(iOpt);
     }
-    select.addEventListener("change", (e) => {
+    
+    mainSelect.addEventListener("change", (e) => {
         state.portfolio.calendar_year = parseInt(e.target.value);
         rateYearSelect.value = state.portfolio.calendar_year;
+    });
+    initialSelect.addEventListener("change", (e) => {
+        state.portfolio.calendar_year = parseInt(e.target.value);
     });
 }
 
@@ -60,14 +73,139 @@ function bindEvents() {
     document.getElementById("refreshMonthlyRatesBtn").addEventListener("click", loadMonthlyRates);
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
     document.getElementById("ratesCurrencySelect").addEventListener("change", loadMonthlyRates);
+    
+    document.getElementById("switchUserBtn").addEventListener("click", () => {
+        document.getElementById("appHeader").classList.add("hidden");
+        document.getElementById("appMain").classList.add("hidden");
+        document.getElementById("userSelectionScreen").classList.remove("hidden");
+        state.username = null;
+        fetchUsers();
+    });
+}
+
+// ===== User Selection & Management =====
+async function initUserSelection() {
+    document.getElementById("createUserBtn").addEventListener("click", async () => {
+        const input = document.getElementById("newUsernameInput");
+        const username = input.value.trim();
+        if (!username) return showToast("Enter a username", "warning");
+        
+        showLoading("Creating user...");
+        try {
+            const resp = await apiPost("/api/users", { username });
+            if (resp.success) {
+                input.value = "";
+                await fetchUsers();
+                selectUser(resp.username);
+            } else {
+                showToast(resp.error || "Failed to create user", "error");
+            }
+        } catch (e) {
+            showToast("Error creating user", "error");
+        }
+        hideLoading();
+    });
+    
+    await fetchUsers();
+}
+
+async function fetchUsers() {
+    try {
+        const data = await apiGet("/api/users");
+        if (data.users) {
+            renderUserList(data.users);
+        }
+    } catch (e) {
+        showToast("Failed to load users", "error");
+    }
+}
+
+function renderUserList(users) {
+    const list = document.getElementById("userList");
+    list.innerHTML = "";
+    
+    if (users.length === 0) {
+        list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:10px;">No users found</div>`;
+        return;
+    }
+    
+    users.forEach(username => {
+        const item = document.createElement("div");
+        item.className = "user-list-item";
+        
+        item.innerHTML = `
+            <div class="user-name">${username}</div>
+            <div class="user-actions">
+                <button class="btn btn-sm btn-outline rename-user-btn" title="Rename" style="padding:4px 8px;">✏️</button>
+                <button class="btn btn-sm btn-outline delete-user-btn" title="Delete" style="padding:4px 8px; border-color:var(--danger); color:var(--danger);">🗑️</button>
+            </div>
+        `;
+        
+        item.querySelector(".user-name").addEventListener("click", () => selectUser(username));
+        
+        item.querySelector(".rename-user-btn").addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const newName = prompt(`Rename user '${username}' to:`);
+            if (newName && newName.trim() && newName.trim() !== username) {
+                showLoading("Renaming...");
+                const resp = await fetch(`/api/users/${encodeURIComponent(username)}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ new_username: newName.trim() })
+                }).then(r => r.json());
+                
+                if (resp.success) await fetchUsers();
+                else showToast(resp.error || "Failed to rename", "error");
+                hideLoading();
+            }
+        });
+        
+        item.querySelector(".delete-user-btn").addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (confirm(`Are you sure you want to delete user '${username}' AND all their saved data? This cannot be undone.`)) {
+                showLoading("Deleting...");
+                const resp = await fetch(`/api/users/${encodeURIComponent(username)}`, { method: "DELETE" }).then(r => r.json());
+                if (resp.success) await fetchUsers();
+                else showToast(resp.error || "Failed to delete", "error");
+                hideLoading();
+            }
+        });
+        
+        list.appendChild(item);
+    });
+}
+
+function selectUser(username) {
+    state.username = username;
+    document.getElementById("activeUserDisplay").textContent = username;
+    
+    // Sync year dropdowns
+    const initYear = document.getElementById("initialYearSelect").value;
+    document.getElementById("yearSelect").value = initYear;
+    document.getElementById("ratesYearSelect").value = initYear;
+    state.portfolio.calendar_year = parseInt(initYear);
+    
+    document.getElementById("userSelectionScreen").classList.add("hidden");
+    document.getElementById("appHeader").classList.remove("hidden");
+    document.getElementById("appMain").classList.remove("hidden");
+    
+    // Clear current portfolio state
+    state.portfolio.stocks = [];
+    state.portfolio.overrides = {};
+    state.portfolio.sbi_rate_overrides = {};
+    document.getElementById("stockCards").innerHTML = "";
+    document.getElementById("resultsSection").classList.add("hidden");
+    
+    checkSavedData();
 }
 
 async function checkSavedData() {
+    if (!state.username) return;
     try {
-        const resp = await fetch("/api/list-saves");
+        const resp = await fetch(`/api/list-saves?username=${encodeURIComponent(state.username)}`);
         const data = await resp.json();
         if (data.saves && data.saves.length > 0) {
-            showToast(`Found ${data.saves.length} saved portfolio(s)`, "info");
+            showToast(`Found ${data.saves.length} saved portfolio(s) for ${state.username}`, "info");
         }
     } catch (e) { /* ignore */ }
 }
@@ -679,7 +817,12 @@ async function savePortfolio() {
         // Sync all cards
         document.querySelectorAll(".stock-card").forEach(card => syncStockFromCard(card));
 
-        const result = await apiPost("/api/save", state.portfolio);
+        const result = await fetch(`/api/save?username=${encodeURIComponent(state.username)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(state.portfolio),
+        }).then(r => r.json());
+        
         hideLoading();
 
         if (result.success) {
@@ -698,7 +841,7 @@ async function loadPortfolio() {
     showLoading(`Loading CY${year}...`);
 
     try {
-        const resp = await fetch(`/api/load?year=${year}`);
+        const resp = await fetch(`/api/load?year=${year}&username=${encodeURIComponent(state.username)}`);
         const data = await resp.json();
         hideLoading();
 
@@ -750,10 +893,14 @@ async function importPreviousYear() {
 
     showLoading(`Importing CY${sourceYear} data...`);
     try {
-        const result = await apiPost("/api/import-previous-year", {
-            target_year: targetYear,
-            source_year: sourceYear,
-        });
+        const result = await fetch(`/api/import-previous-year?username=${encodeURIComponent(state.username)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                target_year: targetYear,
+                source_year: sourceYear,
+            })
+        }).then(r => r.json());
         hideLoading();
 
         if (!result.success) {

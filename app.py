@@ -8,6 +8,7 @@ Opens at: http://localhost:5000
 import json
 import logging
 import uuid
+import shutil
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -36,6 +37,38 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 
+# --- Initialization & Migration ---
+
+def init_user_storage():
+    """Migrate any loose portfolio files to a Default user directory."""
+    default_dir = PORTFOLIOS_DIR / "Default"
+    
+    # Check for legacy files in root of PORTFOLIOS_DIR
+    legacy_files = list(PORTFOLIOS_DIR.glob("portfolio_CY*.json"))
+    if legacy_files:
+        default_dir.mkdir(exist_ok=True)
+        for f in legacy_files:
+            try:
+                shutil.move(str(f), str(default_dir / f.name))
+                logger.info(f"Migrated legacy portfolio {f.name} to Default user")
+            except Exception as e:
+                logger.error(f"Failed to migrate {f.name}: {e}")
+
+init_user_storage()
+
+def get_user_dir(username):
+    """Get or create directory for user."""
+    if not username:
+        username = "Default"
+    # Basic sanitization
+    safe_name = "".join(c for c in username if c.isalnum() or c in (' ', '-', '_')).strip()
+    if not safe_name:
+        safe_name = "Default"
+    user_dir = PORTFOLIOS_DIR / safe_name
+    user_dir.mkdir(exist_ok=True)
+    return user_dir, safe_name
+
+
 # --- Page Routes ---
 
 @app.route("/")
@@ -44,7 +77,63 @@ def index():
     return render_template("index.html")
 
 
-# --- API Routes ---
+# --- User API Routes ---
+
+@app.route("/api/users", methods=["GET"])
+def api_list_users():
+    """List all user profiles."""
+    users = []
+    for d in PORTFOLIOS_DIR.iterdir():
+        if d.is_dir():
+            users.append(d.name)
+    if not users:
+        users = ["Default"]
+        (PORTFOLIOS_DIR / "Default").mkdir(exist_ok=True)
+    return jsonify({"users": sorted(users)})
+
+@app.route("/api/users", methods=["POST"])
+def api_create_user():
+    """Create a new user profile."""
+    data = request.get_json()
+    username = data.get("username")
+    if not username:
+        return jsonify({"error": "username required"}), 400
+    _, safe_name = get_user_dir(username)
+    return jsonify({"success": True, "username": safe_name})
+
+@app.route("/api/users/<old_username>", methods=["PUT"])
+def api_rename_user(old_username):
+    """Rename a user profile."""
+    data = request.get_json()
+    new_username = data.get("new_username")
+    if not new_username:
+        return jsonify({"error": "new_username required"}), 400
+    
+    old_dir = PORTFOLIOS_DIR / old_username
+    if not old_dir.exists() or not old_dir.is_dir():
+        return jsonify({"error": "User not found"}), 404
+        
+    _, safe_new_name = get_user_dir(new_username)
+    new_dir = PORTFOLIOS_DIR / safe_new_name
+    
+    if new_dir.exists() and new_dir != old_dir:
+        return jsonify({"error": "New username already exists"}), 400
+        
+    old_dir.rename(new_dir)
+    return jsonify({"success": True, "username": safe_new_name})
+
+@app.route("/api/users/<username>", methods=["DELETE"])
+def api_delete_user(username):
+    """Delete a user profile and all their portfolios."""
+    user_dir = PORTFOLIOS_DIR / username
+    if not user_dir.exists() or not user_dir.is_dir():
+        return jsonify({"error": "User not found"}), 404
+        
+    shutil.rmtree(user_dir)
+    return jsonify({"success": True})
+
+
+# --- Portfolio API Routes ---
 
 @app.route("/api/lookup-stock", methods=["POST"])
 def api_lookup_stock():
@@ -166,9 +255,12 @@ def api_save():
     if not portfolio:
         return jsonify({"error": "Portfolio data required"}), 400
 
+    username = request.args.get("username", "Default")
+    user_dir, _ = get_user_dir(username)
+
     calendar_year = portfolio.get("calendar_year", 2024)
     filename = f"portfolio_CY{calendar_year}.json"
-    filepath = PORTFOLIOS_DIR / filename
+    filepath = user_dir / filename
 
     with open(filepath, "w") as f:
         json.dump(portfolio, f, indent=2)
@@ -180,11 +272,14 @@ def api_save():
 def api_load():
     """Load saved portfolio data."""
     year = request.args.get("year")
+    username = request.args.get("username", "Default")
+    
     if not year:
         return jsonify({"error": "year parameter required"}), 400
 
+    user_dir, _ = get_user_dir(username)
     filename = f"portfolio_CY{year}.json"
-    filepath = PORTFOLIOS_DIR / filename
+    filepath = user_dir / filename
 
     if not filepath.exists():
         return jsonify({"error": f"No saved portfolio for CY{year}", "found": False}), 404
@@ -198,8 +293,11 @@ def api_load():
 @app.route("/api/list-saves", methods=["GET"])
 def api_list_saves():
     """List all saved portfolio files."""
+    username = request.args.get("username", "Default")
+    user_dir, _ = get_user_dir(username)
+    
     files = []
-    for f in sorted(PORTFOLIOS_DIR.glob("portfolio_CY*.json")):
+    for f in sorted(user_dir.glob("portfolio_CY*.json")):
         try:
             year = f.stem.replace("portfolio_CY", "")
             files.append({
@@ -249,11 +347,13 @@ def api_import_previous_year():
     data = request.get_json()
     target_year = data.get("target_year")
     source_year = data.get("source_year", target_year - 1 if target_year else None)
+    username = request.args.get("username", "Default")
 
     if not target_year or not source_year:
         return jsonify({"error": "target_year required"}), 400
 
-    filepath = PORTFOLIOS_DIR / f"portfolio_CY{source_year}.json"
+    user_dir, _ = get_user_dir(username)
+    filepath = user_dir / f"portfolio_CY{source_year}.json"
     if not filepath.exists():
         return jsonify({"error": f"No saved portfolio for CY{source_year}"}), 404
 
