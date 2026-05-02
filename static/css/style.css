@@ -168,6 +168,34 @@ body {
 
 .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
 
+.btn-fetch-price {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-fetch-price:hover {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+}
+.btn-fetch-price:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Price input + fetch button side-by-side */
+.price-input-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.price-input-group input {
+    min-width: 90px;
+}
+
 .btn-large { padding: 14px 36px; font-size: 1rem; width: 100%; justify-content: center; }
 
 /* ===== Cards ===== */

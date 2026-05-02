@@ -442,7 +442,12 @@ function renderLotRow(card, stock, lot) {
     tr.innerHTML = `
         <td><input type="date" class="lot-date" value="${lot.buy_date}"></td>
         <td><input type="number" class="lot-qty" value="${lot.quantity}" step="any" min="0" placeholder="0"></td>
-        <td><input type="number" class="lot-price" value="${lot.buy_price}" step="any" min="0" placeholder="0.00"></td>
+        <td>
+            <div class="price-input-group">
+                <input type="number" class="lot-price" value="${lot.buy_price}" step="any" min="0" placeholder="0.00">
+                <button class="btn btn-sm btn-fetch-price fetch-close-price-btn" title="Fetch closing price for this date">📈 Fetch</button>
+            </div>
+        </td>
         <td><button class="btn btn-sm btn-danger remove-lot-btn">✕</button></td>
     `;
 
@@ -454,6 +459,34 @@ function renderLotRow(card, stock, lot) {
             lot.buy_price = parseFloat(tr.querySelector(".lot-price").value) || 0;
             updateSellLotOptions(card, stock);
         });
+    });
+
+    // Fetch closing price
+    tr.querySelector(".fetch-close-price-btn").addEventListener("click", async () => {
+        const dateVal = tr.querySelector(".lot-date").value;
+        if (!dateVal) return showToast("Set a buy date first before fetching price", "warning");
+
+        const ticker = stock.yahoo_ticker || stock.ticker;
+        const btn = tr.querySelector(".fetch-close-price-btn");
+        btn.disabled = true;
+        btn.textContent = "⏳ Fetching…";
+
+        try {
+            const result = await apiGet(`/api/stock-price?ticker=${encodeURIComponent(ticker)}&date=${dateVal}`);
+            if (result.price != null) {
+                const priceInput = tr.querySelector(".lot-price");
+                priceInput.value = result.price;
+                lot.buy_price = result.price;
+                showToast(`Closing price on ${dateVal}: $${result.price}`, "success");
+            } else {
+                showToast(`No price data for ${ticker} on ${dateVal}. Try a different date (market may have been closed).`, "warning");
+            }
+        } catch (e) {
+            showToast(`Failed to fetch price: ${e.message}`, "error");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "📈 Fetch";
+        }
     });
 
     // Remove
