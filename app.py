@@ -149,9 +149,8 @@ def api_lookup_stock():
 
 @app.route("/api/sbi-rate", methods=["GET"])
 def api_sbi_rate():
-    """Get SBI TT rate for a specific date."""
+    """Get SBI TT rate for a specific date (USD only)."""
     date_str = request.args.get("date")
-    currency = request.args.get("currency", "USD")
 
     if not date_str:
         return jsonify({"error": "date parameter is required"}), 400
@@ -162,7 +161,7 @@ def api_sbi_rate():
     except ValueError:
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
-    result = get_sbi_tt_rate(d, currency)
+    result = get_sbi_tt_rate(d, "USD")
     return jsonify(result)
 
 
@@ -195,13 +194,10 @@ def api_dividends():
 
 @app.route("/api/fetch-sbi-rates", methods=["POST"])
 def api_fetch_sbi_rates():
-    """Download and cache SBI rates from GitHub."""
-    data = request.get_json() or {}
-    currency = data.get("currency", "USD")
-
+    """Download and cache SBI rates from GitHub (USD only)."""
     try:
-        count = refresh_cache(currency)
-        return jsonify({"success": True, "entries": count, "currency": currency})
+        count = refresh_cache()
+        return jsonify({"success": True, "entries": count, "currency": "USD"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -312,30 +308,28 @@ def api_list_saves():
 
 @app.route("/api/monthly-rates", methods=["GET"])
 def api_monthly_rates():
-    """Get SBI TT rates for each month of a given year."""
+    """Get SBI TT rates for each month of a given year (USD only)."""
     year = request.args.get("year")
-    currency = request.args.get("currency", "USD")
 
     if not year:
         return jsonify({"error": "year parameter required"}), 400
 
-    rates = get_monthly_rates(int(year), currency)
-    return jsonify({"success": True, "year": int(year), "currency": currency, "rates": rates})
+    rates = get_monthly_rates(int(year))
+    return jsonify({"success": True, "year": int(year), "currency": "USD", "rates": rates})
 
 
 @app.route("/api/save-manual-rate", methods=["POST"])
 def api_save_manual_rate():
-    """Save a manually entered SBI TT rate."""
+    """Save a manually entered SBI TT rate (USD only)."""
     data = request.get_json()
     rate_date = data.get("rate_date")
-    currency = data.get("currency", "USD")
     rate = data.get("rate")
 
     if not rate_date or rate is None:
         return jsonify({"error": "rate_date and rate are required"}), 400
 
     try:
-        save_manual_rate(rate_date, currency, float(rate))
+        save_manual_rate(rate_date, float(rate))
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

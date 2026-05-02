@@ -36,17 +36,17 @@ def _save_cache(cache: dict):
         json.dump(cache, f, indent=2, sort_keys=True)
 
 
-def download_sbi_csv(currency: str = "USD") -> dict:
+def download_sbi_csv() -> dict:
     """
     Download the full SBI rate CSV from GitHub and parse into a dict.
     Returns: { "YYYY-MM-DD": tt_buy_rate, ... }
     Only includes dates where TT BUY > 0.
     """
-    url = SBI_CSV_URLS.get(currency.upper())
+    url = SBI_CSV_URLS.get("USD")
     if not url:
-        raise ValueError(f"Unsupported currency: {currency}. Supported: {list(SBI_CSV_URLS.keys())}")
+        raise ValueError("SBI USD URL not found in config.")
 
-    logger.info(f"Downloading SBI {currency} rates from GitHub...")
+    logger.info("Downloading SBI USD rates from GitHub...")
     resp = requests.get(url, timeout=60)
     resp.raise_for_status()
 
@@ -80,16 +80,16 @@ def download_sbi_csv(currency: str = "USD") -> dict:
     return rates
 
 
-def refresh_cache(currency: str = "USD"):
+def refresh_cache():
     """Download fresh SBI rates and update the cache."""
     cache = _load_cache()
     if "rates" not in cache:
         cache["rates"] = {}
-    if currency not in cache["rates"]:
-        cache["rates"][currency] = {}
+    if "USD" not in cache["rates"]:
+        cache["rates"]["USD"] = {}
 
-    rates = download_sbi_csv(currency)
-    cache["rates"][currency].update(rates)
+    rates = download_sbi_csv()
+    cache["rates"]["USD"].update(rates)
     _save_cache(cache)
     return len(rates)
 
@@ -122,7 +122,7 @@ def get_sbi_tt_rate(d: date, currency: str = "USD", overrides: dict = None) -> d
     rate_date = get_last_working_day_prev_month(d)
 
     # Check manual overrides first
-    override_key = f"{rate_date.isoformat()}_{currency}"
+    override_key = f"{rate_date.isoformat()}_USD"
     if overrides and override_key in overrides:
         return {
             "rate": float(overrides[override_key]),
@@ -132,7 +132,7 @@ def get_sbi_tt_rate(d: date, currency: str = "USD", overrides: dict = None) -> d
 
     # Look up in cache
     cache = _load_cache()
-    currency_rates = cache.get("rates", {}).get(currency, {})
+    currency_rates = cache.get("rates", {}).get("USD", {})
 
     # Try exact date, then walk backward up to 10 days
     for i in range(11):
@@ -154,10 +154,10 @@ def get_sbi_tt_rate(d: date, currency: str = "USD", overrides: dict = None) -> d
     }
 
 
-def get_rate_for_date_direct(d: date, currency: str = "USD") -> dict:
+def get_rate_for_date_direct(d: date) -> dict:
     """Get SBI TT rate for an exact date (without the prev-month logic). Used for display."""
     cache = _load_cache()
-    currency_rates = cache.get("rates", {}).get(currency, {})
+    currency_rates = cache.get("rates", {}).get("USD", {})
 
     for i in range(11):
         lookup_date = d - timedelta(days=i)
@@ -170,13 +170,13 @@ def get_rate_for_date_direct(d: date, currency: str = "USD") -> dict:
     return {"rate": None, "rate_date": d.isoformat(), "source": "not_found"}
 
 
-def get_all_cached_rates(currency: str = "USD") -> dict:
-    """Return all cached rates for a currency."""
+def get_all_cached_rates() -> dict:
+    """Return all cached rates for USD."""
     cache = _load_cache()
-    return cache.get("rates", {}).get(currency, {})
+    return cache.get("rates", {}).get("USD", {})
 
 
-def get_monthly_rates(year: int, currency: str = "USD", overrides: dict = None) -> list:
+def get_monthly_rates(year: int, overrides: dict = None) -> list:
     """
     Get the SBI TT rate applicable for each month of the given calendar year.
 
@@ -196,7 +196,7 @@ def get_monthly_rates(year: int, currency: str = "USD", overrides: dict = None) 
     for month in range(1, 13):
         # For a transaction on the 15th of this month (arbitrary day)
         d = date(year, month, 15)
-        rate_info = get_sbi_tt_rate(d, currency, overrides)
+        rate_info = get_sbi_tt_rate(d, "USD", overrides)
         results.append({
             "month": month,
             "month_name": month_names[month - 1],
@@ -208,7 +208,7 @@ def get_monthly_rates(year: int, currency: str = "USD", overrides: dict = None) 
     return results
 
 
-def save_manual_rate(rate_date: str, currency: str, rate: float):
+def save_manual_rate(rate_date: str, rate: float):
     """
     Save a manually entered rate into the cache.
     This is used when the GitHub CSV doesn't have data for a date.
@@ -216,9 +216,9 @@ def save_manual_rate(rate_date: str, currency: str, rate: float):
     cache = _load_cache()
     if "rates" not in cache:
         cache["rates"] = {}
-    if currency not in cache["rates"]:
-        cache["rates"][currency] = {}
+    if "USD" not in cache["rates"]:
+        cache["rates"]["USD"] = {}
 
-    cache["rates"][currency][rate_date] = rate
+    cache["rates"]["USD"][rate_date] = rate
     _save_cache(cache)
-    logger.info(f"Saved manual rate: {rate_date} {currency} = {rate}")
+    logger.info(f"Saved manual rate: {rate_date} USD = {rate}")

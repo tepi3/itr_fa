@@ -72,7 +72,6 @@ function bindEvents() {
     document.getElementById("viewRatesBtn").addEventListener("click", showMonthlyRates);
     document.getElementById("refreshMonthlyRatesBtn").addEventListener("click", loadMonthlyRates);
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
-    document.getElementById("ratesCurrencySelect").addEventListener("change", loadMonthlyRates);
     
     document.getElementById("switchUserBtn").addEventListener("click", () => {
         document.getElementById("appHeader").classList.add("hidden");
@@ -264,10 +263,6 @@ function toggleSection(id) {
     if (icon) icon.style.transform = el.classList.contains("collapsed") ? "rotate(-90deg)" : "";
 }
 
-// ===== Currency Symbols =====
-const CURRENCY_SYMBOLS = { USD: '$', GBP: '£', EUR: '€', JPY: '¥', HKD: 'HK$', SGD: 'S$' };
-function currSym(code) { return CURRENCY_SYMBOLS[code] || code; }
-
 // ===== Stock Lookup =====
 async function lookupStock() {
     const ticker = document.getElementById("tickerInput").value.trim().toUpperCase();
@@ -337,10 +332,9 @@ function renderStockCard(stock) {
     card.dataset.stockId = stock.id;
     card.querySelector(".stock-ticker").textContent = stock.ticker;
     card.querySelector(".stock-name").textContent = stock.company_info.name;
-    card.querySelector(".stock-currency").textContent = currSym(stock.currency) + ' ' + stock.currency;
 
-    // Update price column headers with currency symbol
-    const sym = currSym(stock.currency);
+    // Update price column headers
+    const sym = "$";
     const buyHeader = card.querySelector(".buy-price-header");
     if (buyHeader) buyHeader.textContent = `Buy Price (${sym})`;
     const sellHeader = card.querySelector(".sell-price-header");
@@ -873,24 +867,18 @@ async function loadPortfolio() {
 
 // ===== Fetch SBI Rates =====
 async function fetchSbiRates() {
-    showLoading("Downloading SBI TT rates from GitHub...\nThis may take a moment for the first time.");
+    showLoading("Fetching SBI USD Rates...");
     try {
-        const usdResult = await apiPost("/api/fetch-sbi-rates", { currency: "USD" });
-        let msg = `USD: ${usdResult.entries} rates`;
-
-        // Also fetch GBP if any stock uses it
-        const hasGbp = state.portfolio.stocks.some(s => s.currency === "GBP");
-        if (hasGbp) {
-            const gbpResult = await apiPost("/api/fetch-sbi-rates", { currency: "GBP" });
-            msg += `, GBP: ${gbpResult.entries} rates`;
+        const resp = await apiPost("/api/fetch-sbi-rates");
+        if (resp.success) {
+            showToast(`Fetched ${resp.entries} rates for USD`);
+        } else {
+            showToast(resp.error || "Failed to fetch rates", "error");
         }
-
-        hideLoading();
-        showToast(`SBI rates cached: ${msg}`, "success");
     } catch (e) {
-        hideLoading();
-        showToast(`Error fetching SBI rates: ${e.message}`, "error");
+        showToast("Error fetching rates", "error");
     }
+    hideLoading();
 }
 
 // ===== Import Previous Year =====
@@ -981,7 +969,7 @@ function updateCalcButtonVisibility() {
 async function showMonthlyRates() {
     const section = document.getElementById("monthlyRatesSection");
     if (!section.classList.contains("hidden")) {
-        section.classList.add("hidden");
+        section.classList.remove("hidden");
         return;
     }
     section.classList.remove("hidden");
@@ -990,19 +978,17 @@ async function showMonthlyRates() {
 }
 
 async function loadMonthlyRates() {
-    const year = parseInt(document.getElementById("ratesYearSelect").value) || state.portfolio.calendar_year;
-    const currency = document.getElementById("ratesCurrencySelect").value;
+    const year = document.getElementById("ratesYearSelect").value;
     const tbody = document.getElementById("monthlyRatesTableBody");
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Loading rates...</td></tr>';
-
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading...</td></tr>';
+    
     try {
-        const data = await apiGet(`/api/monthly-rates?year=${year}&currency=${currency}`);
+        const data = await apiGet(`/api/monthly-rates?year=${year}`);
         tbody.innerHTML = "";
         if (!data.success) {
             tbody.innerHTML = '<tr><td colspan="5" style="color:var(--danger)">Error loading rates</td></tr>';
             return;
         }
-        const sym = currSym(currency);
         data.rates.forEach(r => {
             const statusClass = r.source === 'override' ? 'override' : r.source === 'cache' ? 'cached' : 'missing';
             const statusLabel = r.source === 'not_found' ? 'Missing — enter manually' : r.source;
@@ -1013,11 +999,10 @@ async function loadMonthlyRates() {
                 <td>${r.rate_date || '—'}</td>
                 <td>
                     <input type="number" class="monthly-rate-input" step="0.01" value="${rateVal}"
-                           placeholder="Enter ₹ rate" data-rate-date="${r.rate_date}" data-currency="${currency}">
+                           placeholder="Enter ₹ rate" data-rate-date="${r.rate_date}">
                 </td>
                 <td><span class="rate-status ${statusClass}">${statusLabel}</span></td>
-                <td><button class="btn btn-sm btn-primary save-rate-btn" data-rate-date="${r.rate_date}"
-                    data-currency="${currency}">💾 Save</button></td>
+                <td><button class="btn btn-sm btn-primary save-rate-btn" data-rate-date="${r.rate_date}">💾 Save</button></td>
             `;
             // Save button handler
             tr.querySelector(".save-rate-btn").addEventListener("click", async () => {
@@ -1025,9 +1010,9 @@ async function loadMonthlyRates() {
                 const val = parseFloat(input.value);
                 if (!val || val <= 0) return showToast("Enter a valid rate", "warning");
                 const rateDate = input.dataset.rateDate;
-                const cur = input.dataset.currency;
+                
                 try {
-                    await apiPost("/api/save-manual-rate", { rate_date: rateDate, currency: cur, rate: val });
+                    await apiPost("/api/save-manual-rate", { rate_date: rateDate, rate: val });
                     showToast(`Saved ₹${val} for ${rateDate}`, "success");
                     // Update status badge
                     const badge = tr.querySelector(".rate-status");

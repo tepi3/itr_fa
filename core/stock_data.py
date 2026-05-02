@@ -30,9 +30,6 @@ TICKER_CURRENCIES = {
     ".PA": "EUR",
     ".T": "JPY",
     ".HK": "HKD",
-    ".SI": "SGD",
-}
-
 
 def resolve_yahoo_ticker(ticker: str) -> str:
     """Resolve user ticker to Yahoo Finance ticker symbol."""
@@ -40,14 +37,6 @@ def resolve_yahoo_ticker(ticker: str) -> str:
     if upper in EXCHANGE_SUFFIXES:
         return EXCHANGE_SUFFIXES[upper]
     return upper
-
-
-def get_currency_for_ticker(yahoo_ticker: str) -> str:
-    """Determine the currency based on the Yahoo ticker suffix."""
-    for suffix, currency in TICKER_CURRENCIES.items():
-        if yahoo_ticker.upper().endswith(suffix):
-            return currency
-    return "USD"  # Default to USD for US stocks
 
 
 def get_company_info(ticker: str) -> dict:
@@ -100,7 +89,7 @@ def get_company_info(ticker: str) -> dict:
             "country_code": country_code,
             "nature": nature,
             "yahoo_ticker": yahoo_ticker,
-            "currency": info.get("currency", get_currency_for_ticker(yahoo_ticker)),
+            "currency": "USD",
         }
     except Exception as e:
         logger.error(f"Error fetching info for {ticker}: {e}")
