@@ -74,6 +74,11 @@ function bindEvents() {
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
     document.getElementById("ratesCurrencySelect").addEventListener("change", loadMonthlyRates);
     
+    document.getElementById("uploadEtradeBtn").addEventListener("click", () => {
+        document.getElementById("etradeFileInput").click();
+    });
+    document.getElementById("etradeFileInput").addEventListener("change", uploadEtradeFile);
+    
     document.getElementById("switchUserBtn").addEventListener("click", () => {
         document.getElementById("appHeader").classList.add("hidden");
         document.getElementById("appMain").classList.add("hidden");
@@ -325,6 +330,42 @@ async function lookupStock() {
     } catch (e) {
         hideLoading();
         showToast(`Error looking up ${ticker}: ${e.message}`, "error");
+    }
+}
+
+async function uploadEtradeFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("portfolio", JSON.stringify(state.portfolio));
+
+    showLoading("Parsing Etrade file...");
+    try {
+        const resp = await fetch("/api/upload-etrade", {
+            method: "POST",
+            body: formData
+        });
+        const result = await resp.json();
+        
+        hideLoading();
+        if (result.success) {
+            state.portfolio = result.portfolio;
+            
+            // Re-render UI
+            document.getElementById("stockCards").innerHTML = "";
+            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+            updateCalcButtonVisibility();
+            showToast("Etrade data imported successfully!", "success");
+        } else {
+            showToast("Error parsing file: " + result.error, "error");
+        }
+    } catch (err) {
+        hideLoading();
+        showToast("Upload failed: " + err.message, "error");
+    } finally {
+        e.target.value = ""; // reset input
     }
 }
 

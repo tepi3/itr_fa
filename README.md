@@ -22,6 +22,7 @@ python3 app.py
 - **Explicit Dividend Management**: Dedicated table for dividend events per stock with manual override.
 - **Per-Stock Dividend Summary**: Automated aggregation of total dividends earned per entity.
 - **Multi-User Profiles**: Manage separate portfolios for different individuals (e.g., self, spouse, parents) with dedicated storage and user-friendly management (add, rename, delete).
+- **Etrade Import**: Automatically parse your Etrade Holdings (Excel/CSV) to populate all your acquisition lots and sale transactions.
 - **Excel Export**: Generate ready-to-use reports for tax filing.
 - **All 12 A3 columns** — Auto-calculates initial value, peak value, closing balance, dividends, sale proceeds
 - **Per-Stock Summary** — Automatically aggregates all lots to provide a clear per-stock dividend summary
@@ -34,13 +35,15 @@ python3 app.py
 ## Workflow
 
 1. **Fetch SBI Rates** — Click "⬇ Fetch SBI Rates" button (first time only)
-2. **Add stocks** — Enter ticker symbol and click Lookup
-3. **Add lots** — Click "+ Add Lot" and enter buy date, quantity, price
-4. **Add sells** — Click "+ Add Sell" for any lots sold during the year
-5. **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 columns
-6. **Override** — Click any calculated cell in the results table to manually adjust
-7. **Export** — Click "📥 Export Excel" to download the formatted spreadsheet
-8. **Save** — Click "💾 Save" to save your portfolio for future reference
+2. **Import Etrade Data (Optional)** — Click "📈 Upload Etrade" to automatically import your lots.
+   - *How to get the file:* Login to Etrade (https://us.etrade.com) &rarr; Goto Accounts Tab &rarr; Holdings Tab &rarr; View By Status Tab &rarr; Download Expanded.
+3. **Add stocks manually** — Enter ticker symbol and click Lookup
+4. **Add lots manually** — Click "+ Add Lot" and enter buy date, quantity, price
+5. **Add sells manually** — Click "+ Add Sell" for any lots sold during the year
+6. **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 columns
+7. **Override** — Click any calculated cell in the results table to manually adjust
+8. **Export** — Click "📥 Export Excel" to download the formatted spreadsheet
+9. **Save** — Click "💾 Save" to save your portfolio for future reference
 
 ## Data Sources
 
