@@ -134,16 +134,22 @@ function renderUserList(users) {
         item.className = "user-list-item";
         
         item.innerHTML = `
-            <div class="user-name">${username}</div>
-            <div class="user-actions">
-                <button class="btn btn-sm btn-outline rename-user-btn" title="Rename" style="padding:4px 8px;">✏️</button>
-                <button class="btn btn-sm btn-outline delete-user-btn" title="Delete" style="padding:4px 8px; border-color:var(--danger); color:var(--danger);">🗑️</button>
+            <div class="user-name" style="flex-grow: 1;">${username}</div>
+            <div class="user-actions" style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-sm btn-outline rename-user-btn" title="Rename" style="padding:4px 8px;">✏️</button>
+                <button type="button" class="btn btn-sm btn-outline delete-user-btn" title="Delete" style="padding:4px 8px; border-color:var(--danger); color:var(--danger);">🗑️</button>
             </div>
         `;
         
-        item.querySelector(".user-name").addEventListener("click", () => selectUser(username));
+        // Use a single listener on the item but check the target
+        item.addEventListener("click", (e) => {
+            // If we clicked a button or something inside it, don't select the user
+            if (e.target.closest(".user-actions")) return;
+            selectUser(username);
+        });
         
         item.querySelector(".rename-user-btn").addEventListener("click", async (e) => {
+            e.preventDefault();
             e.stopPropagation();
             const newName = prompt(`Rename user '${username}' to:`);
             if (newName && newName.trim() && newName.trim() !== username) {
@@ -161,6 +167,7 @@ function renderUserList(users) {
         });
         
         item.querySelector(".delete-user-btn").addEventListener("click", async (e) => {
+            e.preventDefault();
             e.stopPropagation();
             if (confirm(`Are you sure you want to delete user '${username}' AND all their saved data? This cannot be undone.`)) {
                 showLoading("Deleting...");
