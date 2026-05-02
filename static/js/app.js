@@ -464,6 +464,29 @@ async function calculateAll() {
 
         state.calculatedRows = result.rows;
         renderResultsTable(result.rows);
+        
+        // Populate Per-Stock Dividend Summary
+        const summaryTbody = document.getElementById("stockSummaryTableBody");
+        if (summaryTbody) {
+            summaryTbody.innerHTML = "";
+            const stockTotals = {};
+
+            result.rows.forEach(row => {
+                const entity = row.entity_name;
+                if (!stockTotals[entity]) stockTotals[entity] = 0;
+                stockTotals[entity] += row.total_dividends || 0;
+            });
+
+            Object.entries(stockTotals).forEach(([entity, total]) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><strong>${entity}</strong></td>
+                    <td style="color:var(--success); font-weight:600;">₹${total}</td>
+                `;
+                summaryTbody.appendChild(tr);
+            });
+        }
+
         collectSbiRates(result.rows);
 
         document.getElementById("resultsSection").classList.remove("hidden");
