@@ -1,0 +1,333 @@
+From 0b7c54bbf93b3df144fd97f4fc272327e368620a Mon Sep 17 00:00:00 2001
+From: Nishant Raj <nishant2raj@gmail.com>
+Date: Sat, 2 May 2026 19:58:51 +0530
+Subject: [PATCH] feat: add Etrade CSV/Excel import functionality
+
+- Added core/etrade_parser.py to parse Etrade 'By Status' Holdings reports (supports both CSV and XLSX)
+- Integrated custom column mappings: 'Vest Date' -> 'Buy Date', 'Sellable Qty.' -> 'Quantity', 'Purchase Date FMV' -> 'Buy Price'
+- Added /api/upload-etrade endpoint in app.py to handle file uploads
+- Updated UI with an 'Upload Etrade' button in the header
+- Updated README.md to document the feature and instructions for obtaining the file from Etrade
+---
+ README.md             |  17 +++--
+ app.py                |  26 +++++++
+ core/etrade_parser.py | 164 ++++++++++++++++++++++++++++++++++++++++++
+ static/js/app.js      |  41 +++++++++++
+ templates/index.html  |   2 +
+ 5 files changed, 243 insertions(+), 7 deletions(-)
+ create mode 100644 core/etrade_parser.py
+
+diff --git a/README.md b/README.md
+index dabe226..26e5ddf 100644
+--- a/README.md
++++ b/README.md
+@@ -22,6 +22,7 @@ python3 app.py
+ - **Explicit Dividend Management**: Dedicated table for dividend events per stock with manual override.
+ - **Per-Stock Dividend Summary**: Automated aggregation of total dividends earned per entity.
+ - **Multi-User Profiles**: Manage separate portfolios for different individuals (e.g., self, spouse, parents) with dedicated storage and user-friendly management (add, rename, delete).
++- **Etrade Import**: Automatically parse your Etrade Holdings (Excel/CSV) to populate all your acquisition lots and sale transactions.
+ - **Excel Export**: Generate ready-to-use reports for tax filing.
+ - **All 12 A3 columns** — Auto-calculates initial value, peak value, closing balance, dividends, sale proceeds
+ - **Per-Stock Summary** — Automatically aggregates all lots to provide a clear per-stock dividend summary
+@@ -34,13 +35,15 @@ python3 app.py
+ ## Workflow
+ 
+ 1. **Fetch SBI Rates** — Click "⬇ Fetch SBI Rates" button (first time only)
+-2. **Add stocks** — Enter ticker symbol and click Lookup
+-3. **Add lots** — Click "+ Add Lot" and enter buy date, quantity, price
+-4. **Add sells** — Click "+ Add Sell" for any lots sold during the year
+-5. **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 columns
+-6. **Override** — Click any calculated cell in the results table to manually adjust
+-7. **Export** — Click "📥 Export Excel" to download the formatted spreadsheet
+-8. **Save** — Click "💾 Save" to save your portfolio for future reference
++2. **Import Etrade Data (Optional)** — Click "📈 Upload Etrade" to automatically import your lots.
++   - *How to get the file:* Login to Etrade (https://us.etrade.com) &rarr; Goto Accounts Tab &rarr; Holdings Tab &rarr; View By Status Tab &rarr; Download Expanded.
++3. **Add stocks manually** — Enter ticker symbol and click Lookup
++4. **Add lots manually** — Click "+ Add Lot" and enter buy date, quantity, price
++5. **Add sells manually** — Click "+ Add Sell" for any lots sold during the year
++6. **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 columns
++7. **Override** — Click any calculated cell in the results table to manually adjust
++8. **Export** — Click "📥 Export Excel" to download the formatted spreadsheet
++9. **Save** — Click "💾 Save" to save your portfolio for future reference
+ 
+ ## Data Sources
+ 
+diff --git a/app.py b/app.py
+index ae054b8..96bf664 100644
+--- a/app.py
++++ b/app.py
+@@ -404,6 +404,32 @@ def api_import_previous_year():
+ 
+     return jsonify({"success": True, "portfolio": new_portfolio})
+ 
++@app.route("/api/upload-etrade", methods=["POST"])
++def api_upload_etrade():
++    """Upload and parse an Etrade file (CSV or XLSX)."""
++    if 'file' not in request.files:
++        return jsonify({"error": "No file part"}), 400
++    
++    file = request.files['file']
++    if file.filename == '':
++        return jsonify({"error": "No selected file"}), 400
++        
++    if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
++        return jsonify({"error": "File must be a CSV or XLSX"}), 400
++
++    try:
++        file_bytes = file.read()
++        portfolio_str = request.form.get("portfolio", "{}")
++        import json
++        portfolio = json.loads(portfolio_str)
++        
++        from core.etrade_parser import process_etrade_file
++        updated_portfolio = process_etrade_file(file_bytes, file.filename, portfolio)
++        return jsonify({"success": True, "portfolio": updated_portfolio})
++    except Exception as e:
++        logger.exception("Etrade upload error")
++        return jsonify({"success": False, "error": str(e)}), 500
++
+ 
+ def open_browser():
+     """Open the browser after a short delay."""
+diff --git a/core/etrade_parser.py b/core/etrade_parser.py
+new file mode 100644
+index 0000000..9dd5c83
+--- /dev/null
++++ b/core/etrade_parser.py
+@@ -0,0 +1,164 @@
++import io
++import csv
++import uuid
++import logging
++from datetime import datetime
++import openpyxl
++
++logger = logging.getLogger(__name__)
++
++def parse_date(date_val) -> str:
++    """Parse common CSV/Excel date formats into YYYY-MM-DD."""
++    if isinstance(date_val, datetime):
++        return date_val.strftime("%Y-%m-%d")
++    if not date_val: 
++        return None
++    date_str = str(date_val).strip().split(" ")[0]
++    for fmt in ("%m/%d/%Y", "%m/%d/%y", "%Y-%m-%d", "%d-%b-%Y", "%d-%b-%y"):
++        try:
++            return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
++        except ValueError:
++            pass
++    return None
++
++def find_col_index(headers: list, possible_names: list) -> int:
++    """Find the first matching header index from a list of possible names, prioritized by the order of possible_names."""
++    lower_headers = [str(h).strip().lower() if h else "" for h in headers]
++    for name in possible_names:
++        if name in lower_headers:
++            return lower_headers.index(name)
++    return -1
++
++def process_etrade_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict:
++    """
++    Parses an Etrade CSV or XLSX and adds/updates stocks, lots, and sells in the portfolio.
++    Applies FIFO logic for sells.
++    """
++    rows = []
++    
++    if filename.endswith('.csv'):
++        content = file_bytes.decode('utf-8-sig')
++        reader = csv.reader(io.StringIO(content))
++        rows = list(reader)
++    elif filename.endswith('.xlsx'):
++        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
++        ws = wb.active
++        for r in ws.iter_rows(values_only=True):
++            rows.append(list(r))
++    else:
++        raise ValueError("Unsupported file format")
++
++    if not rows:
++        raise ValueError("Empty file.")
++
++    headers = rows[0]
++    
++    # Specific mappings requested by user:
++    # "Vest Date" -> Date
++    # "Sellable Qty." -> Qty
++    # "Purchase Date FMV" -> Price
++    
++    date_idx = find_col_index(headers, ["vest date", "date acquired", "date", "transaction date"])
++    type_idx = find_col_index(headers, ["transaction type", "action", "type", "record type"])
++    symbol_idx = find_col_index(headers, ["symbol", "ticker"])
++    qty_idx = find_col_index(headers, ["sellable qty.", "quantity", "qty", "purchased qty."])
++    price_idx = find_col_index(headers, ["purchase date fmv", "price", "execution price", "purchase price"])
++
++    if date_idx == -1 or symbol_idx == -1 or qty_idx == -1 or price_idx == -1:
++        raise ValueError(f"Missing required columns. Found headers: {headers}")
++
++    transactions = []
++    for row in rows[1:]:
++        if len(row) <= max(date_idx, symbol_idx, qty_idx, price_idx):
++            continue
++            
++        sym = str(row[symbol_idx] or "").strip()
++        
++        t_type = "buy" # Default to buy for standard RSUs / ESPPs
++        if type_idx != -1:
++            t_type = str(row[type_idx] or "").strip().lower()
++            
++        d_val = row[date_idx]
++        q_val = row[qty_idx]
++        p_val = row[price_idx]
++
++        if not sym or not d_val or q_val is None or p_val is None:
++            continue
++
++        date_val = parse_date(d_val)
++        if not date_val:
++            continue
++
++        try:
++            qty = float(str(q_val).replace(",", ""))
++            if qty <= 0: continue # ignore 0 qty
++            price = float(str(p_val).replace("$", "").replace(",", ""))
++        except ValueError:
++            continue
++
++        # In ESPP / RSU "ByStatus" spreadsheets, everything is an acquisition lot if "Sellable Qty." > 0.
++        is_sell = "sell" in t_type or "sold" in t_type or t_type == "s"
++        is_buy = not is_sell
++        
++        if is_buy:
++            transactions.append({"type": "BUY", "date": date_val, "symbol": sym, "qty": qty, "price": price})
++        elif is_sell:
++            transactions.append({"type": "SELL", "date": date_val, "symbol": sym, "qty": qty, "price": price})
++
++    # Sort transactions chronologically
++    transactions.sort(key=lambda x: x["date"])
++
++    stocks_dict = {s["ticker"]: s for s in portfolio.get("stocks", [])}
++
++    for tx in transactions:
++        sym = tx["symbol"]
++        if sym not in stocks_dict:
++            stocks_dict[sym] = {
++                "id": str(uuid.uuid4()),
++                "ticker": sym,
++                "yahoo_ticker": sym,
++                "currency": "USD",
++                "skip_dividends": False,
++                "company_info": {},
++                "lots": []
++            }
++        
++        stock = stocks_dict[sym]
++
++        if tx["type"] == "BUY":
++            stock["lots"].append({
++                "id": str(uuid.uuid4()),
++                "buy_date": tx["date"],
++                "quantity": tx["qty"],
++                "buy_price": tx["price"],
++                "sells": []
++            })
++            stock["lots"].sort(key=lambda l: l["buy_date"])
++
++        elif tx["type"] == "SELL":
++            sell_qty = tx["qty"]
++            for lot in stock["lots"]:
++                if sell_qty <= 0:
++                    break
++                
++                # Calculate available qty in this lot
++                available_qty = float(lot["quantity"])
++                for s in lot.get("sells", []):
++                    available_qty -= float(s["quantity"])
++                
++                if available_qty > 0:
++                    qty_to_deduct = min(sell_qty, available_qty)
++                    sell_qty -= qty_to_deduct
++                    
++                    if "sells" not in lot:
++                        lot["sells"] = []
++                        
++                    lot["sells"].append({
++                        "id": str(uuid.uuid4()),
++                        "sell_date": tx["date"],
++                        "quantity": qty_to_deduct,
++                        "sell_price": tx["price"]
++                    })
++
++    portfolio["stocks"] = list(stocks_dict.values())
++    return portfolio
+diff --git a/static/js/app.js b/static/js/app.js
+index 39137b0..b5455c5 100644
+--- a/static/js/app.js
++++ b/static/js/app.js
+@@ -74,6 +74,11 @@ function bindEvents() {
+     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
+     document.getElementById("ratesCurrencySelect").addEventListener("change", loadMonthlyRates);
+     
++    document.getElementById("uploadEtradeBtn").addEventListener("click", () => {
++        document.getElementById("etradeFileInput").click();
++    });
++    document.getElementById("etradeFileInput").addEventListener("change", uploadEtradeFile);
++    
+     document.getElementById("switchUserBtn").addEventListener("click", () => {
+         document.getElementById("appHeader").classList.add("hidden");
+         document.getElementById("appMain").classList.add("hidden");
+@@ -328,6 +333,42 @@ async function lookupStock() {
+     }
+ }
+ 
++async function uploadEtradeFile(e) {
++    const file = e.target.files[0];
++    if (!file) return;
++
++    const formData = new FormData();
++    formData.append("file", file);
++    formData.append("portfolio", JSON.stringify(state.portfolio));
++
++    showLoading("Parsing Etrade file...");
++    try {
++        const resp = await fetch("/api/upload-etrade", {
++            method: "POST",
++            body: formData
++        });
++        const result = await resp.json();
++        
++        hideLoading();
++        if (result.success) {
++            state.portfolio = result.portfolio;
++            
++            // Re-render UI
++            document.getElementById("stockCards").innerHTML = "";
++            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
++            updateCalcButtonVisibility();
++            showToast("Etrade data imported successfully!", "success");
++        } else {
++            showToast("Error parsing file: " + result.error, "error");
++        }
++    } catch (err) {
++        hideLoading();
++        showToast("Upload failed: " + err.message, "error");
++    } finally {
++        e.target.value = ""; // reset input
++    }
++}
++
+ // ===== Render Stock Card =====
+ function renderStockCard(stock) {
+     const template = document.getElementById("stockCardTemplate");
+diff --git a/templates/index.html b/templates/index.html
+index c9aba82..e7e5b8f 100644
+--- a/templates/index.html
++++ b/templates/index.html
+@@ -70,6 +70,8 @@ <h1>📋 Schedule FA — Section A3</h1>
+                 <button id="fetchRatesBtn" class="btn btn-outline" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
+                 <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
+                 <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
++                <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload Etrade Data">📈 Upload Etrade</button>
++                <input type="file" id="etradeFileInput" style="display: none;" accept=".csv, .xlsx">
+                 <button id="loadBtn" class="btn btn-outline" title="Load saved data">📂 Load</button>
+                 <button id="saveBtn" class="btn btn-primary" title="Save current data">💾 Save</button>
+             </div>

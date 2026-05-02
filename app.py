@@ -463,6 +463,32 @@ def api_import_previous_year():
     return jsonify({"success": True, "portfolio": new_portfolio})
 
 
+@app.route("/api/upload-etrade", methods=["POST"])
+def api_upload_etrade():
+    """Upload and parse an Etrade file (CSV or XLSX)."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
+        return jsonify({"error": "File must be a CSV or XLSX"}), 400
+
+    try:
+        file_bytes = file.read()
+        portfolio_str = request.form.get("portfolio", "{}")
+        portfolio = json.loads(portfolio_str)
+        
+        from core.etrade_parser import process_etrade_file
+        updated_portfolio = process_etrade_file(file_bytes, file.filename, portfolio)
+        return jsonify({"success": True, "portfolio": updated_portfolio})
+    except Exception as e:
+        logger.exception("Etrade upload error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 def open_browser():
     """Open the browser after a short delay."""
     webbrowser.open(f"http://{FLASK_HOST}:{FLASK_PORT}")
