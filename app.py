@@ -431,13 +431,13 @@ def api_import_previous_year():
                 qty -= float(sell["quantity"])
 
             if qty > 0:
-                # Carry forward this lot (with all historical sells preserved)
+                # Carry forward this lot with only the remaining quantity (unsold)
                 new_lot = {
                     "id": lot.get("id", str(uuid.uuid4())),
                     "buy_date": lot["buy_date"],
-                    "quantity": lot["quantity"],
+                    "quantity": qty,
                     "buy_price": lot["buy_price"],
-                    "sells": lot.get("sells", []),  # Keep historical sells
+                    "sells": [],  # Do not carry forward historical sells
                 }
                 new_stock["lots"].append(new_lot)
 

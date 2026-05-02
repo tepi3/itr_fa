@@ -70,6 +70,7 @@ function bindEvents() {
     document.getElementById("loadBtn").addEventListener("click", loadPortfolio);
     document.getElementById("fetchRatesBtn").addEventListener("click", fetchSbiRates);
     document.getElementById("importPrevBtn").addEventListener("click", importPreviousYear);
+    document.getElementById("clearYearBtn").addEventListener("click", clearCurrentYear);
     document.getElementById("viewRatesBtn").addEventListener("click", showMonthlyRates);
     document.getElementById("refreshMonthlyRatesBtn").addEventListener("click", loadMonthlyRates);
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
@@ -952,6 +953,17 @@ async function importPreviousYear() {
         hideLoading();
         showToast(`Import error: ${e.message}`, "error");
     }
+}
+
+function clearCurrentYear() {
+    if (!confirm(`Are you sure you want to clear all data for CY${state.portfolio.calendar_year}? This will remove all stocks and overrides currently loaded on screen.`)) return;
+    
+    state.portfolio.stocks = [];
+    state.portfolio.overrides = {};
+    document.getElementById("stockCards").innerHTML = "";
+    document.getElementById("resultsSection").classList.add("hidden");
+    updateCalcButtonVisibility();
+    showToast(`Cleared all data for CY${state.portfolio.calendar_year}`, "success");
 }
 
 // ===== Export CSV =====
