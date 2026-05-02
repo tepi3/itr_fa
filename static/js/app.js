@@ -102,7 +102,7 @@ async function initUserSelection() {
             if (resp.success) {
                 input.value = "";
                 await fetchUsers();
-                selectUser(resp.username);
+                await selectUser(resp.username);
             } else {
                 showToast(resp.error || "Failed to create user", "error");
             }
@@ -148,10 +148,10 @@ function renderUserList(users) {
         `;
         
         // Use a single listener on the item but check the target
-        item.addEventListener("click", (e) => {
+        item.addEventListener("click", async (e) => {
             // If we clicked a button or something inside it, don't select the user
             if (e.target.closest(".user-actions")) return;
-            selectUser(username);
+            await selectUser(username);
         });
         
         item.querySelector(".rename-user-btn").addEventListener("click", async (e) => {
@@ -188,7 +188,7 @@ function renderUserList(users) {
     });
 }
 
-function selectUser(username) {
+async function selectUser(username) {
     state.username = username;
     document.getElementById("activeUserDisplay").textContent = username;
     
@@ -209,18 +209,7 @@ function selectUser(username) {
     document.getElementById("stockCards").innerHTML = "";
     document.getElementById("resultsSection").classList.add("hidden");
     
-    checkSavedData();
-}
-
-async function checkSavedData() {
-    if (!state.username) return;
-    try {
-        const resp = await fetch(`/api/list-saves?username=${encodeURIComponent(state.username)}`);
-        const data = await resp.json();
-        if (data.saves && data.saves.length > 0) {
-            showToast(`Found ${data.saves.length} saved portfolio(s) for ${state.username}`, "info");
-        }
-    } catch (e) { /* ignore */ }
+    await autoLoadForYear(state.portfolio.calendar_year);
 }
 
 // ===== API Helpers =====
