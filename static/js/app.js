@@ -24,16 +24,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initYearSelector() {
     const select = document.getElementById("yearSelect");
+    const rateYearSelect = document.getElementById("ratesYearSelect");
     const currentYear = new Date().getFullYear();
-    for (let y = currentYear; y >= 2020; y--) {
+    for (let y = currentYear; y >= 2000; y--) {
         const opt = document.createElement("option");
         opt.value = y;
         opt.textContent = y;
         if (y === state.portfolio.calendar_year) opt.selected = true;
         select.appendChild(opt);
+
+        const rOpt = document.createElement("option");
+        rOpt.value = y;
+        rOpt.textContent = y;
+        if (y === state.portfolio.calendar_year) rOpt.selected = true;
+        rateYearSelect.appendChild(rOpt);
     }
     select.addEventListener("change", (e) => {
         state.portfolio.calendar_year = parseInt(e.target.value);
+        rateYearSelect.value = state.portfolio.calendar_year;
     });
 }
 
@@ -50,6 +58,8 @@ function bindEvents() {
     document.getElementById("importPrevBtn").addEventListener("click", importPreviousYear);
     document.getElementById("viewRatesBtn").addEventListener("click", showMonthlyRates);
     document.getElementById("refreshMonthlyRatesBtn").addEventListener("click", loadMonthlyRates);
+    document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
+    document.getElementById("ratesCurrencySelect").addEventListener("change", loadMonthlyRates);
 }
 
 async function checkSavedData() {
@@ -147,7 +157,20 @@ async function lookupStock() {
                 nature: info.nature || "Company",
             },
             lots: [],
+            dividends: [],
         };
+
+        // Try to fetch dividends for current calendar year
+        try {
+            const divInfo = await apiGet(`/api/dividends?ticker=${info.yahoo_ticker || ticker}&year=${state.portfolio.calendar_year}`);
+            if (divInfo.dividends) {
+                stock.dividends = divInfo.dividends.map(d => ({
+                    id: generateId(),
+                    ex_date: d.ex_date,
+                    amount: d.amount
+                }));
+            }
+        } catch (e) { console.warn("Failed to fetch dividends", e); }
 
         state.portfolio.stocks.push(stock);
         renderStockCard(stock);
@@ -177,6 +200,8 @@ function renderStockCard(stock) {
     if (buyHeader) buyHeader.textContent = `Buy Price (${sym})`;
     const sellHeader = card.querySelector(".sell-price-header");
     if (sellHeader) sellHeader.textContent = `Sell Price (${sym})`;
+    const divHeader = card.querySelector(".div-amount-header");
+    if (divHeader) divHeader.textContent = `Dividend Per Share (${sym})`;
 
     // Fill company info
     card.querySelector(".company-country").value = stock.company_info.country_code;
@@ -214,11 +239,15 @@ function renderStockCard(stock) {
     // Add sell button
     card.querySelector(".add-sell-btn").addEventListener("click", () => addSellRow(card, stock));
 
-    // Render existing lots and sells
+    // Add div button
+    card.querySelector(".add-div-btn").addEventListener("click", () => addDividendRow(card, stock));
+
+    // Render existing lots, sells, and dividends
     stock.lots.forEach(lot => renderLotRow(card, stock, lot));
     stock.lots.forEach(lot => {
         (lot.sells || []).forEach(sell => renderSellRow(card, stock, lot, sell));
     });
+    (stock.dividends || []).forEach(div => renderDividendRow(card, stock, div));
 
     document.getElementById("stockCards").appendChild(card);
 }
@@ -368,6 +397,46 @@ function updateSellLotOptions(card, stock) {
             `<option value="${l.id}" ${l.id === currentValue ? "selected" : ""}>${l.buy_date || "No date"} (qty: ${l.quantity || 0})</option>`
         ).join("");
     });
+}
+
+// ===== Dividends =====
+function addDividendRow(card, stock, divData = null) {
+    const div = divData || {
+        id: generateId(),
+        ex_date: "",
+        amount: "",
+    };
+    if (!divData) {
+        if (!stock.dividends) stock.dividends = [];
+        stock.dividends.push(div);
+    }
+    renderDividendRow(card, stock, div);
+}
+
+function renderDividendRow(card, stock, div) {
+    const tbody = card.querySelector(".dividends-tbody");
+    const tr = document.createElement("tr");
+    tr.dataset.divId = div.id;
+
+    tr.innerHTML = `
+        <td><input type="date" class="div-date" value="${div.ex_date}"></td>
+        <td><input type="number" class="div-amount" value="${div.amount}" step="any" min="0" placeholder="0.00"></td>
+        <td><button class="btn btn-sm btn-danger remove-div-btn">✕</button></td>
+    `;
+
+    tr.querySelectorAll("input").forEach(input => {
+        input.addEventListener("change", () => {
+            div.ex_date = tr.querySelector(".div-date").value;
+            div.amount = parseFloat(tr.querySelector(".div-amount").value) || 0;
+        });
+    });
+
+    tr.querySelector(".remove-div-btn").addEventListener("click", () => {
+        stock.dividends = (stock.dividends || []).filter(d => d.id !== div.id);
+        tr.remove();
+    });
+
+    tbody.appendChild(tr);
 }
 
 // ===== Calculate =====
@@ -744,7 +813,7 @@ async function showMonthlyRates() {
 }
 
 async function loadMonthlyRates() {
-    const year = state.portfolio.calendar_year;
+    const year = parseInt(document.getElementById("ratesYearSelect").value) || state.portfolio.calendar_year;
     const currency = document.getElementById("ratesCurrencySelect").value;
     const tbody = document.getElementById("monthlyRatesTableBody");
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Loading rates...</td></tr>';

@@ -36,6 +36,12 @@ def test_qcom_vwra():
                     "nature": "Company"
                 },
                 "skip_dividends": False,
+                "dividends": [
+                    {"id": "div1", "ex_date": "2023-03-01", "amount": 0.75},
+                    {"id": "div2", "ex_date": "2023-05-31", "amount": 0.80},
+                    {"id": "div3", "ex_date": "2023-08-30", "amount": 0.80},
+                    {"id": "div4", "ex_date": "2023-11-29", "amount": 0.80}
+                ],
                 "lots": [
                     {
                         "id": "lot_1",
@@ -95,7 +101,7 @@ def test_qcom_vwra():
     rows = calc_data["rows"]
     print(f"Calculated {len(rows)} rows.")
     for r in rows:
-        print(f"  {r['entity_name']} - Initial: {r['initial_value']}, Peak: {r['peak_value']}, Closing: {r['closing_balance']}")
+        print(f"  {r['entity_name']} - Initial: {r['initial_value']}, Peak: {r['peak_value']}, Closing: {r['closing_balance']}, Div: {r['total_dividends']}")
 
     # 4. Save Portfolio
     print("Saving portfolio...")

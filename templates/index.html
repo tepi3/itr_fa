@@ -56,13 +56,15 @@
                     <strong>last working day of the previous month</strong> is used. Edit any rate if the auto-fetched value is incorrect or missing.
                 </p>
                 <div class="rates-currency-select">
-                    <label for="ratesCurrencySelect">Currency:</label>
+                    <label for="ratesYearSelect">Year:</label>
+                    <select id="ratesYearSelect"></select>
+                    <label for="ratesCurrencySelect" style="margin-left: 12px;">Currency:</label>
                     <select id="ratesCurrencySelect">
                         <option value="USD">$ USD</option>
                         <option value="GBP">£ GBP</option>
                         <option value="EUR">€ EUR</option>
                     </select>
-                    <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline">↻ Refresh</button>
+                    <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">↻ Load</button>
                 </div>
                 <table id="monthlyRatesTable">
                     <thead>
@@ -246,6 +248,25 @@
                             </tr>
                         </thead>
                         <tbody class="sells-tbody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Dividends Section -->
+                <div class="dividends-section">
+                    <div class="section-header">
+                        <h3>Dividends (in Calendar Year)</h3>
+                        <button class="btn btn-sm btn-primary add-div-btn">+ Add Dividend</button>
+                    </div>
+                    <p class="hint" style="margin-top:-5px; margin-bottom:8px;">Auto-fetched from Yahoo Finance. You can edit, delete, or add manually.</p>
+                    <table class="dividends-table">
+                        <thead>
+                            <tr>
+                                <th>Ex-Date</th>
+                                <th class="div-amount-header">Dividend Per Share ($)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="dividends-tbody"></tbody>
                     </table>
                 </div>
             </div>

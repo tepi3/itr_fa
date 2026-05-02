@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from core.sbi_rates import get_sbi_tt_rate
-from core.stock_data import get_historical_prices, get_dividends, get_price_on_date
+from core.stock_data import get_historical_prices, get_price_on_date
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +220,7 @@ def calculate_closing_balance(
 
 def calculate_dividends(
     lot: dict,
-    yahoo_ticker: str,
+    stock: dict,
     currency: str,
     calendar_year: int,
     sbi_overrides: dict,
@@ -235,8 +235,8 @@ def calculate_dividends(
 
     buy_date = _parse_date(lot["buy_date"])
 
-    # Fetch dividends for this year
-    divs = get_dividends(yahoo_ticker, calendar_year)
+    # Use explicit dividends passed from frontend
+    divs = stock.get("dividends", [])
 
     if not divs:
         return {"value": 0, "dividend_entries": [], "no_dividends": True}
@@ -245,8 +245,15 @@ def calculate_dividends(
     entries = []
 
     for div in divs:
+        if not div.get("ex_date") or not div.get("amount"):
+            continue
+
         ex_date = _parse_date(div["ex_date"])
-        amount = div["amount"]
+        # Only process dividends for the target calendar year
+        if ex_date.year != calendar_year:
+            continue
+
+        amount = float(div["amount"])
 
         # Skip if lot didn't exist yet
         if buy_date > ex_date:
@@ -391,7 +398,7 @@ def calculate_a3_rows(portfolio: dict) -> list:
             initial = calculate_initial_value(lot, currency, sbi_overrides)
             peak = calculate_peak_value(lot, sells_in_cy, yahoo_ticker, currency, calendar_year, sbi_overrides)
             closing = calculate_closing_balance(lot, yahoo_ticker, currency, calendar_year, sbi_overrides)
-            dividends = calculate_dividends(lot, yahoo_ticker, currency, calendar_year, sbi_overrides, skip_divs)
+            dividends = calculate_dividends(lot, stock, currency, calendar_year, sbi_overrides, skip_divs)
             sales = calculate_sale_proceeds(lot, currency, calendar_year, sbi_overrides)
 
             # Apply overrides
