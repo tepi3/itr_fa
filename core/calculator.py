@@ -27,13 +27,13 @@ def _format_date_display(date_str: str) -> str:
     return d.strftime("%d/%m/%Y")
 
 
-def _get_rate_value(d: date, overrides: dict) -> tuple:
-    """Get SBI TT rate value and metadata for USD."""
-    result = get_sbi_tt_rate(d, "USD", overrides)
+def _get_rate_value(d: date, currency: str, overrides: dict) -> tuple:
+    """Get SBI TT rate value and metadata."""
+    result = get_sbi_tt_rate(d, currency, overrides)
     return result.get("rate"), result.get("rate_date"), result.get("source")
 
 
-def calculate_initial_value(lot: dict, sbi_overrides: dict) -> dict:
+def calculate_initial_value(lot: dict, currency: str, sbi_overrides: dict) -> dict:
     """
     Calculate column 8: Initial value of the investment (₹).
     = buy_price × quantity × TTBR(last_wd_prev_month_of_buy_date)
@@ -42,7 +42,7 @@ def calculate_initial_value(lot: dict, sbi_overrides: dict) -> dict:
     buy_price = float(lot["buy_price"])
     quantity = float(lot["quantity"])
 
-    rate, rate_date, source = _get_rate_value(buy_date, sbi_overrides)
+    rate, rate_date, source = _get_rate_value(buy_date, currency, sbi_overrides)
 
     if rate is None:
         return {
@@ -69,6 +69,7 @@ def calculate_peak_value(
     lot: dict,
     sells_in_cy: list,
     yahoo_ticker: str,
+    currency: str,
     calendar_year: int,
     sbi_overrides: dict,
 ) -> dict:
@@ -138,7 +139,7 @@ def calculate_peak_value(
         # Get TTBR for this month (cached)
         month_key = f"{trading_date.year}-{trading_date.month:02d}"
         if month_key not in monthly_ttbr_cache:
-            rate, _, _ = _get_rate_value(trading_date, sbi_overrides)
+            rate, _, _ = _get_rate_value(trading_date, currency, sbi_overrides)
             monthly_ttbr_cache[month_key] = rate
 
         ttbr = monthly_ttbr_cache[month_key]
@@ -168,6 +169,7 @@ def calculate_peak_value(
 def calculate_closing_balance(
     lot: dict,
     yahoo_ticker: str,
+    currency: str,
     calendar_year: int,
     sbi_overrides: dict,
 ) -> dict:
@@ -199,7 +201,7 @@ def calculate_closing_balance(
         return {"value": None, "error": "Could not fetch Dec 31 price"}
 
     # Get TTBR
-    rate, rate_date, _ = _get_rate_value(dec31, sbi_overrides)
+    rate, rate_date, _ = _get_rate_value(dec31, currency, sbi_overrides)
     if rate is None:
         return {"value": None, "error": f"SBI rate not found for {rate_date}"}
 
@@ -219,6 +221,7 @@ def calculate_closing_balance(
 def calculate_dividends(
     lot: dict,
     stock: dict,
+    currency: str,
     calendar_year: int,
     sbi_overrides: dict,
     skip_dividends: bool = False,
@@ -267,7 +270,7 @@ def calculate_dividends(
             continue
 
         # Get TTBR
-        rate, rate_date, _ = _get_rate_value(ex_date, sbi_overrides)
+        rate, rate_date, _ = _get_rate_value(ex_date, currency, sbi_overrides)
         if rate is None:
             entries.append({
                 "ex_date": div["ex_date"],
@@ -297,6 +300,7 @@ def calculate_dividends(
 
 def calculate_sale_proceeds(
     lot: dict,
+    currency: str,
     calendar_year: int,
     sbi_overrides: dict,
 ) -> dict:
@@ -316,7 +320,7 @@ def calculate_sale_proceeds(
         sell_price = float(sell["sell_price"])
         sell_qty = float(sell["quantity"])
 
-        rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides)
+        rate, rate_date, _ = _get_rate_value(sell_date, currency, sbi_overrides)
         if rate is None:
             sale_entries.append({
                 "sell_date": sell["sell_date"],
@@ -391,11 +395,11 @@ def calculate_a3_rows(portfolio: dict) -> list:
                 continue  # Fully sold in prior year, skip
 
             # Calculate all columns
-            initial = calculate_initial_value(lot, sbi_overrides)
-            peak = calculate_peak_value(lot, sells_in_cy, yahoo_ticker, calendar_year, sbi_overrides)
-            closing = calculate_closing_balance(lot, yahoo_ticker, calendar_year, sbi_overrides)
-            dividends = calculate_dividends(lot, stock, calendar_year, sbi_overrides, skip_divs)
-            sales = calculate_sale_proceeds(lot, calendar_year, sbi_overrides)
+            initial = calculate_initial_value(lot, currency, sbi_overrides)
+            peak = calculate_peak_value(lot, sells_in_cy, yahoo_ticker, currency, calendar_year, sbi_overrides)
+            closing = calculate_closing_balance(lot, yahoo_ticker, currency, calendar_year, sbi_overrides)
+            dividends = calculate_dividends(lot, stock, currency, calendar_year, sbi_overrides, skip_divs)
+            sales = calculate_sale_proceeds(lot, currency, calendar_year, sbi_overrides)
 
             # Apply overrides
             lot_overrides = overrides.get(lot_id, {})

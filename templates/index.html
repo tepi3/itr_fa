@@ -91,7 +91,13 @@
                 <div class="rates-currency-select">
                     <label for="ratesYearSelect">Year:</label>
                     <select id="ratesYearSelect"></select>
-                    <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">↻ Load Rates</button>
+                    <label for="ratesCurrencySelect" style="margin-left: 12px;">Currency:</label>
+                    <select id="ratesCurrencySelect">
+                        <option value="USD">$ USD</option>
+                        <option value="GBP">£ GBP</option>
+                        <option value="EUR">€ EUR</option>
+                    </select>
+                    <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">↻ Load</button>
                 </div>
                 <table id="monthlyRatesTable">
                     <thead>
@@ -207,6 +213,7 @@
                 <div class="stock-info-summary">
                     <span class="stock-ticker"></span>
                     <span class="stock-name"></span>
+                    <span class="stock-currency badge"></span>
                 </div>
                 <div class="stock-card-actions">
                     <button class="btn btn-sm btn-outline toggle-details-btn">▼ Details</button>
@@ -263,7 +270,7 @@
                             <tr>
                                 <th>Buy Date</th>
                                 <th>Quantity</th>
-                                <th class="buy-price-header">Buy Price (USD)</th>
+                                <th class="buy-price-header">Buy Price ($)</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -283,7 +290,7 @@
                                 <th>Lot (Buy Date)</th>
                                 <th>Sell Date</th>
                                 <th>Quantity</th>
-                                <th class="sell-price-header">Sell Price (USD)</th>
+                                <th class="sell-price-header">Sell Price ($)</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -302,7 +309,7 @@
                         <thead>
                             <tr>
                                 <th>Ex-Date</th>
-                                <th class="div-amount-header">Dividend Per Share (USD)</th>
+                                <th class="div-amount-header">Dividend Per Share ($)</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
