@@ -126,9 +126,10 @@ def test_qcom_vwra():
     res = requests.post(f"{BASE_URL}/export-excel", json={"rows": rows, "calendar_year": 2023})
     assert res.status_code == 200
     assert len(res.content) > 0
-    with open("test_export.xlsx", "wb") as f:
+    export_path = os.path.join(os.path.dirname(__file__), "test_export.xlsx")
+    with open(export_path, "wb") as f:
         f.write(res.content)
-    print("Excel exported to test_export.xlsx")
+    print(f"Excel exported to {export_path}")
 
 if __name__ == "__main__":
     try:
