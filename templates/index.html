@@ -91,13 +91,8 @@
                 <div class="rates-currency-select">
                     <label for="ratesYearSelect">Year:</label>
                     <select id="ratesYearSelect"></select>
-                    <label for="ratesCurrencySelect" style="margin-left: 12px;">Currency:</label>
-                    <select id="ratesCurrencySelect">
-                        <option value="USD">$ USD</option>
-                        <option value="GBP">£ GBP</option>
-                        <option value="EUR">€ EUR</option>
-                    </select>
-                    <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">↻ Load</button>
+                    <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">↻ Load Rates</button>
+                    <button id="lockRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">🔒 Lock Year</button>
                 </div>
                 <table id="monthlyRatesTable">
                     <thead>
@@ -139,7 +134,7 @@
         <section id="resultsSection" class="card hidden">
             <div class="results-header">
                 <h2>📊 Schedule FA — Section A3 Preview</h2>
-                <button id="exportExcelBtn" class="btn btn-primary">📥 Export Excel</button>
+                <button id="exportCsvBtn" class="btn btn-primary">📥 Export CSV</button>
             </div>
             <div class="table-wrapper">
                 <table id="a3Table">
@@ -218,7 +213,6 @@
                 <div class="stock-info-summary">
                     <span class="stock-ticker"></span>
                     <span class="stock-name"></span>
-                    <span class="stock-currency badge"></span>
                 </div>
                 <div class="stock-card-actions">
                     <button class="btn btn-sm btn-outline toggle-details-btn">▼ Details</button>

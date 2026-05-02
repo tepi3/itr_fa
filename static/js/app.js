@@ -49,9 +49,10 @@ function initYearSelectors() {
         initialSelect.appendChild(iOpt);
     }
     
-    mainSelect.addEventListener("change", (e) => {
+    mainSelect.addEventListener("change", async (e) => {
         state.portfolio.calendar_year = parseInt(e.target.value);
         rateYearSelect.value = state.portfolio.calendar_year;
+        if (state.username) await autoLoadForYear(state.portfolio.calendar_year);
     });
     initialSelect.addEventListener("change", (e) => {
         state.portfolio.calendar_year = parseInt(e.target.value);
@@ -64,7 +65,7 @@ function bindEvents() {
         if (e.key === "Enter") lookupStock();
     });
     document.getElementById("calculateBtn").addEventListener("click", calculateAll);
-    document.getElementById("exportExcelBtn").addEventListener("click", exportExcel);
+    document.getElementById("exportCsvBtn").addEventListener("click", exportCSV);
     document.getElementById("saveBtn").addEventListener("click", savePortfolio);
     document.getElementById("loadBtn").addEventListener("click", loadPortfolio);
     document.getElementById("fetchRatesBtn").addEventListener("click", fetchSbiRates);
@@ -72,7 +73,7 @@ function bindEvents() {
     document.getElementById("viewRatesBtn").addEventListener("click", showMonthlyRates);
     document.getElementById("refreshMonthlyRatesBtn").addEventListener("click", loadMonthlyRates);
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
-    document.getElementById("ratesCurrencySelect").addEventListener("change", loadMonthlyRates);
+    document.getElementById("lockRatesBtn").addEventListener("click", toggleLockRates);
     
     document.getElementById("switchUserBtn").addEventListener("click", () => {
         document.getElementById("appHeader").classList.add("hidden");
@@ -264,9 +265,7 @@ function toggleSection(id) {
     if (icon) icon.style.transform = el.classList.contains("collapsed") ? "rotate(-90deg)" : "";
 }
 
-// ===== Currency Symbols =====
-const CURRENCY_SYMBOLS = { USD: '$', GBP: '£', EUR: '€', JPY: '¥', HKD: 'HK$', SGD: 'S$' };
-function currSym(code) { return CURRENCY_SYMBOLS[code] || code; }
+
 
 // ===== Stock Lookup =====
 async function lookupStock() {
@@ -337,16 +336,14 @@ function renderStockCard(stock) {
     card.dataset.stockId = stock.id;
     card.querySelector(".stock-ticker").textContent = stock.ticker;
     card.querySelector(".stock-name").textContent = stock.company_info.name;
-    card.querySelector(".stock-currency").textContent = currSym(stock.currency) + ' ' + stock.currency;
 
-    // Update price column headers with currency symbol
-    const sym = currSym(stock.currency);
+    // Update price column headers
     const buyHeader = card.querySelector(".buy-price-header");
-    if (buyHeader) buyHeader.textContent = `Buy Price (${sym})`;
+    if (buyHeader) buyHeader.textContent = `Buy Price ($)`;
     const sellHeader = card.querySelector(".sell-price-header");
-    if (sellHeader) sellHeader.textContent = `Sell Price (${sym})`;
+    if (sellHeader) sellHeader.textContent = `Sell Price ($)`;
     const divHeader = card.querySelector(".div-amount-header");
-    if (divHeader) divHeader.textContent = `Dividend Per Share (${sym})`;
+    if (divHeader) divHeader.textContent = `Dividend Per Share ($)`;
 
     // Fill company info
     card.querySelector(".company-country").value = stock.company_info.country_code;
@@ -873,20 +870,19 @@ async function loadPortfolio() {
 
 // ===== Fetch SBI Rates =====
 async function fetchSbiRates() {
-    showLoading("Downloading SBI TT rates from GitHub...\nThis may take a moment for the first time.");
+    showLoading("Downloading SBI USD rates from GitHub...");
     try {
-        const usdResult = await apiPost("/api/fetch-sbi-rates", { currency: "USD" });
-        let msg = `USD: ${usdResult.entries} rates`;
-
-        // Also fetch GBP if any stock uses it
-        const hasGbp = state.portfolio.stocks.some(s => s.currency === "GBP");
-        if (hasGbp) {
-            const gbpResult = await apiPost("/api/fetch-sbi-rates", { currency: "GBP" });
-            msg += `, GBP: ${gbpResult.entries} rates`;
-        }
-
+        const result = await apiPost("/api/fetch-sbi-rates");
         hideLoading();
-        showToast(`SBI rates cached: ${msg}`, "success");
+        if (result.success) {
+            let msg = `Fetched ${result.entries} USD rates`;
+            if (result.locked_years && result.locked_years.length > 0) {
+                msg += ` (locked years ${result.locked_years.join(", ")} preserved)`;
+            }
+            showToast(msg, "success");
+        } else {
+            showToast(result.error || "Failed to fetch rates", "error");
+        }
     } catch (e) {
         hideLoading();
         showToast(`Error fetching SBI rates: ${e.message}`, "error");
@@ -928,15 +924,15 @@ async function importPreviousYear() {
     }
 }
 
-// ===== Export Excel =====
-async function exportExcel() {
+// ===== Export CSV =====
+async function exportCSV() {
     if (!state.calculatedRows.length) {
         return showToast("Calculate first, then export", "warning");
     }
 
-    showLoading("Generating Excel...");
+    showLoading("Generating CSV...");
     try {
-        const resp = await fetch("/api/export-excel", {
+        const resp = await fetch("/api/export-csv", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -951,12 +947,12 @@ async function exportExcel() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `Schedule_FA_A3_CY${state.portfolio.calendar_year}.xlsx`;
+        a.download = `Schedule_FA_A3_CY${state.portfolio.calendar_year}.csv`;
         a.click();
         URL.revokeObjectURL(url);
 
         hideLoading();
-        showToast("Excel downloaded!", "success");
+        showToast("CSV downloaded!", "success");
     } catch (e) {
         hideLoading();
         showToast(`Export error: ${e.message}`, "error");
@@ -991,33 +987,43 @@ async function showMonthlyRates() {
 
 async function loadMonthlyRates() {
     const year = parseInt(document.getElementById("ratesYearSelect").value) || state.portfolio.calendar_year;
-    const currency = document.getElementById("ratesCurrencySelect").value;
     const tbody = document.getElementById("monthlyRatesTableBody");
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Loading rates...</td></tr>';
 
     try {
-        const data = await apiGet(`/api/monthly-rates?year=${year}&currency=${currency}`);
+        const data = await apiGet(`/api/monthly-rates?year=${year}`);
         tbody.innerHTML = "";
         if (!data.success) {
             tbody.innerHTML = '<tr><td colspan="5" style="color:var(--danger)">Error loading rates</td></tr>';
             return;
         }
-        const sym = currSym(currency);
+
+        // Update lock button state
+        const lockBtn = document.getElementById("lockRatesBtn");
+        if (data.locked) {
+            lockBtn.textContent = "🔓 Unlock Year";
+            lockBtn.classList.add("locked");
+        } else {
+            lockBtn.textContent = "🔒 Lock Year";
+            lockBtn.classList.remove("locked");
+        }
+
         data.rates.forEach(r => {
             const statusClass = r.source === 'override' ? 'override' : r.source === 'cache' ? 'cached' : 'missing';
             const statusLabel = r.source === 'not_found' ? 'Missing — enter manually' : r.source;
             const rateVal = r.rate !== null ? r.rate : '';
+            const isLocked = data.locked;
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td><strong>${r.month_name}</strong> ${year}</td>
                 <td>${r.rate_date || '—'}</td>
                 <td>
                     <input type="number" class="monthly-rate-input" step="0.01" value="${rateVal}"
-                           placeholder="Enter ₹ rate" data-rate-date="${r.rate_date}" data-currency="${currency}">
+                           placeholder="Enter ₹ rate" data-rate-date="${r.rate_date}" ${isLocked ? 'disabled' : ''}>
                 </td>
-                <td><span class="rate-status ${statusClass}">${statusLabel}</span></td>
+                <td><span class="rate-status ${statusClass}">${statusLabel}${isLocked ? ' 🔒' : ''}</span></td>
                 <td><button class="btn btn-sm btn-primary save-rate-btn" data-rate-date="${r.rate_date}"
-                    data-currency="${currency}">💾 Save</button></td>
+                    ${isLocked ? 'disabled' : ''}>💾 Save</button></td>
             `;
             // Save button handler
             tr.querySelector(".save-rate-btn").addEventListener("click", async () => {
@@ -1025,11 +1031,9 @@ async function loadMonthlyRates() {
                 const val = parseFloat(input.value);
                 if (!val || val <= 0) return showToast("Enter a valid rate", "warning");
                 const rateDate = input.dataset.rateDate;
-                const cur = input.dataset.currency;
                 try {
-                    await apiPost("/api/save-manual-rate", { rate_date: rateDate, currency: cur, rate: val });
+                    await apiPost("/api/save-manual-rate", { rate_date: rateDate, rate: val });
                     showToast(`Saved ₹${val} for ${rateDate}`, "success");
-                    // Update status badge
                     const badge = tr.querySelector(".rate-status");
                     badge.className = "rate-status cached";
                     badge.textContent = "cache";
@@ -1041,5 +1045,81 @@ async function loadMonthlyRates() {
         });
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
+    }
+}
+
+// ===== Lock/Unlock Rates =====
+async function toggleLockRates() {
+    const year = parseInt(document.getElementById("ratesYearSelect").value) || state.portfolio.calendar_year;
+    const lockBtn = document.getElementById("lockRatesBtn");
+    const isCurrentlyLocked = lockBtn.classList.contains("locked");
+    const action = isCurrentlyLocked ? "unlock" : "lock";
+
+    try {
+        const resp = await apiPost("/api/lock-rates", { year, action });
+        if (resp.success) {
+            showToast(`Rates for ${year} ${action}ed`, "success");
+            await loadMonthlyRates();
+        } else {
+            showToast(resp.error || `Failed to ${action} rates`, "error");
+        }
+    } catch (e) {
+        showToast(`Error: ${e.message}`, "error");
+    }
+}
+
+// ===== Auto-Load Portfolio on Year Change =====
+async function autoLoadForYear(year) {
+    showLoading(`Loading CY${year}...`);
+    try {
+        // Try to load saved portfolio
+        const resp = await fetch(`/api/load?year=${year}&username=${encodeURIComponent(state.username)}`);
+        const data = await resp.json();
+
+        if (data.success) {
+            state.portfolio = data.portfolio;
+            document.getElementById("stockCards").innerHTML = "";
+            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+            updateCalcButtonVisibility();
+            document.getElementById("resultsSection").classList.add("hidden");
+            hideLoading();
+            showToast(`Loaded saved portfolio for CY${year}`, "success");
+            return;
+        }
+
+        // Try import from previous year
+        const sourceYear = year - 1;
+        const importResp = await fetch(`/api/import-previous-year?username=${encodeURIComponent(state.username)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ target_year: year, source_year: sourceYear }),
+        }).then(r => r.json());
+
+        if (importResp.success && importResp.portfolio.stocks.length > 0) {
+            state.portfolio = importResp.portfolio;
+            document.getElementById("stockCards").innerHTML = "";
+            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+            updateCalcButtonVisibility();
+            document.getElementById("resultsSection").classList.add("hidden");
+            hideLoading();
+            showToast(`Imported ${state.portfolio.stocks.length} stock(s) from CY${sourceYear}`, "info");
+            return;
+        }
+
+        // Clear and start fresh
+        state.portfolio = {
+            calendar_year: year,
+            stocks: [],
+            overrides: {},
+            sbi_rate_overrides: {},
+        };
+        document.getElementById("stockCards").innerHTML = "";
+        updateCalcButtonVisibility();
+        document.getElementById("resultsSection").classList.add("hidden");
+        hideLoading();
+        showToast(`No data found for CY${year}. Starting fresh.`, "info");
+    } catch (e) {
+        hideLoading();
+        showToast(`Error: ${e.message}`, "error");
     }
 }

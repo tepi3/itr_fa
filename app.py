@@ -20,18 +20,21 @@ from threading import Timer
 from flask import Flask, jsonify, render_template, request, send_file
 
 from config import FLASK_HOST, FLASK_PORT, FLASK_DEBUG, PORTFOLIOS_DIR
-from core.sbi_rates import refresh_cache, get_sbi_tt_rate, get_all_cached_rates, get_monthly_rates, save_manual_rate
+from core.sbi_rates import (
+    refresh_cache, get_sbi_tt_rate, get_all_cached_rates,
+    get_monthly_rates, save_manual_rate,
+    lock_year_rates, unlock_year_rates, is_year_locked, get_locked_years,
+)
 from core.stock_data import (
     get_company_info,
     get_historical_prices,
     get_dividends,
     get_price_on_date,
     resolve_yahoo_ticker,
-    get_currency_for_ticker,
     has_dividends,
 )
 from core.calculator import calculate_a3_rows
-from core.excel_export import export_a3_excel
+from core.csv_export import export_a3_csv
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
@@ -152,9 +155,8 @@ def api_lookup_stock():
 
 @app.route("/api/sbi-rate", methods=["GET"])
 def api_sbi_rate():
-    """Get SBI TT rate for a specific date."""
+    """Get SBI TT rate for a specific date (USD only)."""
     date_str = request.args.get("date")
-    currency = request.args.get("currency", "USD")
 
     if not date_str:
         return jsonify({"error": "date parameter is required"}), 400
@@ -165,7 +167,7 @@ def api_sbi_rate():
     except ValueError:
         return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
-    result = get_sbi_tt_rate(d, currency)
+    result = get_sbi_tt_rate(d)
     return jsonify(result)
 
 
@@ -198,13 +200,15 @@ def api_dividends():
 
 @app.route("/api/fetch-sbi-rates", methods=["POST"])
 def api_fetch_sbi_rates():
-    """Download and cache SBI rates from GitHub."""
-    data = request.get_json() or {}
-    currency = data.get("currency", "USD")
-
+    """Download and cache SBI USD rates from GitHub."""
     try:
-        count = refresh_cache(currency)
-        return jsonify({"success": True, "entries": count, "currency": currency})
+        count = refresh_cache()
+        locked = get_locked_years()
+        msg = {"success": True, "entries": count, "currency": "USD"}
+        if locked:
+            msg["locked_years"] = locked
+            msg["note"] = f"Rates for locked years {locked} were not overwritten"
+        return jsonify(msg)
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -224,9 +228,9 @@ def api_calculate():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route("/api/export-excel", methods=["POST"])
-def api_export_excel():
-    """Generate and download Excel file."""
+@app.route("/api/export-csv", methods=["POST"])
+def api_export_csv():
+    """Generate and download CSV file."""
     data = request.get_json()
     if not data:
         return jsonify({"error": "Data required"}), 400
@@ -235,19 +239,19 @@ def api_export_excel():
     calendar_year = data.get("calendar_year", 2024)
 
     try:
-        excel_bytes = export_a3_excel(rows, calendar_year)
+        csv_bytes = export_a3_csv(rows, calendar_year)
         from io import BytesIO
-        buffer = BytesIO(excel_bytes)
+        buffer = BytesIO(csv_bytes)
         buffer.seek(0)
-        filename = f"Schedule_FA_A3_CY{calendar_year}.xlsx"
+        filename = f"Schedule_FA_A3_CY{calendar_year}.csv"
         return send_file(
             buffer,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            mimetype="text/csv",
             as_attachment=True,
             download_name=filename,
         )
     except Exception as e:
-        logger.exception("Excel export error")
+        logger.exception("CSV export error")
         return jsonify({"error": str(e)}), 500
 
 
@@ -315,38 +319,73 @@ def api_list_saves():
 
 @app.route("/api/monthly-rates", methods=["GET"])
 def api_monthly_rates():
-    """Get SBI TT rates for each month of a given year."""
+    """Get SBI TT rates for each month of a given year (USD only)."""
     year = request.args.get("year")
-    currency = request.args.get("currency", "USD")
 
     if not year:
         return jsonify({"error": "year parameter required"}), 400
 
-    rates = get_monthly_rates(int(year), currency)
-    return jsonify({"success": True, "year": int(year), "currency": currency, "rates": rates})
+    year_int = int(year)
+    rates = get_monthly_rates(year_int)
+    locked = is_year_locked(year_int)
+    return jsonify({
+        "success": True,
+        "year": year_int,
+        "currency": "USD",
+        "rates": rates,
+        "locked": locked,
+    })
 
 
 @app.route("/api/save-manual-rate", methods=["POST"])
 def api_save_manual_rate():
-    """Save a manually entered SBI TT rate."""
+    """Save a manually entered SBI TT rate (USD only)."""
     data = request.get_json()
     rate_date = data.get("rate_date")
-    currency = data.get("currency", "USD")
     rate = data.get("rate")
 
     if not rate_date or rate is None:
         return jsonify({"error": "rate_date and rate are required"}), 400
 
     try:
-        save_manual_rate(rate_date, currency, float(rate))
+        save_manual_rate(rate_date, float(rate))
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+# --- Rate Locking API ---
+
+@app.route("/api/lock-rates", methods=["POST"])
+def api_lock_rates():
+    """Lock or unlock rates for a given year."""
+    data = request.get_json()
+    year = data.get("year")
+    action = data.get("action", "lock")  # "lock" or "unlock"
+
+    if not year:
+        return jsonify({"error": "year is required"}), 400
+
+    try:
+        year_int = int(year)
+        if action == "lock":
+            lock_year_rates(year_int)
+        else:
+            unlock_year_rates(year_int)
+        return jsonify({"success": True, "year": year_int, "locked": action == "lock"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/locked-years", methods=["GET"])
+def api_locked_years():
+    """Get list of locked years."""
+    return jsonify({"locked_years": get_locked_years()})
+
+
 @app.route("/api/import-previous-year", methods=["POST"])
 def api_import_previous_year():
-    """Import previous year's portfolio as base for current year."""
+    """Import previous year's portfolio as base for current year, with dividend auto-fetch."""
     data = request.get_json()
     target_year = data.get("target_year")
     source_year = data.get("source_year", target_year - 1 if target_year else None)
@@ -372,14 +411,17 @@ def api_import_previous_year():
     }
 
     for stock in old_portfolio.get("stocks", []):
+        yahoo_ticker = stock.get("yahoo_ticker", stock["ticker"])
+
         new_stock = {
             "id": stock.get("id", str(uuid.uuid4())),
             "ticker": stock["ticker"],
-            "yahoo_ticker": stock.get("yahoo_ticker", stock["ticker"]),
-            "currency": stock.get("currency", "USD"),
+            "yahoo_ticker": yahoo_ticker,
+            "currency": "USD",
             "skip_dividends": stock.get("skip_dividends", False),
             "company_info": stock.get("company_info", {}),
             "lots": [],
+            "dividends": [],
         }
 
         for lot in stock.get("lots", []):
@@ -400,6 +442,22 @@ def api_import_previous_year():
                 new_stock["lots"].append(new_lot)
 
         if new_stock["lots"]:
+            # Auto-fetch dividends for the target year
+            if not new_stock.get("skip_dividends", False):
+                try:
+                    divs = get_dividends(yahoo_ticker, target_year)
+                    new_stock["dividends"] = [
+                        {
+                            "id": str(uuid.uuid4()),
+                            "ex_date": d["ex_date"],
+                            "amount": d["amount"],
+                        }
+                        for d in divs
+                    ]
+                    logger.info(f"Fetched {len(divs)} dividends for {yahoo_ticker} in CY{target_year}")
+                except Exception as e:
+                    logger.warning(f"Could not fetch dividends for {yahoo_ticker}: {e}")
+
             new_portfolio["stocks"].append(new_stock)
 
     return jsonify({"success": True, "portfolio": new_portfolio})
