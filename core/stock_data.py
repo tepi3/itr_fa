@@ -112,7 +112,7 @@ def get_historical_prices(ticker: str, start_date: str, end_date: str) -> list:
 
     try:
         t = yf.Ticker(yahoo_ticker)
-        hist = t.history(start=start_date, end=end_date)
+        hist = t.history(start=start_date, end=end_date, auto_adjust=False)
 
         prices = []
         for idx, row in hist.iterrows():
@@ -159,6 +159,33 @@ def get_dividends(ticker: str, year: int) -> list:
         return []
 
 
+def get_yearly_max_price(ticker: str, year: int) -> dict:
+    """
+    Fetch the maximum closing price for a ticker during a calendar year.
+
+    Returns:
+        {"max_price": float, "max_price_date": "YYYY-MM-DD"} or
+        {"max_price": None, "max_price_date": None} on failure.
+    """
+    yahoo_ticker = resolve_yahoo_ticker(ticker)
+    logger.info(f"Fetching yearly max price for {yahoo_ticker} in {year}")
+
+    try:
+        t = yf.Ticker(yahoo_ticker)
+        hist = t.history(start=f"{year}-01-01", end=f"{year + 1}-01-01", auto_adjust=False)
+
+        if hist.empty:
+            return {"max_price": None, "max_price_date": None}
+
+        max_idx = hist["Close"].idxmax()
+        max_price = round(float(hist.loc[max_idx, "Close"]), 4)
+        max_date = max_idx.strftime("%Y-%m-%d")
+        return {"max_price": max_price, "max_price_date": max_date}
+    except Exception as e:
+        logger.error(f"Error fetching yearly max price for {ticker}: {e}")
+        return {"max_price": None, "max_price_date": None}
+
+
 def get_price_on_date(ticker: str, target_date: str) -> float:
     """
     Get the closing price on a specific date.
@@ -171,7 +198,7 @@ def get_price_on_date(ticker: str, target_date: str) -> float:
         d = date.fromisoformat(target_date)
         start = (d - __import__("datetime").timedelta(days=10)).isoformat()
         end = (d + __import__("datetime").timedelta(days=1)).isoformat()
-        hist = t.history(start=start, end=end)
+        hist = t.history(start=start, end=end, auto_adjust=False)
 
         if hist.empty:
             return None

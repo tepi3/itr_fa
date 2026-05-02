@@ -32,6 +32,7 @@ from core.stock_data import (
     get_price_on_date,
     resolve_yahoo_ticker,
     has_dividends,
+    get_yearly_max_price,
 )
 from core.calculator import calculate_a3_rows
 from core.csv_export import export_a3_csv
@@ -196,6 +197,24 @@ def api_dividends():
     divs = get_dividends(ticker, int(year))
     has_divs = has_dividends(ticker)
     return jsonify({"ticker": ticker, "year": int(year), "dividends": divs, "has_dividends": has_divs})
+
+
+@app.route("/api/yearly-max-price", methods=["GET"])
+def api_yearly_max_price():
+    """Get the yearly maximum closing price for a ticker (used for Peak Value calculation)."""
+    ticker = request.args.get("ticker", "")
+    year = request.args.get("year", "")
+
+    if not ticker or not year:
+        return jsonify({"error": "ticker and year parameters required"}), 400
+
+    peak_info = get_yearly_max_price(ticker, int(year))
+    return jsonify({
+        "ticker": ticker,
+        "year": int(year),
+        "max_price": peak_info["max_price"],
+        "max_price_date": peak_info["max_price_date"],
+    })
 
 
 @app.route("/api/fetch-sbi-rates", methods=["POST"])
@@ -442,7 +461,7 @@ def api_import_previous_year():
                 new_stock["lots"].append(new_lot)
 
         if new_stock["lots"]:
-            # Auto-fetch dividends for the target year
+            # Auto-fetch dividends and yearly max price for the target year
             if not new_stock.get("skip_dividends", False):
                 try:
                     divs = get_dividends(yahoo_ticker, target_year)
@@ -457,6 +476,15 @@ def api_import_previous_year():
                     logger.info(f"Fetched {len(divs)} dividends for {yahoo_ticker} in CY{target_year}")
                 except Exception as e:
                     logger.warning(f"Could not fetch dividends for {yahoo_ticker}: {e}")
+
+            # Always fetch yearly max price for peak value reference
+            try:
+                peak_info = get_yearly_max_price(yahoo_ticker, target_year)
+                new_stock["yearly_max_price"] = peak_info["max_price"]
+                new_stock["yearly_max_price_date"] = peak_info["max_price_date"]
+                logger.info(f"Yearly max price for {yahoo_ticker} in CY{target_year}: {peak_info['max_price']} on {peak_info['max_price_date']}")
+            except Exception as e:
+                logger.warning(f"Could not fetch yearly max price for {yahoo_ticker}: {e}")
 
             new_portfolio["stocks"].append(new_stock)
 

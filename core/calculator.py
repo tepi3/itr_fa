@@ -108,7 +108,7 @@ def calculate_peak_value(
     # Sort sells by date
     sorted_sells = sorted(sells_in_cy, key=lambda s: s["sell_date"])
 
-    # Cache monthly TTBR to avoid repeated lookups
+    # Cache monthly TTBR as (rate, rate_date) to avoid repeated lookups
     monthly_ttbr_cache = {}
 
     peak_value = 0
@@ -116,6 +116,7 @@ def calculate_peak_value(
     peak_price = None
     peak_qty = None
     peak_rate = None
+    peak_rate_date = None
 
     for price_entry in prices:
         trading_date = _parse_date(price_entry["date"])
@@ -138,13 +139,13 @@ def calculate_peak_value(
 
         close_price = price_entry["close"]
 
-        # Get TTBR for this month (cached)
+        # Get TTBR for this month (cached as tuple)
         month_key = f"{trading_date.year}-{trading_date.month:02d}"
         if month_key not in monthly_ttbr_cache:
-            rate, _, _ = _get_rate_value(trading_date, sbi_overrides)
-            monthly_ttbr_cache[month_key] = rate
+            rate, rate_date_str, _ = _get_rate_value(trading_date, sbi_overrides)
+            monthly_ttbr_cache[month_key] = (rate, rate_date_str)
 
-        ttbr = monthly_ttbr_cache[month_key]
+        ttbr, ttbr_rate_date = monthly_ttbr_cache[month_key]
         if ttbr is None:
             continue
 
@@ -156,14 +157,18 @@ def calculate_peak_value(
             peak_price = close_price
             peak_qty = qty
             peak_rate = ttbr
+            peak_rate_date = ttbr_rate_date
 
     return {
         "value": round(peak_value) if peak_value > 0 else 0,
         "peak_date": peak_date,
+        "rate": peak_rate,
+        "rate_date": peak_rate_date,
         "components": {
             "peak_price": peak_price,
             "qty_on_peak_date": peak_qty,
             "ttbr": peak_rate,
+            "rate_date": peak_rate_date,
         },
     }
 

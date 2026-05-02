@@ -275,9 +275,9 @@ async function lookupStock() {
     showLoading(`Looking up ${ticker}...`);
     try {
         const info = await apiPost("/api/lookup-stock", { ticker });
-        hideLoading();
 
         if (!info.success) {
+            hideLoading();
             return showToast(`Could not find ${ticker}: ${info.error || "Unknown error"}`, "error");
         }
 
@@ -299,7 +299,18 @@ async function lookupStock() {
             dividends: [],
         };
 
+        // Always fetch yearly max price for peak value display (independent of dividends)
+        showLoading(`Fetching ${ticker} price history...`);
+        try {
+            const peakInfo = await apiGet(`/api/yearly-max-price?ticker=${info.yahoo_ticker || ticker}&year=${state.portfolio.calendar_year}`);
+            if (peakInfo.max_price != null) {
+                stock.yearly_max_price = peakInfo.max_price;
+                stock.yearly_max_price_date = peakInfo.max_price_date;
+            }
+        } catch (e) { console.warn("Failed to fetch yearly max price", e); }
+
         // Try to fetch dividends for current calendar year
+        showLoading(`Fetching ${ticker} dividends...`);
         try {
             const divInfo = await apiGet(`/api/dividends?ticker=${info.yahoo_ticker || ticker}&year=${state.portfolio.calendar_year}`);
             if (divInfo.dividends) {
@@ -311,6 +322,7 @@ async function lookupStock() {
             }
         } catch (e) { console.warn("Failed to fetch dividends", e); }
 
+        hideLoading();
         state.portfolio.stocks.push(stock);
         renderStockCard(stock);
         updateCalcButtonVisibility();
@@ -385,6 +397,11 @@ function renderStockCard(stock) {
         (lot.sells || []).forEach(sell => renderSellRow(card, stock, lot, sell));
     });
     (stock.dividends || []).forEach(div => renderDividendRow(card, stock, div));
+
+    // Show yearly max price badge if available
+    if (stock.yearly_max_price != null) {
+        showPeakPriceBadge(card, stock.yearly_max_price, stock.yearly_max_price_date);
+    }
 
     document.getElementById("stockCards").appendChild(card);
 }
@@ -536,6 +553,15 @@ function updateSellLotOptions(card, stock) {
     });
 }
 
+// ===== Peak Price Badge =====
+function showPeakPriceBadge(card, maxPrice, maxDate) {
+    const badge = card.querySelector(".stock-peak-badge");
+    const label = card.querySelector(".peak-price-label");
+    if (!badge || !label) return;
+    label.textContent = `Peak Price: $${maxPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} on ${maxDate}`;
+    badge.classList.remove("hidden");
+}
+
 // ===== Dividends =====
 function addDividendRow(card, stock, divData = null) {
     const div = divData || {
@@ -625,6 +651,30 @@ async function calculateAll() {
         }
 
         collectSbiRates(result.rows);
+
+        // Update peak price badges with actual calculation results
+        // Find the lot with highest INR peak per stock and update its card
+        const stockPeakMap = {}; // stockId -> { price, date, inrValue }
+        result.rows.forEach(row => {
+            const peak = row.calculation_details && row.calculation_details.peak;
+            if (!peak || !peak.peak_date || !peak.components || peak.components.peak_price == null) return;
+            const stock = state.portfolio.stocks.find(s =>
+                s.lots && s.lots.some(l => l.id === row.lot_id)
+            );
+            if (!stock) return;
+            const inrVal = row.peak_value || 0;
+            if (!stockPeakMap[stock.id] || inrVal > stockPeakMap[stock.id].inrValue) {
+                stockPeakMap[stock.id] = {
+                    price: peak.components.peak_price,
+                    date: peak.peak_date,
+                    inrValue: inrVal,
+                };
+            }
+        });
+        Object.entries(stockPeakMap).forEach(([stockId, info]) => {
+            const card = document.querySelector(`.stock-card[data-stock-id="${stockId}"]`);
+            if (card) showPeakPriceBadge(card, info.price, info.date);
+        });
 
         document.getElementById("resultsSection").classList.remove("hidden");
         document.getElementById("sbiRatesSection").classList.remove("hidden");
@@ -793,7 +843,7 @@ function collectSbiRates(rows) {
         const ticker = row.entity_name || '';
         const entries = [
             { label: `${ticker} — Buy (${row.acquire_date})`, data: details.initial },
-            { label: `${ticker} — Peak Value`, data: details.peak },
+            { label: `${ticker} — Peak Value (${(details.peak && details.peak.peak_date) || '?'})`, data: details.peak },
             { label: `${ticker} — Closing (Dec 31)`, data: details.closing },
         ];
         if (details.dividends && details.dividends.dividend_entries) {
