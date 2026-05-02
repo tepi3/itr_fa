@@ -94,11 +94,17 @@ def refresh_cache():
     updated = 0
     for date_str, rate in rates.items():
         try:
-            year = int(date_str.split("-")[0])
+            # Parse date to determine which calculation year it belongs to
+            # Rates from Jan-Nov belong to the current year
+            # Rates from Dec belong to Jan of the NEXT year
+            y, m, d = map(int, date_str.split("-"))
+            calc_year = y + 1 if m == 12 else y
         except (ValueError, IndexError):
-            year = None
-        if year in locked_years:
+            calc_year = None
+            
+        if calc_year in locked_years:
             continue
+            
         cache["rates"]["USD"][date_str] = rate
         updated += 1
 
