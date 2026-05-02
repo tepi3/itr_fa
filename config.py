@@ -21,12 +21,8 @@ PORTFOLIOS_DIR.mkdir(exist_ok=True)
 # SBI rate cache
 SBI_CACHE_FILE = DATA_DIR / "sbi_rates_cache.json"
 
-# SBI CSV URLs from sahilgupta/sbi-fx-ratekeeper
-SBI_CSV_URLS = {
-    "USD": "https://raw.githubusercontent.com/sahilgupta/sbi-fx-ratekeeper/main/csv_files/SBI_REFERENCE_RATES_USD.csv",
-    "GBP": "https://raw.githubusercontent.com/sahilgupta/sbi-fx-ratekeeper/main/csv_files/SBI_REFERENCE_RATES_GBP.csv",
-    "EUR": "https://raw.githubusercontent.com/sahilgupta/sbi-fx-ratekeeper/main/csv_files/SBI_REFERENCE_RATES_EUR.csv",
-}
+# SBI CSV URL from sahilgupta/sbi-fx-ratekeeper (USD only)
+SBI_CSV_URL = "https://raw.githubusercontent.com/sahilgupta/sbi-fx-ratekeeper/main/csv_files/SBI_REFERENCE_RATES_USD.csv"
 
 # Country code mapping for ITR Schedule FA
 COUNTRY_CODES = {

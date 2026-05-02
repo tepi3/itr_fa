@@ -19,7 +19,7 @@ from pathlib import Path
 
 import requests
 
-from config import SBI_CACHE_FILE, SBI_CSV_URLS
+from config import SBI_CACHE_FILE, SBI_CSV_URL
 
 logger = logging.getLogger(__name__)
 
@@ -39,18 +39,14 @@ def _save_cache(cache: dict):
         json.dump(cache, f, indent=2, sort_keys=True)
 
 
-def download_sbi_csv(currency: str = "USD") -> dict:
+def download_sbi_csv() -> dict:
     """
-    Download the full SBI rate CSV from GitHub and parse into a dict.
+    Download the full SBI USD rate CSV from GitHub and parse into a dict.
     Returns: { "YYYY-MM-DD": tt_buy_rate, ... }
     Only includes dates where TT BUY > 0.
     """
-    url = SBI_CSV_URLS.get(currency.upper())
-    if not url:
-        raise ValueError(f"Unsupported currency: {currency}. Supported: {list(SBI_CSV_URLS.keys())}")
-
-    logger.info(f"Downloading SBI {currency} rates from GitHub...")
-    resp = requests.get(url, timeout=60)
+    logger.info("Downloading SBI USD rates from GitHub...")
+    resp = requests.get(SBI_CSV_URL, timeout=60)
     resp.raise_for_status()
 
     rates = {}
@@ -79,22 +75,38 @@ def download_sbi_csv(currency: str = "USD") -> dict:
         except (ValueError, IndexError):
             continue
 
-    logger.info(f"Parsed {len(rates)} {currency} rate entries")
+    logger.info(f"Parsed {len(rates)} USD rate entries")
     return rates
 
 
-def refresh_cache(currency: str = "USD"):
-    """Download fresh SBI rates and update the cache."""
+def refresh_cache():
+    """Download fresh SBI USD rates and update the cache. Respects locked years."""
     cache = _load_cache()
     if "rates" not in cache:
         cache["rates"] = {}
-    if currency not in cache["rates"]:
-        cache["rates"][currency] = {}
+    if "USD" not in cache["rates"]:
+        cache["rates"]["USD"] = {}
 
-    rates = download_sbi_csv(currency)
-    cache["rates"][currency].update(rates)
+    locked_years = set(cache.get("locked_years", []))
+    rates = download_sbi_csv()
+
+    # Only update rates for unlocked years
+    updated = 0
+    for date_str, rate in rates.items():
+        try:
+            year = int(date_str.split("-")[0])
+        except (ValueError, IndexError):
+            year = None
+        if year in locked_years:
+            continue
+        cache["rates"]["USD"][date_str] = rate
+        updated += 1
+
     _save_cache(cache)
-    return len(rates)
+    skipped = len(rates) - updated
+    if skipped > 0:
+        logger.info(f"Skipped {skipped} rates for locked years: {sorted(locked_years)}")
+    return updated
 
 
 def get_last_working_day_prev_month(d: date) -> date:
@@ -110,14 +122,13 @@ def get_last_working_day_prev_month(d: date) -> date:
     return last_of_prev
 
 
-def get_sbi_tt_rate(d: date, currency: str = "USD", overrides: dict = None) -> dict:
+def get_sbi_tt_rate(d: date, overrides: dict = None) -> dict:
     """
     Get the SBI TT Buying Rate for the last working day of the month preceding date d.
 
     Args:
         d: The transaction/event date
-        currency: "USD", "GBP", etc.
-        overrides: dict of manual overrides { "YYYY-MM-DD_CURRENCY": rate }
+        overrides: dict of manual overrides { "YYYY-MM-DD_USD": rate }
 
     Returns:
         dict with keys: rate, rate_date, source ("cache", "override", "not_found")
@@ -125,7 +136,7 @@ def get_sbi_tt_rate(d: date, currency: str = "USD", overrides: dict = None) -> d
     rate_date = get_last_working_day_prev_month(d)
 
     # Check manual overrides first
-    override_key = f"{rate_date.isoformat()}_{currency}"
+    override_key = f"{rate_date.isoformat()}_USD"
     if overrides and override_key in overrides:
         return {
             "rate": float(overrides[override_key]),
@@ -135,7 +146,7 @@ def get_sbi_tt_rate(d: date, currency: str = "USD", overrides: dict = None) -> d
 
     # Look up in cache
     cache = _load_cache()
-    currency_rates = cache.get("rates", {}).get(currency, {})
+    currency_rates = cache.get("rates", {}).get("USD", {})
 
     # Try exact date, then walk backward up to 10 days
     for i in range(11):
@@ -157,10 +168,10 @@ def get_sbi_tt_rate(d: date, currency: str = "USD", overrides: dict = None) -> d
     }
 
 
-def get_rate_for_date_direct(d: date, currency: str = "USD") -> dict:
+def get_rate_for_date_direct(d: date) -> dict:
     """Get SBI TT rate for an exact date (without the prev-month logic). Used for display."""
     cache = _load_cache()
-    currency_rates = cache.get("rates", {}).get(currency, {})
+    currency_rates = cache.get("rates", {}).get("USD", {})
 
     for i in range(11):
         lookup_date = d - timedelta(days=i)
@@ -173,13 +184,13 @@ def get_rate_for_date_direct(d: date, currency: str = "USD") -> dict:
     return {"rate": None, "rate_date": d.isoformat(), "source": "not_found"}
 
 
-def get_all_cached_rates(currency: str = "USD") -> dict:
-    """Return all cached rates for a currency."""
+def get_all_cached_rates() -> dict:
+    """Return all cached USD rates."""
     cache = _load_cache()
-    return cache.get("rates", {}).get(currency, {})
+    return cache.get("rates", {}).get("USD", {})
 
 
-def get_monthly_rates(year: int, currency: str = "USD", overrides: dict = None) -> list:
+def get_monthly_rates(year: int, overrides: dict = None) -> list:
     """
     Get the SBI TT rate applicable for each month of the given calendar year.
 
@@ -199,7 +210,7 @@ def get_monthly_rates(year: int, currency: str = "USD", overrides: dict = None) 
     for month in range(1, 13):
         # For a transaction on the 15th of this month (arbitrary day)
         d = date(year, month, 15)
-        rate_info = get_sbi_tt_rate(d, currency, overrides)
+        rate_info = get_sbi_tt_rate(d, overrides)
         results.append({
             "month": month,
             "month_name": month_names[month - 1],
@@ -211,7 +222,7 @@ def get_monthly_rates(year: int, currency: str = "USD", overrides: dict = None) 
     return results
 
 
-def save_manual_rate(rate_date: str, currency: str, rate: float):
+def save_manual_rate(rate_date: str, rate: float):
     """
     Save a manually entered rate into the cache.
     This is used when the GitHub CSV doesn't have data for a date.
@@ -219,9 +230,43 @@ def save_manual_rate(rate_date: str, currency: str, rate: float):
     cache = _load_cache()
     if "rates" not in cache:
         cache["rates"] = {}
-    if currency not in cache["rates"]:
-        cache["rates"][currency] = {}
+    if "USD" not in cache["rates"]:
+        cache["rates"]["USD"] = {}
 
-    cache["rates"][currency][rate_date] = rate
+    cache["rates"]["USD"][rate_date] = rate
     _save_cache(cache)
-    logger.info(f"Saved manual rate: {rate_date} {currency} = {rate}")
+    logger.info(f"Saved manual rate: {rate_date} USD = {rate}")
+
+
+# ===== Rate Locking =====
+
+def lock_year_rates(year: int):
+    """Lock all rates for a given year so fetch won't overwrite them."""
+    cache = _load_cache()
+    locked = set(cache.get("locked_years", []))
+    locked.add(year)
+    cache["locked_years"] = sorted(locked)
+    _save_cache(cache)
+    logger.info(f"Locked rates for year {year}")
+
+
+def unlock_year_rates(year: int):
+    """Unlock rates for a given year so fetch can update them."""
+    cache = _load_cache()
+    locked = set(cache.get("locked_years", []))
+    locked.discard(year)
+    cache["locked_years"] = sorted(locked)
+    _save_cache(cache)
+    logger.info(f"Unlocked rates for year {year}")
+
+
+def is_year_locked(year: int) -> bool:
+    """Check if rates for a given year are locked."""
+    cache = _load_cache()
+    return year in cache.get("locked_years", [])
+
+
+def get_locked_years() -> list:
+    """Return list of all locked years."""
+    cache = _load_cache()
+    return cache.get("locked_years", [])
