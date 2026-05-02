@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITR Schedule FA — Section A3 Helper</title>
+    <meta name="description" content="Tool to help fill Section A3 (Foreign Equity & Debt Interest) of Schedule FA in Indian Income Tax Return">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden">
+        <div class="loader">
+            <div class="spinner"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header id="appHeader">
+        <div class="header-left">
+            <h1>📋 Schedule FA — Section A3</h1>
+            <span class="subtitle">Foreign Equity & Debt Interest</span>
+        </div>
+        <div class="header-right">
+            <div class="year-selector">
+                <label for="yearSelect">Calendar Year:</label>
+                <select id="yearSelect"></select>
+            </div>
+            <div class="header-actions">
+                <button id="fetchRatesBtn" class="btn btn-outline" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
+                <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
+                <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
+                <button id="loadBtn" class="btn btn-outline" title="Load saved data">📂 Load</button>
+                <button id="saveBtn" class="btn btn-primary" title="Save current data">💾 Save</button>
+            </div>
+        </div>
+    </header>
+
+    <main id="appMain">
+        <!-- SBI Monthly Rates Manager (always available) -->
+        <section id="monthlyRatesSection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('monthlyRatesContent')">
+                <h2>💱 SBI TT Buying Rates — Monthly Overview</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div id="monthlyRatesContent" class="collapsible-content">
+                <p class="hint" style="margin-bottom: 12px;">
+                    These are the rates used for conversions. For transactions in a given month, the rate from the
+                    <strong>last working day of the previous month</strong> is used. Edit any rate if the auto-fetched value is incorrect or missing.
+                </p>
+                <div class="rates-currency-select">
+                    <label for="ratesCurrencySelect">Currency:</label>
+                    <select id="ratesCurrencySelect">
+                        <option value="USD">$ USD</option>
+                        <option value="GBP">£ GBP</option>
+                        <option value="EUR">€ EUR</option>
+                    </select>
+                    <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline">↻ Refresh</button>
+                </div>
+                <table id="monthlyRatesTable">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Rate Date (Last WD Prev Month)</th>
+                            <th>TT Buy Rate (₹)</th>
+                            <th>Source</th>
+                            <th>Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyRatesTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Add Stock Section -->
+        <section id="addStockSection" class="card">
+            <h2>Add Stock / ETF</h2>
+            <div class="add-stock-form">
+                <div class="input-group">
+                    <input type="text" id="tickerInput" placeholder="Enter ticker symbol (e.g., QCOM, VWRA)" autocomplete="off">
+                    <button id="lookupBtn" class="btn btn-primary">🔍 Lookup</button>
+                </div>
+                <p class="hint">Ticker will be auto-resolved for non-US exchanges (e.g., VWRA → VWRA.L)</p>
+            </div>
+        </section>
+
+        <!-- Stock Cards Container -->
+        <div id="stockCards"></div>
+
+        <!-- Calculate Button -->
+        <section id="calcSection" class="card hidden">
+            <button id="calculateBtn" class="btn btn-accent btn-large">⚡ Calculate A3 Values</button>
+            <p class="hint">This will fetch stock prices, SBI rates, and calculate all 12 columns</p>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="card hidden">
+            <div class="results-header">
+                <h2>📊 Schedule FA — Section A3 Preview</h2>
+                <button id="exportExcelBtn" class="btn btn-primary">📥 Export Excel</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="a3Table">
+                    <thead>
+                        <tr>
+                            <th>Sl.<br>No.</th>
+                            <th>Country<br>Name and Code</th>
+                            <th>Name of<br>entity</th>
+                            <th>Address of<br>entity</th>
+                            <th>Zip<br>code</th>
+                            <th>Nature of<br>entity</th>
+                            <th>Date of<br>acquiring the<br>interest</th>
+                            <th>Initial value<br>of the<br>investment (₹)</th>
+                            <th>Peak value of<br>investment<br>during the period (₹)</th>
+                            <th>Closing<br>balance (₹)</th>
+                            <th>Total gross<br>amount paid/<br>credited (₹)</th>
+                            <th>Total gross<br>proceeds from<br>sale (₹)</th>
+                        </tr>
+                        <tr class="col-numbers">
+                            <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td>
+                            <td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td>
+                        </tr>
+                    </thead>
+                    <tbody id="a3TableBody">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SBI Rates Used in Calculation -->
+        <section id="sbiRatesSection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('sbiRatesContent')">
+                <h2>📐 SBI TT Rates Used in Calculation</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div id="sbiRatesContent" class="collapsible-content">
+                <p class="hint" style="margin-bottom: 12px;">These are the specific SBI TT Buying rates applied to each calculation step.</p>
+                <table id="sbiRatesTable">
+                    <thead>
+                        <tr>
+                            <th>Calculation For</th>
+                            <th>Rate Date</th>
+                            <th>TT Buy Rate (₹)</th>
+                            <th>Source</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sbiRatesTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Stock Card Template -->
+    <template id="stockCardTemplate">
+        <div class="stock-card card" data-stock-id="">
+            <div class="stock-card-header">
+                <div class="stock-info-summary">
+                    <span class="stock-ticker"></span>
+                    <span class="stock-name"></span>
+                    <span class="stock-currency badge"></span>
+                </div>
+                <div class="stock-card-actions">
+                    <button class="btn btn-sm btn-outline toggle-details-btn">▼ Details</button>
+                    <button class="btn btn-sm btn-danger remove-stock-btn">✕ Remove</button>
+                </div>
+            </div>
+
+            <div class="stock-card-body">
+                <!-- Company Info -->
+                <div class="company-info-section">
+                    <h3>Company Information</h3>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>Country Code</label>
+                            <input type="text" class="company-country" placeholder="e.g., 2-UNITED STATES OF AMERICA">
+                        </div>
+                        <div class="form-field">
+                            <label>Entity Name</label>
+                            <input type="text" class="company-name" placeholder="e.g., Qualcomm Incorporated (QCOM)">
+                        </div>
+                        <div class="form-field">
+                            <label>Address</label>
+                            <input type="text" class="company-address" placeholder="e.g., 5775 Morehouse Drive, San Diego, CA">
+                        </div>
+                        <div class="form-field">
+                            <label>Zip Code</label>
+                            <input type="text" class="company-zip" placeholder="e.g., 92121">
+                        </div>
+                        <div class="form-field">
+                            <label>Nature</label>
+                            <select class="company-nature">
+                                <option value="Company">Company</option>
+                                <option value="ETF">ETF</option>
+                                <option value="Trust">Trust</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>
+                                <input type="checkbox" class="skip-dividends-check"> Skip Dividends
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lots Section -->
+                <div class="lots-section">
+                    <div class="section-header">
+                        <h3>Acquisition Lots</h3>
+                        <button class="btn btn-sm btn-primary add-lot-btn">+ Add Lot</button>
+                    </div>
+                    <table class="lots-table">
+                        <thead>
+                            <tr>
+                                <th>Buy Date</th>
+                                <th>Quantity</th>
+                                <th class="buy-price-header">Buy Price ($)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="lots-tbody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Sells Section -->
+                <div class="sells-section">
+                    <div class="section-header">
+                        <h3>Sell Transactions</h3>
+                        <button class="btn btn-sm btn-primary add-sell-btn">+ Add Sell</button>
+                    </div>
+                    <table class="sells-table">
+                        <thead>
+                            <tr>
+                                <th>Lot (Buy Date)</th>
+                                <th>Sell Date</th>
+                                <th>Quantity</th>
+                                <th class="sell-price-header">Sell Price ($)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="sells-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
