@@ -11,74 +11,68 @@ pip3 install -r requirements.txt
 # Run the app
 python3 app.py
 
-# Open in browser: http://127.0.0.1:5000
+# Open in browser: http://127.0.0.1:5001
 ```
+*Note: The app runs on port 5001 to avoid conflicts with macOS AirPlay (Control Center).*
 
 ## Features
 
-- **Auto stock lookup** — Enter ticker symbol (QCOM, VWRA, etc.), company info auto-filled via Yahoo Finance
-- **SBI TT rates** — Auto-fetches SBI TT Buying Rate of last working day of previous month for all conversions. Supports multiple currencies (₹, $, £, €)
-- **Historical SBI Rates** — View and edit SBI rates for any year going back to 2000
-- **Explicit Dividend Management**: Dedicated table for dividend events per stock with manual override.
-- **Per-Stock Dividend Summary**: Automated aggregation of total dividends earned per entity.
-- **Multi-User Profiles**: Manage separate portfolios for different individuals (e.g., self, spouse, parents) with dedicated storage and user-friendly management (add, rename, delete).
-- **Excel Export**: Generate ready-to-use reports for tax filing.
-- **All 12 A3 columns** — Auto-calculates initial value, peak value, closing balance, dividends, sale proceeds
-- **Per-Stock Summary** — Automatically aggregates all lots to provide a clear per-stock dividend summary
-- **FIFO sells** — Supports partial sells and fractional shares
-- **Manual override** — Click any calculated value in the A3 table to override manually
-- **Year selector** — Pick calendar year, import previous year's data
-- **Save/Load** — Portfolio saved as JSON locally
-- **Excel export** — Download formatted .xlsx matching ITR A3 layout
+- **Auto stock lookup** — Enter ticker symbol (QCOM, NVDA, etc.), company info auto-filled via Yahoo Finance.
+- **USD-Only SBI TT rates** — Auto-fetches SBI TT Buying Rate of the last working day of the previous month for all conversions. (Supports USD for US stocks/ETFs).
+- **Rate Locking** — Lock rates for a specific year to prevent automatic fetches from overwriting your manual edits.
+- **E-Trade Import** — Automatically parse your E-Trade Holdings reports (Expanded "By Status" View) to populate all acquisition lots and sale transactions.
+- **Dividend Auto-Fetch** — Automatically fetches dividend events for the current year when importing data or adding stocks.
+- **CSV Export** — Generate ready-to-use `.csv` reports strictly matching the ITR portal's Schedule FA A3 template.
+- **Multi-User Profiles** — Manage separate portfolios for different individuals with dedicated local storage.
+- **FIFO Sells** — Supports partial sells and fractional shares using First-In-First-Out logic.
+- **Historical SBI Rates** — View and edit SBI rates for any month going back to 2000.
+- **Manual Override** — Click any calculated cell in the results table to manually adjust values if needed.
 
 ## Workflow
 
-1. **Fetch SBI Rates** — Click "⬇ Fetch SBI Rates" button (first time only)
-2. **Add stocks** — Enter ticker symbol and click Lookup
-3. **Add lots** — Click "+ Add Lot" and enter buy date, quantity, price
-4. **Add sells** — Click "+ Add Sell" for any lots sold during the year
-5. **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 columns
-6. **Override** — Click any calculated cell in the results table to manually adjust
-7. **Export** — Click "📥 Export Excel" to download the formatted spreadsheet
-8. **Save** — Click "💾 Save" to save your portfolio for future reference
+1.  **Select User & Year** — Choose an existing profile or create a new one. The app will automatically try to load your portfolio or import holdings from the previous year.
+2.  **Fetch SBI Rates** — Click "⬇ Fetch SBI Rates" button (if rates are missing for your year).
+3.  **Import Data (Optional)** — Click "📈 Upload Etrade" to import holdings from an E-Trade report, or use "📥 Import Prev Year" to bring over holdings from a previous year's save.
+4.  **Add Stocks/Lots Manually** — Enter ticker symbols and add acquisition lots (date, quantity, price) or sells as needed.
+5.  **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 portal columns (Initial Value, Peak Value, Closing Balance, Dividends, Sale Proceeds).
+6.  **Export** — Click "📥 Export CSV" to download the formatted file for tax filing.
+7.  **Save** — Click "💾 Save" to store your portfolio locally for future use.
 
 ## Data Sources
 
-- **Stock data**: [Yahoo Finance](https://finance.yahoo.com) via `yfinance` (free, no login)
-- **SBI TT rates**: [sbi-fx-ratekeeper](https://github.com/sahilgupta/sbi-fx-ratekeeper) on GitHub (free)
+- **Stock data**: [Yahoo Finance](https://finance.yahoo.com) via `yfinance` (free, no login).
+- **SBI TT rates**: [sbi-fx-ratekeeper](https://github.com/sahilgupta/sbi-fx-ratekeeper) on GitHub (free).
 
 ## Files
 
 ```
 itr_fa/
-├── app.py                    # Flask server & API routes
-├── config.py                 # Configuration constants
-├── requirements.txt          # Python dependencies
-├── APPLICATION_PLAN.md       # Detailed plan (for any agent to continue development)
+├── app.py                    # Flask server & API routes (Port 5001)
+├── config.py                 # Configuration constants (USD, SBI URLs)
+├── requirements.txt          # Python dependencies (Flask, yfinance, openpyxl)
 ├── core/
-│   ├── sbi_rates.py          # SBI TT rate fetch & lookup
+│   ├── sbi_rates.py          # SBI TT rate fetch, cache, and locking
 │   ├── stock_data.py         # Yahoo Finance wrapper
 │   ├── calculator.py         # A3 column calculations
-│   └── excel_export.py       # Excel generation
+│   ├── csv_export.py         # ITR-compliant CSV generation
+│   └── etrade_parser.py      # E-Trade report parser (CSV/XLSX)
 ├── data/                     # Runtime data (auto-created)
-│   ├── sbi_rates_cache.json  # Cached SBI rates
-│   └── portfolios/           # Saved portfolios
+│   ├── sbi_rates_cache.json  # Cached SBI rates & locked years
+│   └── portfolios/           # Saved user portfolios (JSON)
 ├── static/
-│   ├── css/style.css         # Dark-mode UI
-│   └── js/app.js             # Frontend logic
+│   ├── css/style.css         # Modern dark-mode UI
+│   └── js/app.js             # Frontend logic & state management
 └── templates/
-    └── index.html            # Main UI template
+    └── index.html            # Main SPA template
 ```
 
 ## Notes
 
-- Runs locally only — no cloud hosting required
-- Works on macOS and Windows
-- All APIs are free and require no login
-- See `APPLICATION_PLAN.md` for full technical details and implementation status
+- **Local Only**: All data is stored locally on your machine in the `data/` folder. No cloud hosting or external accounts are used.
+- **macOS Compatibility**: Port moved to 5001 to resolve 403 Forbidden errors caused by AirPlay Receiver on port 5000.
+- **License**: This tool is open-source and free for personal, non-commercial use.
 
 ---
 
 **Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.**
-*This tool is open-source and free for personal, non-commercial use.*
-
+*Author: Piyush Tewari (tepi3)*
