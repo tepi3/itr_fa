@@ -1,6 +1,9 @@
 """
 Stock data fetcher using yfinance (free, no login required).
 
+Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.
+Licensed for personal, non-commercial use only.
+
 Provides: company info, historical prices, dividend data.
 """
 

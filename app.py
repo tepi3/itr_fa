@@ -1,6 +1,9 @@
 """
 Flask application for ITR Schedule FA Section A3 Helper Tool.
 
+Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.
+Licensed for personal, non-commercial use only.
+
 Run with: python app.py
 Opens at: http://localhost:5000
 """

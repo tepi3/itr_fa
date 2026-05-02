@@ -1,6 +1,9 @@
 """
 A3 Schedule FA Calculator.
 
+Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.
+Licensed for personal, non-commercial use only.
+
 Computes all 12 columns of Section A3 for each acquisition lot.
 Handles FIFO partial sells, peak value day-by-day, and dividend auto-calculation.
 All calculated fields support manual overrides.

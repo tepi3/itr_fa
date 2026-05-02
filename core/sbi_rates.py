@@ -1,6 +1,9 @@
 """
 SBI TT Buying Rate fetcher, cache, and lookup.
 
+Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.
+Licensed for personal, non-commercial use only.
+
 Data source: sahilgupta/sbi-fx-ratekeeper GitHub repo (free, no login).
 CSV format: DATE,PDF FILE,TT BUY,TT SELL,BILL BUY,BILL SELL,...
 - DATE is "YYYY-MM-DD HH:MM"

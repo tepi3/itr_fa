@@ -1,4 +1,9 @@
-"""Configuration constants for the ITR FA A3 tool."""
+"""
+Configuration constants for the ITR FA A3 tool.
+
+Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.
+Licensed for personal, non-commercial use only.
+"""
 
 import os
 from pathlib import Path

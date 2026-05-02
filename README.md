@@ -76,3 +76,9 @@ itr_fa/
 - Works on macOS and Windows
 - All APIs are free and require no login
 - See `APPLICATION_PLAN.md` for full technical details and implementation status
+
+---
+
+**Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.**
+*This tool is open-source and free for personal, non-commercial use.*
+
