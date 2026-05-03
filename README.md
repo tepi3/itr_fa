@@ -21,6 +21,7 @@ python3 app.py
 - **USD-Only SBI TT rates** — Auto-fetches SBI TT Buying Rate of the last working day of the previous month for all conversions. (Supports USD for US stocks/ETFs).
 - **Rate Locking** — Lock rates for a specific year to prevent automatic fetches from overwriting your manual edits.
 - **E-Trade Import** — Automatically parse your E-Trade Holdings reports (Expanded "By Status" View) to populate all acquisition lots and sale transactions.
+- **E-Trade Sell Details Import** — Upload the Gain and Loss Expanded (G&L Expanded) exported `.xlsx` file from E-Trade to populate both acquisition lots and sell transactions from sell records.
 - **Dividend Auto-Fetch** — Automatically fetches dividend events for the current year when importing data or adding stocks.
 - **CSV Export** — Generate ready-to-use `.csv` reports strictly matching the ITR portal's Schedule FA A3 template.
 - **Multi-User Profiles** — Manage separate portfolios for different individuals with dedicated local storage.
@@ -32,7 +33,7 @@ python3 app.py
 
 1.  **Select User & Year** — Choose an existing profile or create a new one. The app will automatically try to load your portfolio or import holdings from the previous year.
 2.  **Fetch SBI Rates** — Click "⬇ Fetch SBI Rates" button (if rates are missing for your year).
-3.  **Import Data (Optional)** — Click "📈 Upload Etrade" to import holdings from an E-Trade report, or use "📥 Import Prev Year" to bring over holdings from a previous year's save.
+3.  **Import Data (Optional)** — Click "📈 Upload Etrade" to import holdings from an E-Trade report, click "📉 Upload Sell Details" to import sell transactions from the Gain and Loss Expanded exported `.xlsx` file, or use "📥 Import Prev Year" to bring over holdings from a previous year's save.
 4.  **Add Stocks/Lots Manually** — Enter ticker symbols and add acquisition lots (date, quantity, price) or sells as needed.
 5.  **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 portal columns (Initial Value, Peak Value, Closing Balance, Dividends, Sale Proceeds).
 6.  **Export** — Click "📥 Export CSV" to download the formatted file for tax filing.
@@ -55,7 +56,8 @@ itr_fa/
 │   ├── stock_data.py         # Yahoo Finance wrapper
 │   ├── calculator.py         # A3 column calculations
 │   ├── csv_export.py         # ITR-compliant CSV generation
-│   └── etrade_parser.py      # E-Trade report parser (CSV/XLSX)
+│   ├── etrade_parser.py      # E-Trade report parser (CSV/XLSX)
+│   └── sell_details_parser.py # G&L Expanded sell details parser (CSV/XLSX)
 ├── data/                     # Runtime data (auto-created)
 │   ├── sbi_rates_cache.json  # Cached SBI rates & locked years
 │   └── portfolios/           # Saved user portfolios (JSON)
@@ -70,6 +72,7 @@ itr_fa/
 
 - **Local Only**: All data is stored locally on your machine in the `data/` folder. No cloud hosting or external accounts are used.
 - **macOS Compatibility**: Port moved to 5001 to resolve 403 Forbidden errors caused by AirPlay Receiver on port 5000.
+- **Using Upload Etrade**: Current Holding will not contain sold stocks.
 - **License**: This tool is open-source and free for personal, non-commercial use.
 
 ---

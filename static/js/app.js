@@ -81,6 +81,11 @@ function bindEvents() {
     });
     document.getElementById("etradeFileInput").addEventListener("change", uploadEtradeFile);
     
+    document.getElementById("uploadSellDetailsBtn").addEventListener("click", () => {
+        document.getElementById("sellDetailsFileInput").click();
+    });
+    document.getElementById("sellDetailsFileInput").addEventListener("change", uploadSellDetailsFile);
+    
     document.getElementById("switchUserBtn").addEventListener("click", () => {
         document.getElementById("appHeader").classList.add("hidden");
         document.getElementById("appMain").classList.add("hidden");
@@ -754,6 +759,42 @@ async function uploadEtradeFile(e) {
             state.portfolio.stocks.forEach(stock => renderStockCard(stock));
             updateCalcButtonVisibility();
             showToast("Etrade data imported successfully!", "success");
+        } else {
+            showToast("Error parsing file: " + result.error, "error");
+        }
+    } catch (err) {
+        hideLoading();
+        showToast("Upload failed: " + err.message, "error");
+    } finally {
+        e.target.value = ""; // reset input
+    }
+}
+
+async function uploadSellDetailsFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("portfolio", JSON.stringify(state.portfolio));
+
+    showLoading("Parsing Sell Details (G&L Expanded)...");
+    try {
+        const resp = await fetch("/api/upload-sell-details", {
+            method: "POST",
+            body: formData
+        });
+        const result = await resp.json();
+        
+        hideLoading();
+        if (result.success) {
+            state.portfolio = result.portfolio;
+            
+            // Re-render UI
+            document.getElementById("stockCards").innerHTML = "";
+            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+            updateCalcButtonVisibility();
+            showToast("Sell details imported successfully!", "success");
         } else {
             showToast("Error parsing file: " + result.error, "error");
         }

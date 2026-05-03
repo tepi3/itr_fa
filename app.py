@@ -514,6 +514,32 @@ def api_upload_etrade():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/upload-sell-details", methods=["POST"])
+def api_upload_sell_details():
+    """Upload and parse a G&L Expanded file to populate acquisition lots and sell transactions."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
+        return jsonify({"error": "File must be a CSV or XLSX"}), 400
+
+    try:
+        file_bytes = file.read()
+        portfolio_str = request.form.get("portfolio", "{}")
+        portfolio = json.loads(portfolio_str)
+        
+        from core.sell_details_parser import process_sell_details_file
+        updated_portfolio = process_sell_details_file(file_bytes, file.filename, portfolio)
+        return jsonify({"success": True, "portfolio": updated_portfolio})
+    except Exception as e:
+        logger.exception("Sell details upload error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 def open_browser():
     """Open the browser after a short delay."""
     webbrowser.open(f"http://{FLASK_HOST}:{FLASK_PORT}")
