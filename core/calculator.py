@@ -526,6 +526,142 @@ def _round_quarters(bucket: dict) -> dict:
     return {k: round(v) for k, v in bucket.items()}
 
 
+def simulate_sell_impact(payload: dict) -> dict:
+    """
+    Simulate the capital gains tax impact of hypothetical sells.
+
+    Accepts a list of simulated sells (with buy lot info) and returns:
+      - per-sell breakdown (gain/loss, type, TTBR rates)
+      - yearly totals (STCG / LTCL / STCG / STCL)
+      - §70/74 offset result
+
+    This does NOT modify any portfolio data.
+
+    Args:
+        payload: {
+            "calendar_year": int,
+            "sbi_rate_overrides": dict,
+            "simulated_sells": [
+                {
+                    "ticker":        str,
+                    "lot_id":        str,
+                    "buy_date":      "YYYY-MM-DD",
+                    "buy_price":     float,   # in USD
+                    "sell_qty":      float,
+                    "sell_price":    float,   # in USD
+                    "sell_date":     "YYYY-MM-DD",
+                }
+            ]
+        }
+
+    Returns:
+        {
+            "sells": [ per-sell result dicts ],
+            "totals": { "stcg": int, "stcl": int, "ltcg": int, "ltcl": int },
+            "offset": { ... same as compute_offset_summary }
+        }
+    """
+    sbi_overrides = payload.get("sbi_rate_overrides", {})
+    simulated_sells = payload.get("simulated_sells", [])
+
+    totals = {"stcg": 0.0, "stcl": 0.0, "ltcg": 0.0, "ltcl": 0.0}
+    sell_results = []
+
+    for s in simulated_sells:
+        buy_date  = _parse_date(s["buy_date"])
+        sell_date = _parse_date(s["sell_date"])
+        buy_price  = float(s["buy_price"])
+        sell_price = float(s["sell_price"])
+        sell_qty   = float(s["sell_qty"])
+        ticker     = s.get("ticker", "?")
+
+        if sell_qty <= 0:
+            continue
+
+        holding_days = (sell_date - buy_date).days
+        is_long_term = holding_days >= 730
+
+        # TTBR at buy date
+        buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides)
+        # TTBR at sell date
+        sell_rate, sell_rate_date, _ = _get_rate_value(sell_date, sbi_overrides)
+
+        result = {
+            "ticker":       ticker,
+            "lot_id":       s.get("lot_id", ""),
+            "buy_date":     s["buy_date"],
+            "buy_price":    buy_price,
+            "sell_date":    s["sell_date"],
+            "sell_price":   sell_price,
+            "sell_qty":     sell_qty,
+            "holding_days": holding_days,
+            "is_long_term": is_long_term,
+            "ttbr_buy":     buy_rate,
+            "ttbr_buy_date":buy_rate_date,
+            "ttbr_sell":    sell_rate,
+            "ttbr_sell_date": sell_rate_date,
+        }
+
+        if buy_rate is None or sell_rate is None:
+            result["error"] = f"TTBR not found (buy: {buy_rate_date}, sell: {sell_rate_date})"
+            result["gain_inr"] = None
+            result["category"] = None
+            sell_results.append(result)
+            continue
+
+        buy_inr_per_share  = buy_price  * buy_rate
+        sell_inr_per_share = sell_price * sell_rate
+        gain_inr = (sell_inr_per_share - buy_inr_per_share) * sell_qty
+
+        result["buy_inr_per_share"]  = round(buy_inr_per_share,  2)
+        result["sell_inr_per_share"] = round(sell_inr_per_share, 2)
+        result["buy_cost_inr"]       = round(buy_inr_per_share  * sell_qty)
+        result["sell_proceeds_inr"]  = round(sell_inr_per_share * sell_qty)
+        result["gain_inr"]           = round(gain_inr)
+
+        if is_long_term:
+            category = "ltcg" if gain_inr >= 0 else "ltcl"
+        else:
+            category = "stcg" if gain_inr >= 0 else "stcl"
+
+        result["category"] = category
+        totals[category] += abs(gain_inr)
+        sell_results.append(result)
+
+    # Round totals
+    totals = {k: round(v) for k, v in totals.items()}
+
+    # Build a mini tax_years structure for compute_offset_summary
+    def _eq(val):
+        return {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "total": val}
+
+    mini_tax_years = {
+        "prev": {
+            "totals": {
+                "stcg": _eq(totals["stcg"]),
+                "stcl": _eq(totals["stcl"]),
+                "ltcg": _eq(totals["ltcg"]),
+                "ltcl": _eq(totals["ltcl"]),
+                "dividends": _eq(0),
+            }
+        },
+        "curr": {
+            "totals": {
+                "stcg": _eq(0), "stcl": _eq(0),
+                "ltcg": _eq(0), "ltcl": _eq(0), "dividends": _eq(0),
+            }
+        },
+    }
+    compute_offset_summary(mini_tax_years)
+    offset = mini_tax_years["prev"]["offset"]
+
+    return {
+        "sells":  sell_results,
+        "totals": totals,
+        "offset": offset,
+    }
+
+
 def compute_offset_summary(tax_years: dict) -> dict:
     """
     Apply Indian ITR Section 70/74 capital gains set-off rules on yearly totals.

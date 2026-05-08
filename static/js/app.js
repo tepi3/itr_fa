@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initYearSelectors();
     bindEvents();
     initUserSelection();
+    initSellHelper();
 });
 
 function initYearSelectors() {
@@ -210,6 +211,8 @@ async function selectUser(username) {
     document.getElementById("userSelectionScreen").classList.add("hidden");
     document.getElementById("appHeader").classList.remove("hidden");
     document.getElementById("appMain").classList.remove("hidden");
+    document.getElementById("tabNav").classList.remove("hidden");
+    switchTab("a3"); // always start on A3 tab
     
     // Clear current portfolio state
     state.portfolio.stocks = [];
@@ -1570,3 +1573,374 @@ function renderTaxYearSummary(taxYears) {
     });
 }
 
+// ===== Tab Switching =====
+function switchTab(tab) {
+    const a3Els = [
+        "addStockSection", "stockCards", "calcSection",
+        "resultsSection", "sbiRatesSection", "taxYearSection",
+        "monthlyRatesSection",
+    ];
+    const isA3 = tab === "a3";
+    a3Els.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // monthlyRatesSection has its own hidden logic — only toggle if switching away
+        if (id === "monthlyRatesSection") {
+            if (!isA3) el.classList.add("hidden");
+            return;
+        }
+        el.classList.toggle("hidden", !isA3);
+    });
+    document.getElementById("sellHelperPanel").classList.toggle("hidden", isA3);
+    document.getElementById("tabA3").classList.toggle("active", isA3);
+    document.getElementById("tabSellHelper").classList.toggle("active", !isA3);
+
+    if (!isA3) shImportLots(); // auto-refresh lots when switching to helper
+}
+
+// ===== Sell Helper =====
+const simState = {
+    lots: [],       // [{ticker, yahoo_ticker, lot_id, buy_date, buy_price, available_qty, display}]
+    sells: [],      // [{rowId, lotIdx, sell_date, sell_qty, sell_price}]
+    nextRowId: 1,
+};
+
+function initSellHelper() {
+    document.getElementById("shAddRowBtn").addEventListener("click", () => shAddRow());
+    document.getElementById("shRefreshBtn").addEventListener("click", shImportLots);
+    document.getElementById("shSimulateBtn").addEventListener("click", shRunSimulation);
+}
+
+/** Build the flat lots list from current portfolio state */
+function shImportLots() {
+    simState.lots = [];
+    for (const stock of state.portfolio.stocks) {
+        for (const lot of (stock.lots || [])) {
+            if (!lot.buy_date || !lot.quantity) continue;
+            // Compute available qty (initial − all actual sells)
+            let sold = 0;
+            for (const s of (lot.sells || [])) sold += parseFloat(s.quantity) || 0;
+            const available = (parseFloat(lot.quantity) || 0) - sold;
+            if (available <= 0) continue;
+            simState.lots.push({
+                ticker:       stock.ticker,
+                yahoo_ticker: stock.yahoo_ticker || stock.ticker,
+                lot_id:       lot.id,
+                buy_date:     lot.buy_date,
+                buy_price:    parseFloat(lot.buy_price) || 0,
+                available_qty: available,
+                display: `${stock.ticker} — ${lot.buy_date} (avail: ${available})`,
+            });
+        }
+    }
+    // Re-render existing rows' lot dropdowns
+    document.querySelectorAll(".sh-lot-select").forEach(sel => {
+        const curVal = sel.value;
+        sel.innerHTML = shLotOptions(curVal);
+    });
+    if (simState.lots.length === 0 && simState.sells.length === 0) {
+        showToast("No available lots found in current portfolio", "warning");
+    }
+}
+
+function shLotOptions(selected = "") {
+    if (simState.lots.length === 0)
+        return `<option value="">— Load a portfolio first —</option>`;
+    return simState.lots.map((l, i) =>
+        `<option value="${i}" ${String(i) === String(selected) ? "selected" : ""}>${l.display}</option>`
+    ).join("");
+}
+
+function shAddRow(lotIdx = 0) {
+    const rowId = simState.nextRowId++;
+    simState.sells.push({ rowId, lotIdx: String(lotIdx), sell_date: "", sell_qty: "", sell_price: "" });
+
+    // Hide empty placeholder
+    const emptyRow = document.getElementById("shEmptyRow");
+    if (emptyRow) emptyRow.style.display = "none";
+
+    const tbody = document.getElementById("shSellsBody");
+    const tr = document.createElement("tr");
+    tr.dataset.rowId = rowId;
+
+    const today = new Date().toISOString().split("T")[0];
+
+    tr.innerHTML = `
+        <td>
+            <select class="sh-lot-select">${shLotOptions(lotIdx)}</select>
+        </td>
+        <td><input type="date" class="sh-sell-date" value="${today}"></td>
+        <td><input type="number" class="sh-sell-qty" placeholder="0" step="any" min="0" style="width:80px;"></td>
+        <td>
+            <div class="price-input-group">
+                <input type="number" class="sh-sell-price" placeholder="e.g. 135.50" step="any" min="0" style="min-width:110px;">
+                <button class="btn btn-sm btn-fetch-price sh-fetch-price-btn" title="Fetch current live price">📡 Live</button>
+            </div>
+        </td>
+        <td><span class="sh-holding-badge neutral">—</span></td>
+        <td><button class="btn btn-sm btn-danger sh-remove-btn">✕</button></td>
+    `;
+
+    // Holding badge updater
+    const updateBadge = () => {
+        const sell = simState.sells.find(s => s.rowId === rowId);
+        if (!sell) return;
+        const lotI = parseInt(tr.querySelector(".sh-lot-select").value);
+        const lot = simState.lots[lotI];
+        const sellDateVal = tr.querySelector(".sh-sell-date").value;
+        const badge = tr.querySelector(".sh-holding-badge");
+        if (!lot || !sellDateVal) {
+            badge.className = "sh-holding-badge neutral";
+            badge.textContent = "—";
+            return;
+        }
+        const buyD = new Date(lot.buy_date);
+        const sellD = new Date(sellDateVal);
+        const days = Math.round((sellD - buyD) / 86400000);
+        const isLT = days >= 730;
+        const price = parseFloat(tr.querySelector(".sh-sell-price").value) || 0;
+        const cost = parseFloat(lot.buy_price) || 0;
+        let type;
+        if (price > 0 && cost > 0) {
+            const gain = price > cost;
+            type = isLT ? (gain ? "ltcg" : "ltcl") : (gain ? "stcg" : "stcl");
+        } else {
+            type = isLT ? "ltcg" : "stcg"; // assume gain if price blank
+        }
+        const labels = { ltcg: "LTCG", ltcl: "LTCL", stcg: "STCG", stcl: "STCL" };
+        badge.className = `sh-holding-badge ${type}`;
+        badge.textContent = `${labels[type]} · ${days}d`;
+    };
+
+    tr.querySelector(".sh-lot-select").addEventListener("change", e => {
+        const sell = simState.sells.find(s => s.rowId === rowId);
+        if (sell) sell.lotIdx = e.target.value;
+        updateBadge();
+    });
+    tr.querySelector(".sh-sell-date").addEventListener("change", e => {
+        const sell = simState.sells.find(s => s.rowId === rowId);
+        if (sell) sell.sell_date = e.target.value;
+        updateBadge();
+    });
+    tr.querySelector(".sh-sell-qty").addEventListener("input", e => {
+        const sell = simState.sells.find(s => s.rowId === rowId);
+        if (sell) sell.sell_qty = e.target.value;
+    });
+    tr.querySelector(".sh-sell-price").addEventListener("input", e => {
+        const sell = simState.sells.find(s => s.rowId === rowId);
+        if (sell) sell.sell_price = e.target.value;
+        updateBadge();
+    });
+
+    // Live price fetch
+    tr.querySelector(".sh-fetch-price-btn").addEventListener("click", async () => {
+        const lotI = parseInt(tr.querySelector(".sh-lot-select").value);
+        const lot = simState.lots[lotI];
+        if (!lot) return showToast("Select a lot first", "warning");
+        const btn = tr.querySelector(".sh-fetch-price-btn");
+        btn.disabled = true;
+        btn.textContent = "⏳";
+        try {
+            const res = await apiGet(`/api/live-price?ticker=${encodeURIComponent(lot.yahoo_ticker)}`);
+            if (res.price != null) {
+                const priceInput = tr.querySelector(".sh-sell-price");
+                priceInput.value = res.price;
+                const sell = simState.sells.find(s => s.rowId === rowId);
+                if (sell) sell.sell_price = String(res.price);
+                const mktLabel = res.market_state !== "REGULAR" ? ` (${res.market_state})` : "";
+                showToast(`Live price: $${res.price}${mktLabel}`, "success");
+                updateBadge();
+            } else {
+                showToast("Could not fetch live price", "warning");
+            }
+        } catch (e) {
+            showToast(`Fetch error: ${e.message}`, "error");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "📡 Live";
+        }
+    });
+
+    tr.querySelector(".sh-remove-btn").addEventListener("click", () => {
+        simState.sells = simState.sells.filter(s => s.rowId !== rowId);
+        tr.remove();
+        if (simState.sells.length === 0) {
+            const empty = document.getElementById("shEmptyRow");
+            if (empty) empty.style.display = "";
+            document.getElementById("shSimulateBtn").style.display = "none";
+            document.getElementById("shResultsSection").classList.add("hidden");
+        }
+    });
+
+    tbody.appendChild(tr);
+    updateBadge(); // set initial badge with today's date
+    document.getElementById("shSimulateBtn").style.display = "";
+}
+
+async function shRunSimulation() {
+    if (simState.sells.length === 0) return showToast("Add at least one simulated sell", "warning");
+
+    const simSells = [];
+    for (const sell of simState.sells) {
+        const lotI = parseInt(sell.lotIdx);
+        const lot = simState.lots[lotI];
+        if (!lot) continue;
+        const qty = parseFloat(sell.sell_qty);
+        const price = parseFloat(sell.sell_price);
+        const sellDate = sell.sell_date ||
+            document.querySelector(`tr[data-row-id="${sell.rowId}"] .sh-sell-date`)?.value || "";
+        if (!qty || qty <= 0) { showToast(`Row ${sell.rowId}: enter a sell quantity`, "warning"); return; }
+        if (!price || price <= 0) { showToast(`Row ${sell.rowId}: enter a sell price`, "warning"); return; }
+        if (!sellDate) { showToast(`Row ${sell.rowId}: enter a sell date`, "warning"); return; }
+        if (qty > lot.available_qty) {
+            showToast(`Row ${sell.rowId}: qty ${qty} exceeds available ${lot.available_qty}`, "warning"); return;
+        }
+        simSells.push({
+            ticker:     lot.ticker,
+            lot_id:     lot.lot_id,
+            buy_date:   lot.buy_date,
+            buy_price:  lot.buy_price,
+            sell_qty:   qty,
+            sell_price: price,
+            sell_date:  sellDate,
+        });
+    }
+
+    if (simSells.length === 0) return showToast("No valid sells to simulate", "warning");
+
+    showLoading("Simulating tax impact...");
+    try {
+        const result = await apiPost("/api/sell-helper/simulate", {
+            calendar_year: state.portfolio.calendar_year,
+            sbi_rate_overrides: state.portfolio.sbi_rate_overrides || {},
+            simulated_sells: simSells,
+        });
+        hideLoading();
+        if (!result.success) return showToast(`Simulation error: ${result.error}`, "error");
+        shRenderResults(result);
+    } catch (e) {
+        hideLoading();
+        showToast(`Error: ${e.message}`, "error");
+    }
+}
+
+function shRenderResults(data) {
+    const section = document.getElementById("shResultsSection");
+    section.classList.remove("hidden");
+    section.scrollIntoView({ behavior: "smooth" });
+
+    // ── Per-sell table ───────────────────────────────────────────────────
+    const tbody = document.getElementById("shResultsBody");
+    tbody.innerHTML = "";
+
+    const catMeta = {
+        ltcg: { label: "LTCG", color: "var(--success)" },
+        ltcl: { label: "LTCL", color: "var(--danger)" },
+        stcg: { label: "STCG", color: "#22c55e" },
+        stcl: { label: "STCL", color: "#f97316" },
+    };
+
+    data.sells.forEach(s => {
+        const tr = document.createElement("tr");
+        const gainColor = s.gain_inr == null ? "var(--text-muted)" :
+            s.gain_inr >= 0 ? "var(--success)" : "var(--danger)";
+        const gainStr = s.gain_inr == null ? "—" :
+            (s.gain_inr >= 0 ? "" : "−") + "₹" + formatINR(Math.abs(s.gain_inr));
+        const cat = s.category ? catMeta[s.category] : null;
+        const catBadge = cat
+            ? `<span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.71rem;font-weight:700;background:${cat.color}22;color:${cat.color};border:1px solid ${cat.color}44">${cat.label}</span>`
+            : `<span style="color:var(--text-muted);font-size:0.8rem;">${s.error || "—"}</span>`;
+
+        tr.innerHTML = `
+            <td style="font-weight:600;color:var(--accent);">${s.ticker}</td>
+            <td style="color:var(--text-muted);font-size:0.8rem;">${s.buy_date}</td>
+            <td style="color:var(--text-muted);font-size:0.8rem;">${s.sell_date}</td>
+            <td>${s.sell_qty}</td>
+            <td>${s.buy_cost_inr != null ? "₹" + formatINR(s.buy_cost_inr) : "—"}</td>
+            <td>${s.sell_proceeds_inr != null ? "₹" + formatINR(s.sell_proceeds_inr) : "—"}</td>
+            <td style="color:${gainColor};font-weight:700;">${gainStr}</td>
+            <td>${catBadge}</td>
+            <td style="color:var(--text-muted);font-size:0.8rem;">${s.ttbr_buy != null ? "₹" + s.ttbr_buy + "<br><span style='font-size:0.7rem;'>" + (s.ttbr_buy_date || "") + "</span>" : "—"}</td>
+            <td style="color:var(--text-muted);font-size:0.8rem;">${s.ttbr_sell != null ? "₹" + s.ttbr_sell + "<br><span style='font-size:0.7rem;'>" + (s.ttbr_sell_date || "") + "</span>" : "—"}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // ── Offset card ──────────────────────────────────────────────────────
+    const offCard = document.getElementById("shOffsetCard");
+    offCard.innerHTML = "";
+    const off = data.offset;
+    if (!off) return;
+
+    const card = document.createElement("div");
+    card.style.cssText = [
+        "background:var(--bg-input);border-radius:10px;",
+        "border:1px solid var(--border);padding:20px 24px;",
+        "display:grid;grid-template-columns:1fr 1fr;gap:28px;"
+    ].join("");
+
+    function buildCol(title, rows, netLabel, netVal) {
+        const col = document.createElement("div");
+        const colTitle = document.createElement("div");
+        colTitle.style.cssText = "font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;";
+        colTitle.textContent = title;
+        col.appendChild(colTitle);
+
+        const lineBox = document.createElement("div");
+        lineBox.style.cssText = "display:flex;flex-direction:column;gap:4px;";
+        rows.forEach(row => {
+            if (!row || (row.val === 0 && !row.alwaysShow)) return;
+            const line = document.createElement("div");
+            line.style.cssText = "display:flex;justify-content:space-between;align-items:baseline;gap:8px;" +
+                (row.sep ? "border-top:1px solid var(--border);margin-top:4px;padding-top:6px;" : "");
+            const lbl = document.createElement("span");
+            lbl.style.cssText = "font-size:0.82rem;color:" + (row.dim ? "var(--text-muted)" : "var(--text-main)") + ";white-space:nowrap;";
+            lbl.innerHTML = (row.prefix ? `<span style="font-weight:600;margin-right:4px;color:${row.pc};">${row.prefix}</span>` : "") + row.label;
+            const amt = document.createElement("span");
+            amt.style.cssText = "font-size:0.85rem;font-weight:600;color:" + row.color + ";font-variant-numeric:tabular-nums;white-space:nowrap;";
+            amt.textContent = row.val === 0 ? "—" : (row.neg ? "−" : "") + "₹" + formatINR(row.val);
+            line.appendChild(lbl); line.appendChild(amt);
+            lineBox.appendChild(line);
+        });
+
+        const netRow = document.createElement("div");
+        netRow.style.cssText = [
+            "display:flex;justify-content:space-between;align-items:center;",
+            "margin-top:10px;padding:10px 12px;border-radius:7px;",
+            "background:" + (netVal > 0 ? "var(--success)" : "var(--bg-card)") + "18;",
+            "border:1px solid " + (netVal > 0 ? "var(--success)" : "var(--border)") + "44;"
+        ].join("");
+        netRow.innerHTML =
+            `<span style="font-size:0.85rem;font-weight:700;color:var(--text-main);">${netLabel}</span>` +
+            `<span style="font-size:1rem;font-weight:800;color:${netVal > 0 ? "var(--success)" : "var(--text-muted)"};font-variant-numeric:tabular-nums;">${netVal > 0 ? "₹" + formatINR(netVal) : "₹0"}</span>`;
+        col.appendChild(lineBox);
+        col.appendChild(netRow);
+        return col;
+    }
+
+    card.appendChild(buildCol("Short-Term Capital Gains", [
+        { label: "Gross STCG", val: off.gross_stcg, color: "#22c55e", alwaysShow: true },
+        { label: "STCL set off vs STCG", val: off.stcl_vs_stcg, color: "var(--danger)", neg: true, prefix: "−", pc: "var(--danger)", dim: true },
+        off.stcl_vs_ltcg > 0 ? { label: "Residual STCL → LTCG", val: off.stcl_vs_ltcg, color: "#f97316", dim: true } : null,
+    ], "Net STCG (Taxable)", off.net_stcg));
+
+    card.appendChild(buildCol("Long-Term Capital Gains", [
+        { label: "Gross LTCG", val: off.gross_ltcg, color: "var(--success)", alwaysShow: true },
+        { label: "LTCL set off vs LTCG", val: off.ltcl_vs_ltcg, color: "var(--danger)", neg: true, prefix: "−", pc: "var(--danger)", dim: true },
+        off.stcl_vs_ltcg > 0 ? { label: "Residual STCL set off vs LTCG", val: off.stcl_vs_ltcg, color: "#f97316", neg: true, prefix: "−", pc: "#f97316", dim: true } : null,
+    ], "Net LTCG (Taxable)", off.net_ltcg));
+
+    const cfStcl = off.stcl_carry_forward;
+    const cfLtcl = off.ltcl_carry_forward;
+    if (cfStcl > 0 || cfLtcl > 0) {
+        const cfRow = document.createElement("div");
+        cfRow.style.cssText = "grid-column:1/-1;margin-top:4px;padding:10px 12px;border-radius:7px;background:#f9731622;border:1px solid #f9731644;display:flex;gap:24px;flex-wrap:wrap;align-items:center;";
+        cfRow.innerHTML = "<span style='font-size:0.78rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.05em;'>⚠ Unadjusted Losses (Carry Forward)</span>";
+        if (cfStcl > 0) cfRow.innerHTML += `<span style="font-size:0.83rem;color:var(--text-main);">Unabsorbed STCL: <strong style="color:#f97316;">₹${formatINR(cfStcl)}</strong></span>`;
+        if (cfLtcl > 0) cfRow.innerHTML += `<span style="font-size:0.83rem;color:var(--text-main);">Unabsorbed LTCL: <strong style="color:var(--danger);">₹${formatINR(cfLtcl)}</strong></span>`;
+        card.appendChild(cfRow);
+    }
+
+    offCard.appendChild(card);
+    showToast(`Simulated ${data.sells.length} sell(s) successfully`, "success");
+}

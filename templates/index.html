@@ -79,6 +79,12 @@
         </div>
     </header>
 
+    <!-- Tab Navigation -->
+    <nav id="tabNav" class="hidden tab-nav">
+        <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">📋 Schedule FA A3</button>
+        <button id="tabSellHelper" class="tab-btn" onclick="switchTab('sellHelper')">🧮 Sell Helper</button>
+    </nav>
+
     <main id="appMain" class="hidden">
         <!-- SBI Monthly Rates Manager (always available) -->
         <section id="monthlyRatesSection" class="card hidden">
@@ -202,8 +208,112 @@
                 </table>
             </div>
         </section>
-        
+
+        <!-- ITR Tax Year Capital Gains & Dividend Summary -->
+        <section id="taxYearSection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('taxYearContent')">
+                <h2>📈 ITR Capital Gains &amp; Dividend Summary</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div id="taxYearContent" class="collapsible-content">
+                <p class="hint" style="margin-bottom:14px;">
+                    Gains/losses and dividends mapped to Indian tax years and advance-tax quarterly buckets.
+                    <strong>LTCG/LTCL</strong> = held ≥ 2 years &nbsp;|&nbsp;
+                    <strong>STCG/STCL</strong> = held &lt; 2 years.
+                    Amounts in <strong>₹</strong>.
+                </p>
+                <div id="taxYearBlocks">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== SELL HELPER PANEL ===== -->
+        <div id="sellHelperPanel" class="hidden">
+
+            <section class="card" style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                    <div>
+                        <h2 style="margin:0 0 4px;">🧮 Sell Helper — Tax Impact Simulator</h2>
+                        <p class="hint" style="margin:0;">Simulate hypothetical sells to preview STCG/LTCG tax impact. <strong>Portfolio is never modified.</strong></p>
+                    </div>
+                    <button id="shRefreshBtn" class="btn btn-outline" title="Re-import lots from current portfolio">↻ Refresh Lots</button>
+                </div>
+            </section>
+
+            <!-- Simulated Sells Table -->
+            <section class="card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <h3 style="margin:0;">Simulated Sells</h3>
+                    <button id="shAddRowBtn" class="btn btn-primary btn-sm">➕ Add Sell</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table id="shSellsTable" style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Lot (Stock — Buy Date)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Date</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Qty</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Price ($)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Holding</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="shSellsBody">
+                            <tr id="shEmptyRow">
+                                <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.875rem;">
+                                    No simulated sells yet. Click <strong>➕ Add Sell</strong> to begin.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top:16px;text-align:right;">
+                    <button id="shSimulateBtn" class="btn btn-accent btn-large" style="display:none;">⚡ Simulate Tax Impact</button>
+                </div>
+            </section>
+
+            <!-- Simulation Results -->
+            <section id="shResultsSection" class="card hidden">
+                <h3 style="margin-bottom:16px;">📊 Simulation Results</h3>
+
+                <!-- Per-sell breakdown -->
+                <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Per-Sell Breakdown</div>
+                <div style="overflow-x:auto;margin-bottom:24px;">
+                    <table id="shResultsTable" style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Stock</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Buy Date</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Date</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Qty</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Buy Cost (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sale Proceeds (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Gain / Loss (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Type</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR Buy</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR Sell</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shResultsBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Offset summary (rendered by JS) -->
+                <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Net After Set-Off (ITR §70/74)</div>
+                <div id="shOffsetCard"></div>
+
+                <p style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border);padding-top:12px;">
+                    ⚠ This is a <strong>simulation only</strong>. No portfolio data has been modified.
+                    TTBR rates are the last working day of the previous month as per ITR rules.
+                </p>
+            </section>
+
+        </div>
+        <!-- ===== END SELL HELPER ===== -->
+
         <footer style="text-align: center; margin-top: 40px; padding: 20px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.9em;">
+
             <p>© 2026 Piyush Tewari (tepi3). All rights reserved.</p>
             <p>Open-source tool for personal, non-commercial use only.</p>
         </footer>

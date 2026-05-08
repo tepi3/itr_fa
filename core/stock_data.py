@@ -222,3 +222,38 @@ def has_dividends(ticker: str) -> bool:
         return not t.dividends.empty
     except:
         return False
+
+
+def get_live_price(ticker: str) -> dict:
+    """
+    Fetch the current live market price for a ticker.
+
+    Uses yfinance fast_info.last_price which returns the most recent
+    trade price (intraday, not dividend-adjusted, not end-of-day close).
+
+    Returns:
+        {
+          "price": float | None,
+          "currency": str,
+          "market_state": str,   # "REGULAR" | "PRE" | "POST" | "CLOSED"
+          "ticker": str
+        }
+    """
+    yahoo_ticker = resolve_yahoo_ticker(ticker)
+    logger.info(f"Fetching live price for {yahoo_ticker}")
+    try:
+        t = yf.Ticker(yahoo_ticker)
+        fi = t.fast_info
+        price = fi.last_price
+        currency = getattr(fi, "currency", "USD") or "USD"
+        market_state = getattr(fi, "market_state", "UNKNOWN") or "UNKNOWN"
+        return {
+            "price": round(float(price), 4) if price is not None else None,
+            "currency": currency,
+            "market_state": market_state,
+            "ticker": yahoo_ticker,
+        }
+    except Exception as e:
+        logger.error(f"Error fetching live price for {ticker}: {e}")
+        return {"price": None, "currency": "USD", "market_state": "UNKNOWN", "ticker": yahoo_ticker}
+

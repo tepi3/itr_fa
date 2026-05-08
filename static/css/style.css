@@ -743,3 +743,72 @@ tr:hover td { background: var(--bg-hover); }
 .new-user-input input {
     flex-grow: 1;
 }
+
+/* ===== Tab Navigation ===== */
+.tab-nav {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 4px;
+}
+
+.tab-btn {
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.tab-btn:hover { color: var(--text-primary); }
+
+.tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+}
+
+/* ===== Sell Helper ===== */
+/* Compact inline inputs inside the sim sells table */
+#shSellsBody td { padding: 8px 6px; vertical-align: middle; }
+#shSellsBody input[type="date"],
+#shSellsBody input[type="number"] {
+    padding: 6px 8px;
+    font-size: 0.83rem;
+}
+#shSellsBody select {
+    padding: 6px 8px;
+    font-size: 0.83rem;
+    min-width: 180px;
+}
+
+.sh-holding-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+}
+.sh-holding-badge.stcg { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+.sh-holding-badge.ltcg { background: var(--success-light); color: var(--success); border: 1px solid rgba(16,185,129,.3); }
+.sh-holding-badge.stcl { background: #f9731622; color: #f97316; border: 1px solid #f9731644; }
+.sh-holding-badge.ltcl { background: var(--danger-light); color: var(--danger); border: 1px solid rgba(239,68,68,.3); }
+.sh-holding-badge.neutral { background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* Results table */
+#shResultsBody td { padding: 8px 10px; font-size: 0.83rem; text-align: right; }
+#shResultsBody td:first-child,
+#shResultsBody td:nth-child(2),
+#shResultsBody td:nth-child(3) { text-align: left; }
+

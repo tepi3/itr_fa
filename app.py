@@ -33,8 +33,9 @@ from core.stock_data import (
     resolve_yahoo_ticker,
     has_dividends,
     get_yearly_max_price,
+    get_live_price,
 )
-from core.calculator import calculate_a3_rows
+from core.calculator import calculate_a3_rows, calculate_tax_year_summary, simulate_sell_impact
 from core.csv_export import export_a3_csv
 
 # Configure logging
@@ -241,6 +242,45 @@ def api_calculate():
         return jsonify({"success": True, "rows": rows})
     except Exception as e:
         logger.exception("Calculation error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/tax-year-summary", methods=["POST"])
+def api_tax_year_summary():
+    """Calculate ITR capital gains & dividend quarterly summary for Indian tax years."""
+    portfolio = request.get_json()
+    if not portfolio:
+        return jsonify({"error": "Portfolio data required"}), 400
+
+    try:
+        summary = calculate_tax_year_summary(portfolio)
+        return jsonify({"success": True, **summary})
+    except Exception as e:
+        logger.exception("Tax year summary error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/live-price", methods=["GET"])
+def api_live_price():
+    """Get the current live market price for a ticker (intraday, not dividend-adjusted)."""
+    ticker = request.args.get("ticker", "").strip()
+    if not ticker:
+        return jsonify({"error": "ticker parameter required"}), 400
+    result = get_live_price(ticker)
+    return jsonify(result)
+
+
+@app.route("/api/sell-helper/simulate", methods=["POST"])
+def api_sell_helper_simulate():
+    """Simulate capital gains tax impact for hypothetical sells."""
+    payload = request.get_json()
+    if not payload:
+        return jsonify({"error": "Payload required"}), 400
+    try:
+        result = simulate_sell_impact(payload)
+        return jsonify({"success": True, **result})
+    except Exception as e:
+        logger.exception("Sell helper simulation error")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
