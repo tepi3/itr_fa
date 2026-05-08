@@ -54,18 +54,16 @@ def process_sell_details_file(file_bytes: bytes, filename: str, portfolio: dict)
     """
     Parses a G&L Expanded CSV or XLSX and populates acquisition lots and sell transactions.
 
-    For each 'Sell' row:
-      - Creates/updates an Acquisition Lot with:
-          buy_date  = Date Acquired
-          quantity  = Quantity
-          buy_price = Ordinary Income Recognized Per Share
-      - Creates a Sell Transaction on that lot with:
-          sell_date  = Date Sold
-          quantity   = Quantity
-          sell_price = Proceeds Per Share
-    """
-    rows = []
+    Skips rows where Date Sold is after the portfolio's calendar_year cutoff
+    and returns skipped_count alongside the portfolio.
 
+    Returns:
+        {"portfolio": dict, "skipped_count": int}
+    """
+    calendar_year = int(portfolio.get("calendar_year", 9999))
+    cutoff = f"{calendar_year}-12-31"
+
+    rows = []
     if filename.endswith('.csv'):
         content = file_bytes.decode('utf-8-sig')
         reader = csv.reader(io.StringIO(content))
@@ -75,6 +73,7 @@ def process_sell_details_file(file_bytes: bytes, filename: str, portfolio: dict)
         ws = wb.active
         for r in ws.iter_rows(values_only=True):
             rows.append(list(r))
+
     else:
         raise ValueError("Unsupported file format")
 
@@ -114,6 +113,7 @@ def process_sell_details_file(file_bytes: bytes, filename: str, portfolio: dict)
     stocks_dict = {s["ticker"]: s for s in portfolio.get("stocks", [])}
 
     sell_count = 0
+    skipped_count = 0
     for row in rows[1:]:
         max_idx = max(symbol_idx, qty_idx, date_acquired_idx, date_sold_idx,
                       ordinary_income_per_share_idx, proceeds_per_share_idx)
@@ -134,6 +134,12 @@ def process_sell_details_file(file_bytes: bytes, filename: str, portfolio: dict)
         date_acquired = parse_date(row[date_acquired_idx])
         date_sold = parse_date(row[date_sold_idx])
         if not date_acquired or not date_sold:
+            continue
+
+        # Skip sells beyond the calendar year cutoff
+        if date_sold > cutoff:
+            skipped_count += 1
+            logger.debug(f"Skipping {sym} sell on {date_sold} (beyond CY{calendar_year})")
             continue
 
         try:
@@ -198,5 +204,8 @@ def process_sell_details_file(file_bytes: bytes, filename: str, portfolio: dict)
         stock["lots"].sort(key=lambda l: l["buy_date"])
 
     portfolio["stocks"] = list(stocks_dict.values())
-    logger.info(f"Processed {sell_count} sell record(s) from G&L Expanded file")
-    return portfolio
+    logger.info(
+        f"G&L import: {sell_count} sell record(s) imported, "
+        f"{skipped_count} skipped (beyond CY{calendar_year})"
+    )
+    return {"portfolio": portfolio, "skipped_count": skipped_count}

@@ -545,10 +545,14 @@ def api_upload_etrade():
         file_bytes = file.read()
         portfolio_str = request.form.get("portfolio", "{}")
         portfolio = json.loads(portfolio_str)
-        
+
         from core.etrade_parser import process_etrade_file
-        updated_portfolio = process_etrade_file(file_bytes, file.filename, portfolio)
-        return jsonify({"success": True, "portfolio": updated_portfolio})
+        result = process_etrade_file(file_bytes, file.filename, portfolio)
+        return jsonify({
+            "success": True,
+            "portfolio": result["portfolio"],
+            "skipped_count": result["skipped_count"],
+        })
     except Exception as e:
         logger.exception("Etrade upload error")
         return jsonify({"success": False, "error": str(e)}), 500
@@ -571,10 +575,14 @@ def api_upload_sell_details():
         file_bytes = file.read()
         portfolio_str = request.form.get("portfolio", "{}")
         portfolio = json.loads(portfolio_str)
-        
+
         from core.sell_details_parser import process_sell_details_file
-        updated_portfolio = process_sell_details_file(file_bytes, file.filename, portfolio)
-        return jsonify({"success": True, "portfolio": updated_portfolio})
+        result = process_sell_details_file(file_bytes, file.filename, portfolio)
+        return jsonify({
+            "success": True,
+            "portfolio": result["portfolio"],
+            "skipped_count": result["skipped_count"],
+        })
     except Exception as e:
         logger.exception("Sell details upload error")
         return jsonify({"success": False, "error": str(e)}), 500

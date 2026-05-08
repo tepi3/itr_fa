@@ -768,6 +768,7 @@ async function importEtradeDocs() {
     }
 
     let portfolio = state.portfolio;
+    let totalSkipped = 0;
 
     // ── Step 1: Upload Etrade positions/transactions (if provided) ──────
     if (etradeFile) {
@@ -780,6 +781,7 @@ async function importEtradeDocs() {
             const result = await resp.json();
             if (result.success) {
                 portfolio = result.portfolio;
+                totalSkipped += result.skipped_count || 0;
             } else {
                 hideLoading();
                 showToast("Positions file error: " + result.error, "error");
@@ -803,6 +805,7 @@ async function importEtradeDocs() {
             const result = await resp.json();
             if (result.success) {
                 portfolio = result.portfolio;
+                totalSkipped += result.skipped_count || 0;
             } else {
                 hideLoading();
                 showToast("G&L file error: " + result.error, "error");
@@ -822,12 +825,22 @@ async function importEtradeDocs() {
     state.portfolio.stocks.forEach(stock => renderStockCard(stock));
     updateCalcButtonVisibility();
 
+    const cy = portfolio.calendar_year || "";
     const parts = [];
     if (etradeFile) parts.push("positions");
     if (sellFile)   parts.push("G&L sell details");
     showToast(`Portfolio imported successfully (${parts.join(" + ")})`, "success");
+
+    if (totalSkipped > 0) {
+        showToast(
+            `⚠ ${totalSkipped} transaction${totalSkipped > 1 ? "s" : ""} skipped — dated after CY${cy}`,
+            "warning"
+        );
+    }
+
     closeEtradeModal();
 }
+
 
 // ===== Render Results Table =====
 function renderResultsTable(rows) {
