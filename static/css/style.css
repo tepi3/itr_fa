@@ -775,7 +775,7 @@ tr:hover td { background: var(--bg-hover); }
     font-weight: 600;
 }
 
-/* ===== Sell Helper ===== */
+/* ===== Sell Simulator ===== */
 /* Compact inline inputs inside the sim sells table */
 #shSellsBody td { padding: 8px 6px; vertical-align: middle; }
 #shSellsBody input[type="date"],

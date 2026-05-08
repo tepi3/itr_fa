@@ -1598,7 +1598,7 @@ function switchTab(tab) {
     if (!isA3) shImportLots(); // auto-refresh lots when switching to helper
 }
 
-// ===== Sell Helper =====
+// ===== Sell Simulator =====
 const simState = {
     lots: [],       // [{ticker, yahoo_ticker, lot_id, buy_date, buy_price, available_qty, display}]
     sells: [],      // [{rowId, lotIdx, sell_date, sell_qty, sell_price}]
