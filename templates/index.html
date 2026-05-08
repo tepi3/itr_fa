@@ -71,10 +71,7 @@
                 <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
                 <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
                 <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
-                <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload Etrade Data">📈 Upload Etrade</button>
-                <input type="file" id="etradeFileInput" style="display: none;" accept=".csv, .xlsx">
-                <button id="uploadSellDetailsBtn" class="btn btn-outline" title="Upload Sell Details (G&L Expanded)">📉 Upload Sell Details</button>
-                <input type="file" id="sellDetailsFileInput" style="display: none;" accept=".csv, .xlsx">
+                <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload E-Trade files to import portfolio">📁 Upload ETRADE Docs</button>
                 <button id="loadBtn" class="btn btn-outline" title="Load saved data">📂 Load</button>
                 <button id="saveBtn" class="btn btn-primary" title="Save current data">💾 Save</button>
             </div>
@@ -436,6 +433,49 @@
             </div>
         </div>
     </template>
+
+    <!-- ===== ETRADE Upload Modal ===== -->
+    <div id="etradeUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeEtradeModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 style="margin:0;">📁 Upload ETRADE Docs</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeEtradeModal()">✕ Close</button>
+            </div>
+            <p class="hint" style="margin:12px 0 20px;">Import your E-Trade exports to build the portfolio automatically. Upload one or both files — they'll be merged into a single consolidated portfolio.</p>
+
+            <div class="modal-file-row">
+                <div class="modal-file-label">
+                    <span class="modal-file-icon">📈</span>
+                    <div>
+                        <strong>Positions / Transactions File</strong>
+                        <p class="hint" style="margin:2px 0 0;">E-Trade positions or transactions export (CSV / XLSX). Populates stock lots with buy details.</p>
+                    </div>
+                </div>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="etradeFileInput">Choose File</label>
+                <input type="file" id="etradeFileInput" style="display:none;" accept=".csv,.xlsx">
+                <span id="etradeFileName" class="modal-file-chosen">No file chosen</span>
+            </div>
+
+            <div class="modal-file-row" style="margin-top:14px;">
+                <div class="modal-file-label">
+                    <span class="modal-file-icon">📉</span>
+                    <div>
+                        <strong>G&amp;L Expanded File <span style="font-weight:400;color:var(--text-muted);">(optional)</span></strong>
+                        <p class="hint" style="margin:2px 0 0;">E-Trade Gains &amp; Losses Expanded export (XLSX). Adds sell transactions on matched lots.</p>
+                    </div>
+                </div>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="sellDetailsFileInput">Choose File</label>
+                <input type="file" id="sellDetailsFileInput" style="display:none;" accept=".csv,.xlsx">
+                <span id="sellDetailsFileName" class="modal-file-chosen">No file chosen</span>
+            </div>
+
+            <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeEtradeModal()">Cancel</button>
+                <button id="etradeImportBtn" class="btn btn-accent">⚡ Import Portfolio</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END ETRADE Upload Modal ===== -->
 
     <script src="/static/js/app.js"></script>
 </body>

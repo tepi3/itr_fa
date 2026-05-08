@@ -77,16 +77,7 @@ function bindEvents() {
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
     document.getElementById("lockRatesBtn").addEventListener("click", toggleLockRates);
     
-    document.getElementById("uploadEtradeBtn").addEventListener("click", () => {
-        document.getElementById("etradeFileInput").click();
-    });
-    document.getElementById("etradeFileInput").addEventListener("change", uploadEtradeFile);
-    
-    document.getElementById("uploadSellDetailsBtn").addEventListener("click", () => {
-        document.getElementById("sellDetailsFileInput").click();
-    });
-    document.getElementById("sellDetailsFileInput").addEventListener("change", uploadSellDetailsFile);
-    
+    document.getElementById("uploadEtradeBtn").addEventListener("click", openEtradeModal);
     document.getElementById("switchUserBtn").addEventListener("click", () => {
         document.getElementById("appHeader").classList.add("hidden");
         document.getElementById("appMain").classList.add("hidden");
@@ -740,76 +731,102 @@ async function calculateAll() {
     }
 }
 
-async function uploadEtradeFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("portfolio", JSON.stringify(state.portfolio));
-
-    showLoading("Parsing Etrade file...");
-    try {
-        const resp = await fetch("/api/upload-etrade", {
-            method: "POST",
-            body: formData
-        });
-        const result = await resp.json();
-        
-        hideLoading();
-        if (result.success) {
-            state.portfolio = result.portfolio;
-            
-            // Re-render UI
-            document.getElementById("stockCards").innerHTML = "";
-            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
-            updateCalcButtonVisibility();
-            showToast("Etrade data imported successfully!", "success");
-        } else {
-            showToast("Error parsing file: " + result.error, "error");
-        }
-    } catch (err) {
-        hideLoading();
-        showToast("Upload failed: " + err.message, "error");
-    } finally {
-        e.target.value = ""; // reset input
-    }
+// ===== ETRADE Upload Modal =====
+function openEtradeModal() {
+    document.getElementById("etradeUploadModal").classList.remove("hidden");
 }
 
-async function uploadSellDetailsFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+function closeEtradeModal() {
+    document.getElementById("etradeUploadModal").classList.add("hidden");
+    // Reset file inputs + labels
+    document.getElementById("etradeFileInput").value = "";
+    document.getElementById("sellDetailsFileInput").value = "";
+    document.getElementById("etradeFileName").textContent = "No file chosen";
+    document.getElementById("sellDetailsFileName").textContent = "No file chosen";
+}
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("portfolio", JSON.stringify(state.portfolio));
+// Wire file-chosen labels once DOM is ready (called from initSellHelper since DOMContentLoaded already ran)
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("etradeFileInput").addEventListener("change", e => {
+        const f = e.target.files[0];
+        document.getElementById("etradeFileName").textContent = f ? f.name : "No file chosen";
+    });
+    document.getElementById("sellDetailsFileInput").addEventListener("change", e => {
+        const f = e.target.files[0];
+        document.getElementById("sellDetailsFileName").textContent = f ? f.name : "No file chosen";
+    });
+    document.getElementById("etradeImportBtn").addEventListener("click", importEtradeDocs);
+});
 
-    showLoading("Parsing Sell Details (G&L Expanded)...");
-    try {
-        const resp = await fetch("/api/upload-sell-details", {
-            method: "POST",
-            body: formData
-        });
-        const result = await resp.json();
-        
-        hideLoading();
-        if (result.success) {
-            state.portfolio = result.portfolio;
-            
-            // Re-render UI
-            document.getElementById("stockCards").innerHTML = "";
-            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
-            updateCalcButtonVisibility();
-            showToast("Sell details imported successfully!", "success");
-        } else {
-            showToast("Error parsing file: " + result.error, "error");
-        }
-    } catch (err) {
-        hideLoading();
-        showToast("Upload failed: " + err.message, "error");
-    } finally {
-        e.target.value = ""; // reset input
+async function importEtradeDocs() {
+    const etradeFile = document.getElementById("etradeFileInput").files[0];
+    const sellFile   = document.getElementById("sellDetailsFileInput").files[0];
+
+    if (!etradeFile && !sellFile) {
+        showToast("Please choose at least one file to import", "warning");
+        return;
     }
+
+    let portfolio = state.portfolio;
+
+    // ── Step 1: Upload Etrade positions/transactions (if provided) ──────
+    if (etradeFile) {
+        showLoading("Step 1/2 — Parsing Positions / Transactions file...");
+        try {
+            const fd = new FormData();
+            fd.append("file", etradeFile);
+            fd.append("portfolio", JSON.stringify(portfolio));
+            const resp = await fetch("/api/upload-etrade", { method: "POST", body: fd });
+            const result = await resp.json();
+            if (result.success) {
+                portfolio = result.portfolio;
+            } else {
+                hideLoading();
+                showToast("Positions file error: " + result.error, "error");
+                return;
+            }
+        } catch (err) {
+            hideLoading();
+            showToast("Positions upload failed: " + err.message, "error");
+            return;
+        }
+    }
+
+    // ── Step 2: Upload G&L Expanded (if provided) ───────────────────────
+    if (sellFile) {
+        showLoading(etradeFile ? "Step 2/2 — Parsing G&L Expanded file..." : "Parsing G&L Expanded file...");
+        try {
+            const fd = new FormData();
+            fd.append("file", sellFile);
+            fd.append("portfolio", JSON.stringify(portfolio));
+            const resp = await fetch("/api/upload-sell-details", { method: "POST", body: fd });
+            const result = await resp.json();
+            if (result.success) {
+                portfolio = result.portfolio;
+            } else {
+                hideLoading();
+                showToast("G&L file error: " + result.error, "error");
+                return;
+            }
+        } catch (err) {
+            hideLoading();
+            showToast("G&L upload failed: " + err.message, "error");
+            return;
+        }
+    }
+
+    // ── Done — apply consolidated portfolio ─────────────────────────────
+    hideLoading();
+    state.portfolio = portfolio;
+    document.getElementById("stockCards").innerHTML = "";
+    state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+    updateCalcButtonVisibility();
+
+    const parts = [];
+    if (etradeFile) parts.push("positions");
+    if (sellFile)   parts.push("G&L sell details");
+    showToast(`Portfolio imported successfully (${parts.join(" + ")})`, "success");
+    closeEtradeModal();
 }
 
 // ===== Render Results Table =====

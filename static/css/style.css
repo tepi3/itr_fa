@@ -812,3 +812,72 @@ tr:hover td { background: var(--bg-hover); }
 #shResultsBody td:nth-child(2),
 #shResultsBody td:nth-child(3) { text-align: left; }
 
+/* ===== ETRADE Upload Modal ===== */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 11, 18, 0.75);
+    backdrop-filter: blur(6px);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.modal-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 580px;
+    box-shadow: var(--shadow-lg);
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.modal-file-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    flex-wrap: wrap;
+}
+
+.modal-file-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.modal-file-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.modal-file-pick {
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.modal-file-chosen {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
