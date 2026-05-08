@@ -720,6 +720,9 @@ async function calculateAll() {
         document.getElementById("resultsSection").classList.remove("hidden");
         document.getElementById("sbiRatesSection").classList.remove("hidden");
 
+        // Fetch and render ITR tax year capital gains & dividend summary
+        await fetchTaxYearSummary();
+
         // Scroll to results
         document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
         showToast(`Calculated ${result.rows.length} row(s) successfully`, "success");
@@ -1256,3 +1259,314 @@ async function autoLoadForYear(year) {
         showToast(`Error: ${e.message}`, "error");
     }
 }
+
+// ===== ITR Tax Year Capital Gains & Dividend Summary =====
+
+async function fetchTaxYearSummary() {
+    try {
+        const result = await apiPost("/api/tax-year-summary", state.portfolio);
+        if (result.success && result.tax_years) {
+            renderTaxYearSummary(result.tax_years);
+            document.getElementById("taxYearSection").classList.remove("hidden");
+        } else {
+            console.warn("Tax year summary failed:", result.error);
+        }
+    } catch (e) {
+        console.warn("Failed to fetch tax year summary:", e);
+    }
+}
+
+function renderTaxYearSummary(taxYears) {
+    const container = document.getElementById("taxYearBlocks");
+    container.innerHTML = "";
+
+    const quarterLabels = {
+        q1: "Up to 15/6",
+        q2: "16/6 – 15/9",
+        q3: "16/9 – 15/12",
+        q4: "16/12 – 15/3",
+        q5: "16/3 – 31/3",
+    };
+    const quarters = ["q1", "q2", "q3", "q4", "q5"];
+
+    const categoryMeta = {
+        ltcg:      { label: "LTCG", color: "var(--success)", title: "Long-Term Capital Gain (held ≥ 2 yrs)" },
+        ltcl:      { label: "LTCL", color: "var(--danger)",  title: "Long-Term Capital Loss (held ≥ 2 yrs)" },
+        stcg:      { label: "STCG", color: "#22c55e",        title: "Short-Term Capital Gain (held < 2 yrs)" },
+        stcl:      { label: "STCL", color: "#f97316",        title: "Short-Term Capital Loss (held < 2 yrs)" },
+        dividends: { label: "Div",  color: "var(--accent)",  title: "Dividend Income" },
+    };
+    const categoryOrder = ["ltcg", "ltcl", "stcg", "stcl", "dividends"];
+
+    ["prev", "curr"].forEach(tyKey => {
+        const ty = taxYears[tyKey];
+        const hasData = Object.values(ty.totals).some(b => b.total > 0);
+
+        const block = document.createElement("div");
+        block.className = "ty-block";
+        block.style.cssText = "margin-bottom:40px;";
+
+        // ── Tax year header ──────────────────────────────────────────────
+        const headerEl = document.createElement("div");
+        headerEl.style.cssText = [
+            "display:flex;align-items:center;gap:12px;",
+            "padding:10px 16px;margin-bottom:16px;",
+            "background:var(--bg-input);border-radius:8px;",
+            "border-left:4px solid var(--accent);"
+        ].join("");
+        headerEl.innerHTML =
+            "<span style=\"font-size:1.1rem;font-weight:700;color:var(--text-main);\">Tax Year: " + ty.label + "</span>" +
+            (!hasData ? "<span style=\"color:var(--text-muted);font-size:0.85rem;\">(no transactions in this CY)</span>" : "");
+        block.appendChild(headerEl);
+
+        if (!hasData) {
+            const note = document.createElement("p");
+            note.style.cssText = "color:var(--text-muted);padding:0 16px;font-size:0.875rem;";
+            note.textContent = "No gains, losses, or dividends fall in this tax year for the selected calendar year.";
+            block.appendChild(note);
+            container.appendChild(block);
+            return;
+        }
+
+        // ── SECTION 1: Gross per-stock breakdown ─────────────────────────
+        const sec1Header = document.createElement("div");
+        sec1Header.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;padding:0 4px;";
+        sec1Header.textContent = "① Gross Breakdown — Per Stock (Before Set-Off)";
+        block.appendChild(sec1Header);
+
+        const wrapper = document.createElement("div");
+        wrapper.style.cssText = "overflow-x:auto;margin-bottom:24px;";
+
+        const table = document.createElement("table");
+        table.style.cssText = "width:100%;border-collapse:collapse;font-size:0.84rem;";
+
+        // thead
+        const thead = document.createElement("thead");
+        const hrow = document.createElement("tr");
+        const colHeaders = ["Stock / Category"].concat(quarters.map(q => quarterLabels[q])).concat(["Total"]);
+        colHeaders.forEach((h, i) => {
+            const th = document.createElement("th");
+            th.textContent = h;
+            th.style.cssText = [
+                "padding:8px 10px;",
+                "background:var(--bg-input);",
+                "color:var(--text-muted);",
+                "font-weight:600;font-size:0.76rem;",
+                "text-align:" + (i === 0 ? "left" : "right") + ";",
+                "border-bottom:2px solid var(--border);",
+                "white-space:nowrap;"
+            ].join("");
+            hrow.appendChild(th);
+        });
+        thead.appendChild(hrow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        const stockTickers = Object.keys(ty.stocks);
+
+        stockTickers.forEach((ticker, sIdx) => {
+            const stockData = ty.stocks[ticker];
+
+            const sHeaderRow = document.createElement("tr");
+            const sHeaderTd = document.createElement("td");
+            sHeaderTd.colSpan = 7;
+            sHeaderTd.style.cssText = [
+                "padding:10px 10px 4px;",
+                "font-weight:700;color:var(--text-main);font-size:0.88rem;",
+                "border-top:" + (sIdx > 0 ? "2px solid var(--border)" : "none") + ";"
+            ].join("");
+            sHeaderTd.innerHTML = "<span style=\"opacity:0.4;margin-right:6px;\">◆</span>" + ticker;
+            sHeaderRow.appendChild(sHeaderTd);
+            tbody.appendChild(sHeaderRow);
+
+            categoryOrder.forEach(cat => {
+                const bucket = stockData[cat];
+                if (bucket.total === 0) return;
+                const meta = categoryMeta[cat];
+
+                const tr = document.createElement("tr");
+                tr.addEventListener("mouseenter", () => tr.style.background = "var(--bg-input)");
+                tr.addEventListener("mouseleave", () => tr.style.background = "");
+
+                const labelTd = document.createElement("td");
+                labelTd.style.cssText = "padding:5px 10px 5px 26px;white-space:nowrap;";
+                labelTd.innerHTML = "<span style=\"" +
+                    "display:inline-block;padding:2px 7px;border-radius:4px;" +
+                    "font-size:0.71rem;font-weight:700;letter-spacing:0.04em;" +
+                    "background:" + meta.color + "22;color:" + meta.color + ";" +
+                    "border:1px solid " + meta.color + "44;" +
+                    "\" title=\"" + meta.title + "\">" + meta.label + "</span>";
+                tr.appendChild(labelTd);
+
+                quarters.concat(["total"]).forEach(qk => {
+                    const td = document.createElement("td");
+                    const val = bucket[qk] || 0;
+                    td.style.cssText = [
+                        "padding:5px 10px;text-align:right;",
+                        "color:" + (val > 0 ? meta.color : "var(--text-muted)") + ";",
+                        "font-variant-numeric:tabular-nums;"
+                    ].join("");
+                    td.textContent = val > 0 ? formatINR(val) : "—";
+                    if (qk === "total") {
+                        td.style.fontWeight = "700";
+                        td.style.borderLeft = "1px solid var(--border)";
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        });
+
+        // Separator + Grand totals
+        const sepRow = document.createElement("tr");
+        const sepTd = document.createElement("td");
+        sepTd.colSpan = 7;
+        sepTd.style.cssText = "padding:0;border-top:2px solid var(--accent);";
+        sepRow.appendChild(sepTd);
+        tbody.appendChild(sepRow);
+
+        categoryOrder.forEach(cat => {
+            const bucket = ty.totals[cat];
+            if (bucket.total === 0) return;
+            const meta = categoryMeta[cat];
+
+            const tr = document.createElement("tr");
+            tr.style.background = "var(--bg-input)";
+
+            const labelTd = document.createElement("td");
+            labelTd.style.cssText = "padding:7px 10px;font-weight:700;font-size:0.82rem;white-space:nowrap;";
+            labelTd.innerHTML =
+                "<span style=\"color:var(--text-muted);font-size:0.72rem;margin-right:5px;\">TOTAL</span>" +
+                "<span style=\"color:" + meta.color + ";font-weight:800;\">" + meta.label + "</span>";
+            tr.appendChild(labelTd);
+
+            quarters.concat(["total"]).forEach(qk => {
+                const td = document.createElement("td");
+                const val = bucket[qk] || 0;
+                td.style.cssText = [
+                    "padding:7px 10px;text-align:right;font-weight:700;",
+                    "color:" + (val > 0 ? meta.color : "var(--text-muted)") + ";",
+                    "font-variant-numeric:tabular-nums;"
+                ].join("");
+                td.textContent = val > 0 ? formatINR(val) : "—";
+                if (qk === "total") {
+                    td.style.borderLeft = "1px solid var(--border)";
+                    td.style.background = meta.color + "11";
+                }
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        wrapper.appendChild(table);
+        block.appendChild(wrapper);
+
+        // ── SECTION 2: ITR Set-Off Summary ───────────────────────────────
+        const off = ty.offset;
+        if (off) {
+            const sec2Header = document.createElement("div");
+            sec2Header.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;padding:0 4px;";
+            sec2Header.textContent = "② Net Capital Gains After Set-Off (ITR §70/74)";
+            block.appendChild(sec2Header);
+
+            const offCard = document.createElement("div");
+            offCard.style.cssText = [
+                "background:var(--bg-input);border-radius:10px;",
+                "border:1px solid var(--border);padding:20px 24px;",
+                "display:grid;grid-template-columns:1fr 1fr;gap:28px;"
+            ].join("");
+
+            // Helper to build one column (STCG or LTCG)
+            function buildOffsetColumn(title, rows, netLabel, netVal) {
+                const col = document.createElement("div");
+
+                const colTitle = document.createElement("div");
+                colTitle.style.cssText = "font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;";
+                colTitle.textContent = title;
+                col.appendChild(colTitle);
+
+                const lineBox = document.createElement("div");
+                lineBox.style.cssText = "display:flex;flex-direction:column;gap:4px;";
+
+                rows.forEach(row => {
+                    if (row.val === 0 && !row.alwaysShow) return;
+                    const line = document.createElement("div");
+                    line.style.cssText = "display:flex;justify-content:space-between;align-items:baseline;gap:8px;" +
+                        (row.isSeparator ? "border-top:1px solid var(--border);margin-top:4px;padding-top:6px;" : "");
+
+                    const lbl = document.createElement("span");
+                    lbl.style.cssText = "font-size:0.82rem;color:" + (row.dimLabel ? "var(--text-muted)" : "var(--text-main)") + ";white-space:nowrap;";
+                    lbl.innerHTML = (row.prefix ? "<span style=\"font-weight:600;margin-right:4px;color:" + row.prefixColor + ";\">" + row.prefix + "</span>" : "") + row.label;
+
+                    const amt = document.createElement("span");
+                    amt.style.cssText = "font-size:0.85rem;font-weight:" + (row.isSeparator ? "700" : "600") + ";color:" + row.color + ";font-variant-numeric:tabular-nums;white-space:nowrap;";
+                    amt.textContent = row.val === 0 ? "—" : (row.negative ? "−" : "") + "₹" + formatINR(row.val);
+
+                    line.appendChild(lbl);
+                    line.appendChild(amt);
+                    lineBox.appendChild(line);
+                });
+
+                // Net result highlight
+                const netRow = document.createElement("div");
+                netRow.style.cssText = [
+                    "display:flex;justify-content:space-between;align-items:center;",
+                    "margin-top:10px;padding:10px 12px;border-radius:7px;",
+                    "background:" + (netVal > 0 ? "var(--success)" : "var(--bg-card)") + "18;",
+                    "border:1px solid " + (netVal > 0 ? "var(--success)" : "var(--border)") + "44;"
+                ].join("");
+                netRow.innerHTML =
+                    "<span style=\"font-size:0.85rem;font-weight:700;color:var(--text-main);\">" + netLabel + "</span>" +
+                    "<span style=\"font-size:1rem;font-weight:800;color:" + (netVal > 0 ? "var(--success)" : "var(--text-muted)") + ";font-variant-numeric:tabular-nums;\">" +
+                    (netVal > 0 ? "₹" + formatINR(netVal) : "₹0") + "</span>";
+                col.appendChild(lineBox);
+                col.appendChild(netRow);
+
+                return col;
+            }
+
+            // STCG column
+            const stcgCol = buildOffsetColumn("Short-Term Capital Gains", [
+                { label: "Gross STCG",               val: off.gross_stcg, color: "#22c55e", alwaysShow: true },
+                { label: "STCL set off vs STCG",      val: off.stcl_vs_stcg, color: "var(--danger)", negative: true, prefix: "−", prefixColor: "var(--danger)", dimLabel: true },
+                off.stcl_vs_ltcg > 0
+                    ? { label: "Residual STCL → offsets LTCG", val: off.stcl_vs_ltcg, color: "#f97316", negative: false, dimLabel: true, isSeparator: false }
+                    : null,
+            ].filter(Boolean), "Net STCG (Taxable)", off.net_stcg);
+
+            // LTCG column
+            const ltcgCol = buildOffsetColumn("Long-Term Capital Gains", [
+                { label: "Gross LTCG",                val: off.gross_ltcg, color: "var(--success)", alwaysShow: true },
+                { label: "LTCL set off vs LTCG",      val: off.ltcl_vs_ltcg, color: "var(--danger)", negative: true, prefix: "−", prefixColor: "var(--danger)", dimLabel: true },
+                off.stcl_vs_ltcg > 0
+                    ? { label: "Residual STCL set off vs LTCG", val: off.stcl_vs_ltcg, color: "#f97316", negative: true, prefix: "−", prefixColor: "#f97316", dimLabel: true }
+                    : null,
+            ].filter(Boolean), "Net LTCG (Taxable)", off.net_ltcg);
+
+            offCard.appendChild(stcgCol);
+            offCard.appendChild(ltcgCol);
+
+            // Carry-forward losses row (if any)
+            const cfStcl = off.stcl_carry_forward;
+            const cfLtcl = off.ltcl_carry_forward;
+            if (cfStcl > 0 || cfLtcl > 0) {
+                const cfRow = document.createElement("div");
+                cfRow.style.cssText = "grid-column:1/-1;margin-top:4px;padding:10px 12px;border-radius:7px;background:#f9731622;border:1px solid #f9731644;display:flex;gap:24px;flex-wrap:wrap;align-items:center;";
+                cfRow.innerHTML = "<span style=\"font-size:0.78rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.05em;\">⚠ Unadjusted Losses (Carry Forward to Next Year)</span>";
+                if (cfStcl > 0) {
+                    cfRow.innerHTML += `<span style="font-size:0.83rem;color:var(--text-main);">Unabsorbed STCL: <strong style="color:#f97316;">₹${formatINR(cfStcl)}</strong></span>`;
+                }
+                if (cfLtcl > 0) {
+                    cfRow.innerHTML += `<span style="font-size:0.83rem;color:var(--text-main);">Unabsorbed LTCL: <strong style="color:var(--danger);">₹${formatINR(cfLtcl)}</strong></span>`;
+                }
+                offCard.appendChild(cfRow);
+            }
+
+            block.appendChild(offCard);
+        }
+
+        container.appendChild(block);
+    });
+}
+
