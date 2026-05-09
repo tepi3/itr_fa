@@ -207,12 +207,22 @@ function bindEvents() {
             const btn = body.closest(".stock-card").querySelector(".toggle-details-btn");
             if (btn) btn.textContent = "▶ Details";
         });
+        document.querySelectorAll(".collapsible-content").forEach(el => {
+            el.classList.add("collapsed");
+            const icon = el.previousElementSibling.querySelector(".toggle-icon");
+            if (icon) icon.style.transform = "rotate(-90deg)";
+        });
     });
     document.getElementById("expandAllBtn").addEventListener("click", () => {
         document.querySelectorAll(".stock-card-body").forEach(body => {
             body.classList.remove("collapsed");
             const btn = body.closest(".stock-card").querySelector(".toggle-details-btn");
             if (btn) btn.textContent = "▼ Details";
+        });
+        document.querySelectorAll(".collapsible-content").forEach(el => {
+            el.classList.remove("collapsed");
+            const icon = el.previousElementSibling.querySelector(".toggle-icon");
+            if (icon) icon.style.transform = "";
         });
     });
 
