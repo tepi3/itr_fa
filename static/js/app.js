@@ -124,7 +124,9 @@ function bindEvents() {
     document.getElementById("calculateBtn").addEventListener("click", calculateAll);
     document.getElementById("exportCsvBtn").addEventListener("click", exportCSV);
     document.getElementById("saveBtn").addEventListener("click", savePortfolio);
+    document.getElementById("saveAsBtn").addEventListener("click", savePortfolioAs);
     document.getElementById("loadBtn").addEventListener("click", loadPortfolio);
+    document.getElementById("openFileBtn").addEventListener("click", openPortfolioFile);
     document.getElementById("fetchRatesBtn").addEventListener("click", fetchSbiRates);
     document.getElementById("fetchAllDividendsBtn").addEventListener("click", fetchAllDividends);
     document.getElementById("importPrevBtn").addEventListener("click", importPreviousYear);
@@ -1223,6 +1225,59 @@ async function loadPortfolio() {
     }
 }
 
+function savePortfolioAs() {
+    // Sync all cards
+    document.querySelectorAll(".stock-card").forEach(card => syncStockFromCard(card));
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.portfolio, null, 2));
+    const dlAnchorElem = document.createElement('a');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", `portfolio_CY${state.portfolio.calendar_year}_${state.username}.json`);
+    dlAnchorElem.click();
+    
+    markClean();
+    showToast("Portfolio downloaded to your computer.", "success");
+}
+
+function openPortfolioFile() {
+    document.getElementById("openFileInput").click();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const fileInput = document.getElementById("openFileInput");
+    if (fileInput) {
+        fileInput.addEventListener("change", function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    // Basic validation
+                    if (!data.calendar_year || !data.stocks) {
+                        throw new Error("Invalid portfolio format");
+                    }
+                    state.portfolio = data;
+                    document.getElementById("yearSelect").value = state.portfolio.calendar_year;
+
+                    // Re-render all stock cards
+                    document.getElementById("stockCards").innerHTML = "";
+                    state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+                    updateCalcButtonVisibility();
+                    
+                    showToast("Portfolio loaded from file", "success");
+                } catch (err) {
+                    showToast(`Failed to read file: ${err.message}`, "error");
+                }
+            };
+            reader.readAsText(file);
+            // Reset so the same file can be loaded again if needed
+            e.target.value = "";
+        });
+    }
+});
+
 // ===== Fetch SBI Rates =====
 async function fetchSbiRates() {
     showLoading("Downloading SBI USD rates from GitHub...");
@@ -2264,7 +2319,7 @@ function initFYYearSelector() {
 // ===== Consolidated FY Tax Summary =====
 async function fetchConsolidatedTaxSummary() {
     const fyStart = parseInt(document.getElementById("fyYearSelect").value);
-    if (!fyStart || !state.username) return showToast("Select a financial year", "warning");
+    if (!fyStart || !state.username) return showToast("Select a tax year", "warning");
     showLoading(`Generating consolidated statement for FY ${fyStart}-${String(fyStart + 1).slice(-2)}…`);
     try {
         const result = await apiPost("/api/consolidated-tax-summary", {
@@ -2273,8 +2328,7 @@ async function fetchConsolidatedTaxSummary() {
         hideLoading();
         if (!result.success) return showToast(result.error || "Failed", "error");
         renderConsolidatedTaxSummary(result.consolidated);
-        document.getElementById("consolidatedFYSection").classList.remove("hidden");
-        document.getElementById("consolidatedFYSection").scrollIntoView({ behavior: "smooth" });
+        document.getElementById("consolidatedFYBlocks").scrollIntoView({ behavior: "smooth" });
     } catch (e) {
         hideLoading();
         showToast(`Error: ${e.message}`, "error");
@@ -2320,7 +2374,7 @@ function renderConsolidatedTaxSummary(data) {
     block.appendChild(headerEl);
 
     if (!hasData) {
-        block.innerHTML += `<p style="color:var(--text-muted);padding:0 16px;font-size:0.875rem;">No gains, losses, or dividends found for this financial year.</p>`;
+        block.innerHTML += `<p style="color:var(--text-muted);padding:0 16px;font-size:0.875rem;">No gains, losses, or dividends found for this tax year.</p>`;
         container.appendChild(block);
         return;
     }
@@ -2605,9 +2659,10 @@ const tutorialSteps = [
     { selector: "#fetchRatesBtn", title: "SBI TT Rates", desc: "Downloads SBI TT Buying rates from the cloud. These rates are used to convert USD values to ₹ for ITR filing." },
     { selector: "#viewRatesBtn", title: "Monthly Rates Manager", desc: "View, edit, and lock SBI TT rates per month. Locked years are preserved during rate refreshes." },
     { selector: "#undoBtn", title: "Undo / Redo", desc: "Made a mistake? Undo any portfolio change with ↩ Undo or Ctrl+Z. Redo with ↪ Redo or Ctrl+Shift+Z. Supports up to 50 levels." },
-    { selector: "#generateFYBtn", title: "Consolidated Tax Statement", desc: "Generate a unified tax view for a complete Financial Year (Apr–Mar) by combining two calendar year reports. Includes LTCG/STCG netting with ITR §70/74 set-off." },
+    { selector: "#generateFYBtn", title: "Consolidated Tax Statement", desc: "Generate a unified tax view for a complete Tax Year (Apr–Mar) by combining two calendar year reports. Includes LTCG/STCG netting with ITR §70/74 set-off." },
     { selector: "#tabSellHelper", title: "Sell Simulator", desc: "Switch to the Sell Simulator tab to simulate hypothetical sells and preview their STCG/LTCG tax impact — without modifying your portfolio." },
-    { selector: "#saveBtn", title: "Save & Load", desc: "Save your portfolio to disk. The pulsing dot indicates unsaved changes. Use Load to restore previously saved data." },
+    { selector: "#saveBtn", title: "Save & Load (Server)", desc: "Save your portfolio to the server. The pulsing dot indicates unsaved changes. Use Load to restore previously saved data." },
+    { selector: "#saveAsBtn", title: "Save As / Open...", desc: "Use Save As to download the portfolio JSON to any folder on your computer. Use Open... to load a portfolio from any folder." },
 ];
 
 let currentTutorialStep = -1;

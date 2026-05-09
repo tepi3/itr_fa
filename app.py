@@ -263,7 +263,7 @@ def api_tax_year_summary():
 @app.route("/api/consolidated-tax-summary", methods=["POST"])
 def api_consolidated_tax_summary():
     """
-    Generate a consolidated tax statement for a full Indian Financial Year (Apr–Mar).
+    Generate a consolidated tax statement for a full Indian Tax Year (Apr–Mar).
 
     FY 2024-25 = Apr 2024 – Mar 2025.
     This combines:

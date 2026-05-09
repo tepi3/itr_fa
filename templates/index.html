@@ -73,11 +73,14 @@
                 <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
                 <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
                 <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload E-Trade files to import portfolio">📁 Upload ETRADE Docs</button>
-                <button id="loadBtn" class="btn btn-outline" title="Load saved data">📂 Load</button>
+                <button id="loadBtn" class="btn btn-outline" title="Load saved data from server">📂 Load</button>
+                <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
                 <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
                 <button id="redoBtn" class="btn btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪ Redo</button>
-                <button id="saveBtn" class="btn btn-primary" title="Save current data"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
+                <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
+                <button id="saveAsBtn" class="btn btn-primary" title="Save portfolio to your computer">💾 Save As</button>
                 <button id="helpBtn" class="btn btn-outline btn-help" title="Show feature tutorial">❓ Help</button>
+                <input type="file" id="openFileInput" accept=".json" style="display: none;">
             </div>
         </div>
     </header>
@@ -246,13 +249,13 @@
         <!-- ===== TAX STATEMENT PANEL ===== -->
         <div id="taxStatementPanel" class="hidden">
             <section class="card">
-                <h2 style="margin-bottom:4px;">📊 Consolidated Tax Statement (Financial Year Apr–Mar)</h2>
+                <h2 style="margin-bottom:4px;">📊 Consolidated Tax Statement (Tax Year Apr–Mar)</h2>
                 <p class="hint" style="margin-bottom:16px;">
-                    Generate a unified tax view for a complete Indian Financial Year (Apr–Mar) by combining data from two calendar year reports.
+                    Generate a unified tax view for a complete Indian Tax Year (Apr–Mar) by combining data from two calendar year reports.
                     If a calendar year's report is missing, that portion is treated as zero.
                 </p>
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-                    <label for="fyYearSelect" style="margin-bottom:0;font-weight:500;">Financial Year:</label>
+                    <label for="fyYearSelect" style="margin-bottom:0;font-weight:500;">Tax Year:</label>
                     <select id="fyYearSelect" style="width:auto;min-width:160px;"></select>
                     <button id="generateFYBtn" class="btn btn-accent">⚡ Generate Consolidated Statement</button>
                 </div>

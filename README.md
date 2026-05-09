@@ -39,7 +39,7 @@ python3 app.py
 - **Schedule FA A3 Calculator** — Computes all 12 portal columns: Initial Value, Peak Value, Closing Balance, Dividends, and Sale Proceeds — all converted to ₹.
 - **ITR Tax Year Summary** — Capital gains (LTCG/STCG) and dividends mapped to Indian tax years with advance-tax quarterly buckets.
 - **ITR §70/74 Set-Off** — Automatic capital gains netting: STCL vs STCG, residual STCL vs LTCG, LTCL vs LTCG, with carry-forward tracking.
-- **Consolidated Tax Statement (FY)** — Generate a unified tax view for any complete Financial Year (Apr–Mar) by combining two calendar year reports. If a year's report is missing, that portion is treated as zero.
+- **Consolidated Tax Statement** — Generate a unified tax view for any complete Tax Year (Apr–Mar) by combining two calendar year reports. If a year's report is missing, that portion is treated as zero.
 
 ### Sell Simulator
 - **Tax Impact Simulator** — Simulate hypothetical stock sells and preview STCG/LTCG tax impact without modifying your portfolio.
@@ -48,6 +48,7 @@ python3 app.py
 
 ### Productivity
 - **Undo / Redo** — Undo any portfolio change (add/remove stock, lot, sell, dividend) with ↩ Undo or **Ctrl+Z** (⌘+Z on Mac). Redo with ↪ Redo or **Ctrl+Shift+Z**. Supports up to 50 levels.
+- **Save / Open Anywhere** — Use the "Save As" and "Open..." buttons to download your portfolio JSON to any external folder on your computer, or load it from any directory, in addition to the built-in server-side Save/Load.
 - **Unsaved Changes Indicator** — A pulsing dot on the Save button warns you about unsaved portfolio modifications.
 - **Interactive Tutorial** — Click ❓ Help to launch a guided step-by-step walkthrough of every feature with spotlight highlights.
 - **CSV Export** — Generate ready-to-use `.csv` reports strictly matching the ITR portal's Schedule FA A3 template.
