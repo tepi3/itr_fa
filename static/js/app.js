@@ -93,6 +93,9 @@ function clearCalculatedSections() {
     }
     const pieLegend = document.getElementById("assetPieChartLegend");
     if (pieLegend) pieLegend.innerHTML = "";
+    
+    const pieSection = document.getElementById("assetPieChartSection");
+    if (pieSection) pieSection.classList.add("hidden");
 }
 
 // ===== Initialization =====
@@ -2145,7 +2148,7 @@ function switchTab(tab) {
     const a3Els = [
         "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
         "resultsSection", "sbiRatesSection", "taxYearSection",
-        "monthlyRatesSection",
+        "monthlyRatesSection", "assetPieChartSection",
     ];
     const isA3 = tab === "a3";
     const isSellHelper = tab === "sellHelper";
