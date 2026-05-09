@@ -2399,7 +2399,7 @@ function shAddRow(lotIdx = 0) {
                 priceInput.value = res.price;
                 const sell = simState.sells.find(s => s.rowId === rowId);
                 if (sell) sell.sell_price = String(res.price);
-                const mktLabel = res.market_state !== "REGULAR" ? ` (${res.market_state})` : "";
+                const mktLabel = (res.market_state !== "REGULAR" && res.market_state !== "UNKNOWN") ? ` (${res.market_state})` : "";
                 showToast(`Live price for ${lot.ticker}: $${res.price}${mktLabel}`, "success");
                 updateBadge();
             } else {
