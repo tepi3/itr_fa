@@ -35,7 +35,7 @@ from core.stock_data import (
     get_yearly_max_price,
     get_live_price,
 )
-from core.calculator import calculate_a3_rows, calculate_tax_year_summary, simulate_sell_impact
+from core.calculator import calculate_a3_rows, calculate_tax_year_summary, simulate_sell_impact, calculate_current_balance
 from core.csv_export import export_a3_csv
 
 # Configure logging
@@ -391,6 +391,20 @@ def api_live_price():
     return jsonify(result)
 
 
+@app.route("/api/current-balance", methods=["POST"])
+def api_current_balance():
+    """Calculate current-month portfolio value snapshot for in-progress calendar years."""
+    portfolio = request.get_json()
+    if not portfolio:
+        return jsonify({"error": "Portfolio data required"}), 400
+    try:
+        result = calculate_current_balance(portfolio)
+        return jsonify({"success": True, **result})
+    except Exception as e:
+        logger.exception("Current balance error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/sell-helper/simulate", methods=["POST"])
 def api_sell_helper_simulate():
     """Simulate capital gains tax impact for hypothetical sells."""
@@ -445,6 +459,13 @@ def api_save():
     calendar_year = portfolio.get("calendar_year", 2024)
     filename = f"portfolio_CY{calendar_year}.json"
     filepath = user_dir / filename
+
+    # Strip runtime-only fields — dividends and yearly max price are always
+    # fetched fresh from Yahoo Finance on load and never persisted to disk.
+    for stock in portfolio.get("stocks", []):
+        stock.pop("dividends", None)
+        stock.pop("yearly_max_price", None)
+        stock.pop("yearly_max_price_date", None)
 
     with open(filepath, "w") as f:
         json.dump(portfolio, f, indent=2)
@@ -619,31 +640,8 @@ def api_import_previous_year():
                 new_stock["lots"].append(new_lot)
 
         if new_stock["lots"]:
-            # Auto-fetch dividends and yearly max price for the target year
-            if not new_stock.get("skip_dividends", False):
-                try:
-                    divs = get_dividends(yahoo_ticker, target_year)
-                    new_stock["dividends"] = [
-                        {
-                            "id": str(uuid.uuid4()),
-                            "ex_date": d["ex_date"],
-                            "amount": d["amount"],
-                        }
-                        for d in divs
-                    ]
-                    logger.info(f"Fetched {len(divs)} dividends for {yahoo_ticker} in CY{target_year}")
-                except Exception as e:
-                    logger.warning(f"Could not fetch dividends for {yahoo_ticker}: {e}")
-
-            # Always fetch yearly max price for peak value reference
-            try:
-                peak_info = get_yearly_max_price(yahoo_ticker, target_year)
-                new_stock["yearly_max_price"] = peak_info["max_price"]
-                new_stock["yearly_max_price_date"] = peak_info["max_price_date"]
-                logger.info(f"Yearly max price for {yahoo_ticker} in CY{target_year}: {peak_info['max_price']} on {peak_info['max_price_date']}")
-            except Exception as e:
-                logger.warning(f"Could not fetch yearly max price for {yahoo_ticker}: {e}")
-
+            # Dividends and yearly max price are fetched client-side at load
+            # time and are never stored in the portfolio JSON.
             new_portfolio["stocks"].append(new_stock)
 
     return jsonify({"success": True, "portfolio": new_portfolio})
@@ -697,30 +695,8 @@ def api_upload_etrade():
                 except Exception as e:
                     logger.warning(f"Could not fetch company info for {ticker}: {e}")
 
-                # Fetch dividends
-                if not stock.get("skip_dividends", False):
-                    try:
-                        divs = get_dividends(yahoo_ticker, calendar_year)
-                        stock["dividends"] = [
-                            {
-                                "id": str(uuid.uuid4()),
-                                "ex_date": d["ex_date"],
-                                "amount": d["amount"],
-                            }
-                            for d in divs
-                        ]
-                        logger.info(f"Fetched {len(divs)} dividends for {ticker} in CY{calendar_year}")
-                    except Exception as e:
-                        logger.warning(f"Could not fetch dividends for {ticker}: {e}")
-
-                # Fetch yearly max price
-                try:
-                    peak_info = get_yearly_max_price(yahoo_ticker, calendar_year)
-                    if peak_info.get("max_price") is not None:
-                        stock["yearly_max_price"] = peak_info["max_price"]
-                        stock["yearly_max_price_date"] = peak_info["max_price_date"]
-                except Exception as e:
-                    logger.warning(f"Could not fetch yearly max price for {ticker}: {e}")
+                # Note: dividends and yearly max price are fetched client-side
+                # on load and are not stored in the portfolio JSON.
 
         return jsonify({
             "success": True,
@@ -779,27 +755,8 @@ def api_upload_sell_details():
                 except Exception as e:
                     logger.warning(f"Could not fetch company info for {ticker}: {e}")
 
-                if not stock.get("skip_dividends", False):
-                    try:
-                        divs = get_dividends(yahoo_ticker, calendar_year)
-                        stock["dividends"] = [
-                            {
-                                "id": str(uuid.uuid4()),
-                                "ex_date": d["ex_date"],
-                                "amount": d["amount"],
-                            }
-                            for d in divs
-                        ]
-                    except Exception as e:
-                        logger.warning(f"Could not fetch dividends for {ticker}: {e}")
-
-                try:
-                    peak_info = get_yearly_max_price(yahoo_ticker, calendar_year)
-                    if peak_info.get("max_price") is not None:
-                        stock["yearly_max_price"] = peak_info["max_price"]
-                        stock["yearly_max_price_date"] = peak_info["max_price_date"]
-                except Exception as e:
-                    logger.warning(f"Could not fetch yearly max price for {ticker}: {e}")
+                # Note: dividends and yearly max price are fetched client-side
+                # on load and are not stored in the portfolio JSON.
 
         return jsonify({
             "success": True,
@@ -818,7 +775,7 @@ def open_browser():
 
 if __name__ == "__main__":
     print(f"\n{'='*60}")
-    print(f"  ITR Schedule FA - Section A3 Helper Tool")
+    print(f"  FA Desk — Foreign Assets ITR Helper")
     print(f"  Open: http://{FLASK_HOST}:{FLASK_PORT}")
     print(f"{'='*60}\n")
 

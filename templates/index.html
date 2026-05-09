@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ITR Schedule FA — Section A3 Helper</title>
-    <meta name="description" content="Tool to help fill Section A3 (Foreign Equity & Debt Interest) of Schedule FA in Indian Income Tax Return">
+    <title>FA Desk — Foreign Assets ITR Helper</title>
+    <meta name="description" content="FA Desk: Track foreign equity & debt investments and generate Schedule FA Section A3 for your Indian Income Tax Return">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
     <!-- User Selection Screen -->
     <div id="userSelectionScreen">
         <div class="user-card">
-            <h2>Welcome to ITR Schedule FA</h2>
+            <h2>Welcome to FA Desk</h2>
             <p class="subtitle">Select your profile to continue</p>
             
             <div class="user-list-container">
@@ -53,8 +53,8 @@
     <!-- Header -->
     <header id="appHeader" class="hidden">
         <div class="header-left">
-            <h1>📋 Schedule FA — Section A3</h1>
-            <span class="subtitle">Foreign Equity & Debt Interest</span>
+            <h1>🌐 FA Desk</h1>
+            <span class="subtitle">Foreign Assets ITR Helper</span>
         </div>
         <div class="header-right">
             <div class="user-display" style="display: flex; align-items: center; margin-right: 16px;">
@@ -87,7 +87,7 @@
 
     <!-- Tab Navigation -->
     <nav id="tabNav" class="hidden tab-nav">
-        <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">📋 Schedule FA A3</button>
+        <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">📋 FA Report (A3)</button>
         <button id="tabSellHelper" class="tab-btn" onclick="switchTab('sellHelper')">🧮 Sell Simulator</button>
         <button id="tabTaxStatement" class="tab-btn" onclick="switchTab('taxStatement')">📊 Tax Statement</button>
     </nav>
@@ -142,14 +142,14 @@
 
         <!-- Calculate Button -->
         <section id="calcSection" class="card hidden">
-            <button id="calculateBtn" class="btn btn-accent btn-large">⚡ Calculate A3 Values</button>
-            <p class="hint">This will fetch stock prices, SBI rates, and calculate all 12 columns</p>
+            <button id="calculateBtn" class="btn btn-accent btn-large">⚡ Generate FA Report</button>
+            <p class="hint">Fetches stock prices &amp; SBI TT rates, then computes all 12 Schedule FA A3 columns</p>
         </section>
 
         <!-- Results Section -->
         <section id="resultsSection" class="card hidden">
             <div class="results-header">
-                <h2>📊 Schedule FA — Section A3 Preview</h2>
+                <h2>📊 FA Report Preview — Section A3</h2>
                 <button id="exportCsvBtn" class="btn btn-primary">📥 Export CSV</button>
             </div>
             <div class="table-wrapper">
@@ -195,7 +195,7 @@
 
             <!-- Pie Chart: End-of-Year Assets by Stock -->
             <div id="assetPieChartSection" style="margin-top: 30px;">
-                <h3 style="margin-bottom: 12px;">🧩 End-of-Year Assets by Stock (INR)</h3>
+                <h3 id="assetPieChartTitle" style="margin-bottom: 12px;">🧩 End-of-Year Assets by Stock (INR)</h3>
                 <div class="pie-chart-container">
                     <canvas id="assetPieChart" width="400" height="400"></canvas>
                     <div id="assetPieChartLegend" class="pie-chart-legend"></div>
@@ -377,7 +377,7 @@
         <!-- ===== END SELL HELPER ===== -->
 
         <!-- Floating Calculate A3 Button -->
-        <button id="calcFab" class="calc-fab hidden" title="Calculate A3 Values">⚡ Calculate A3</button>
+        <button id="calcFab" class="calc-fab hidden" title="Generate FA Report">⚡ Generate FA Report</button>
 
         <footer style="text-align: center; margin-top: 40px; padding: 20px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.9em;">
 
@@ -406,7 +406,10 @@
             <div class="stock-card-body">
                 <!-- Company Info -->
                 <div class="company-info-section">
-                    <h3>Company Information</h3>
+                    <div class="section-header">
+                        <h3>Company Information</h3>
+                        <button class="btn btn-sm btn-outline fetch-company-details-btn" title="Fetch company info from Yahoo Finance and override current values">🔄 Fetch Details</button>
+                    </div>
                     <div class="form-grid">
                         <div class="form-field">
                             <label>Country Code</label>

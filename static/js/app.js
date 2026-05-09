@@ -521,6 +521,9 @@ function renderStockCard(stock) {
     // Fetch dividends button
     card.querySelector(".fetch-dividends-btn").addEventListener("click", () => fetchDividendsForStock(card, stock));
 
+    // Fetch company details button
+    card.querySelector(".fetch-company-details-btn").addEventListener("click", () => fetchCompanyDetailsForStock(card, stock));
+
     // Render existing lots, sells, and dividends
     stock.lots.forEach(lot => renderLotRow(card, stock, lot));
     stock.lots.forEach(lot => {
@@ -799,7 +802,7 @@ async function calculateAll() {
         return showToast("Add at least one lot with a date and quantity", "warning");
     }
 
-    showLoading("Calculating A3 values...\nThis may take a moment (fetching prices & rates)");
+    showLoading("Generating FA Report...\nThis may take a moment (fetching prices & rates)");
 
     try {
         const result = await apiPost("/api/calculate", state.portfolio);
@@ -890,7 +893,7 @@ async function calculateAll() {
         });
 
         // Render Pie Chart
-        renderAssetPieChart(result.rows);
+        await renderAssetPieChart(result.rows);
 
         document.getElementById("resultsSection").classList.remove("hidden");
         document.getElementById("sbiRatesSection").classList.remove("hidden");
@@ -908,7 +911,7 @@ async function calculateAll() {
 
         // Scroll to results
         document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
-        showToast(`Calculated ${result.rows.length} row(s) successfully`, "success");
+        showToast(`FA Report generated — ${result.rows.length} row(s)`, "success");
     } catch (e) {
         hideLoading();
         showToast(`Error: ${e.message}`, "error");
@@ -1270,6 +1273,8 @@ async function loadPortfolio() {
         updateCalcButtonVisibility();
 
         showToast(`Loaded portfolio for CY${year}`, "success");
+        if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
+        hideLoading();
     } catch (e) {
         hideLoading();
         showToast(`Load error: ${e.message}`, "error");
@@ -1280,7 +1285,15 @@ function savePortfolioAs() {
     // Sync all cards
     document.querySelectorAll(".stock-card").forEach(card => syncStockFromCard(card));
 
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.portfolio, null, 2));
+    // Deep clone and strip runtime-only fields before downloading
+    const portfolioToSave = JSON.parse(JSON.stringify(state.portfolio));
+    portfolioToSave.stocks.forEach(stock => {
+        delete stock.dividends;
+        delete stock.yearly_max_price;
+        delete stock.yearly_max_price_date;
+    });
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(portfolioToSave, null, 2));
     const dlAnchorElem = document.createElement('a');
     dlAnchorElem.setAttribute("href", dataStr);
     dlAnchorElem.setAttribute("download", `portfolio_CY${state.portfolio.calendar_year}_${state.username}.json`);
@@ -1318,6 +1331,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     updateCalcButtonVisibility();
                     
                     showToast("Portfolio loaded from file", "success");
+                    // Fetch runtime data (dividends + peak prices) in background
+                    if (state.portfolio.stocks.length > 0) {
+                        fetchRuntimeDataForAllStocks().then(hideLoading).catch(() => hideLoading());
+                    }
                 } catch (err) {
                     showToast(`Failed to read file: ${err.message}`, "error");
                 }
@@ -1329,7 +1346,49 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// ===== Fetch SBI Rates =====
+// ===== Runtime Data Fetcher =====
+/**
+ * After loading a portfolio (from disk, import, or file), fetch dividends and
+ * peak prices for all stocks. These are runtime-only values — never stored in
+ * the portfolio JSON — and must always be fetched fresh.
+ */
+async function fetchRuntimeDataForAllStocks() {
+    const year = state.portfolio.calendar_year;
+    const total = state.portfolio.stocks.length;
+    let idx = 0;
+    for (const stock of state.portfolio.stocks) {
+        idx++;
+        const ticker = stock.yahoo_ticker || stock.ticker;
+        showLoading(`Fetching live data (${idx}/${total}): ${stock.ticker}…`);
+        const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
+
+        // Fetch dividends
+        if (!stock.skip_dividends) {
+            try {
+                const divData = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`);
+                stock.dividends = (divData.dividends || []).map(d => ({
+                    id: generateId(), ex_date: d.ex_date, amount: d.amount,
+                }));
+                if (card) {
+                    const tbody = card.querySelector(".dividends-tbody");
+                    tbody.innerHTML = "";
+                    stock.dividends.forEach(div => renderDividendRow(card, stock, div));
+                }
+            } catch (e) { console.warn(`Dividend fetch failed for ${ticker}`, e); }
+        }
+
+        // Fetch peak price (for badge display)
+        try {
+            const peakInfo = await apiGet(`/api/yearly-max-price?ticker=${encodeURIComponent(ticker)}&year=${year}`);
+            if (peakInfo.max_price != null) {
+                stock.yearly_max_price = peakInfo.max_price;
+                stock.yearly_max_price_date = peakInfo.max_price_date;
+                if (card) showPeakPriceBadge(card, peakInfo.max_price, peakInfo.max_price_date);
+            }
+        } catch (e) { console.warn(`Peak price fetch failed for ${ticker}`, e); }
+    }
+}
+
 async function fetchSbiRates() {
     showLoading("Downloading SBI USD rates from GitHub...");
     try {
@@ -1379,9 +1438,13 @@ async function importPreviousYear() {
         updateCalcButtonVisibility();
 
         showToast(`Imported ${state.portfolio.stocks.length} stock(s) from CY${sourceYear}`, "success");
+        if (state.portfolio.stocks.length > 0) {
+            await fetchRuntimeDataForAllStocks();
+        }
     } catch (e) {
-        hideLoading();
         showToast(`Import error: ${e.message}`, "error");
+    } finally {
+        hideLoading();
     }
 }
 
@@ -1554,8 +1617,9 @@ async function autoLoadForYear(year) {
             state.portfolio.stocks.forEach(stock => renderStockCard(stock));
             updateCalcButtonVisibility();
             clearCalculatedSections();
-            hideLoading();
             showToast(`Loaded saved portfolio for CY${year}`, "success");
+            if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
+            hideLoading();
             return;
         }
 
@@ -1573,8 +1637,9 @@ async function autoLoadForYear(year) {
             state.portfolio.stocks.forEach(stock => renderStockCard(stock));
             updateCalcButtonVisibility();
             clearCalculatedSections();
-            hideLoading();
             showToast(`Imported ${state.portfolio.stocks.length} stock(s) from CY${sourceYear}`, "info");
+            if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
+            hideLoading();
             return;
         }
 
@@ -2328,6 +2393,42 @@ async function fetchDividendsForStock(card, stock) {
     }
 }
 
+async function fetchCompanyDetailsForStock(card, stock) {
+    const ticker = stock.ticker;
+    const btn = card.querySelector(".fetch-company-details-btn");
+    btn.disabled = true;
+    btn.textContent = "⏳ Fetching…";
+    try {
+        const info = await apiPost("/api/lookup-stock", { ticker });
+        if (!info.success) {
+            showToast(`Could not fetch details for ${ticker}: ${info.error || "Unknown error"}`, "error");
+            return;
+        }
+        pushUndoSnapshot();
+        // Override company info fields
+        stock.company_info.country_code = info.country_code || stock.company_info.country_code;
+        stock.company_info.name = info.name || stock.company_info.name;
+        stock.company_info.display_name = info.display_name || stock.company_info.display_name;
+        stock.company_info.address = info.address || stock.company_info.address;
+        stock.company_info.zip = info.zip || stock.company_info.zip;
+        stock.company_info.nature = info.nature || stock.company_info.nature;
+        if (info.yahoo_ticker) stock.yahoo_ticker = info.yahoo_ticker;
+        // Update card fields
+        card.querySelector(".company-country").value = stock.company_info.country_code;
+        card.querySelector(".company-name").value = stock.company_info.display_name;
+        card.querySelector(".company-address").value = stock.company_info.address;
+        card.querySelector(".company-zip").value = stock.company_info.zip;
+        card.querySelector(".company-nature").value = stock.company_info.nature;
+        card.querySelector(".stock-name").textContent = stock.company_info.name;
+        showToast(`Updated company details for ${ticker}`, "success");
+    } catch (e) {
+        showToast(`Failed to fetch details for ${ticker}: ${e.message}`, "error");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "🔄 Fetch Details";
+    }
+}
+
 async function fetchAllDividends() {
     if (state.portfolio.stocks.length === 0) return showToast("No stocks to fetch dividends for", "warning");
     pushUndoSnapshot();
@@ -2603,9 +2704,10 @@ function shRenderLotsReference() {
 }
 
 // ===== Pie Chart =====
-function renderAssetPieChart(rows) {
+async function renderAssetPieChart(rows) {
     const canvas = document.getElementById("assetPieChart");
     const legendContainer = document.getElementById("assetPieChartLegend");
+    const chartTitleEl = document.getElementById("assetPieChartTitle");
     if (!canvas || !legendContainer) return;
 
     const ctx = canvas.getContext("2d");
@@ -2615,17 +2717,52 @@ function renderAssetPieChart(rows) {
     const centerY = height / 2;
     const radius = Math.min(centerX, centerY) - 10;
 
-    // Aggregate by stock
+    const currentYear = new Date().getFullYear();
+    const portfolioYear = state.portfolio.calendar_year;
+
+    // Aggregate by stock — use current-month snapshot for in-progress years
     const stockTotals = {};
     let totalAssets = 0;
+    let chartLabel = "End-of-Year Assets (Dec 31)";
 
-    rows.forEach(row => {
-        const entity = row.entity_name;
-        const bal = row.closing_balance || 0;
-        if (!stockTotals[entity]) stockTotals[entity] = 0;
-        stockTotals[entity] += bal;
-        totalAssets += bal;
-    });
+    if (portfolioYear < currentYear) {
+        // Completed year: use Dec 31 closing_balance from A3 rows
+        rows.forEach(row => {
+            const entity = row.entity_name;
+            const bal = row.closing_balance || 0;
+            if (!stockTotals[entity]) stockTotals[entity] = 0;
+            stockTotals[entity] += bal;
+            totalAssets += bal;
+        });
+    } else {
+        // In-progress year: fetch current-month snapshot
+        try {
+            const result = await apiPost("/api/current-balance", state.portfolio);
+            if (result.success && result.stock_balances) {
+                const snapshotDate = result.snapshot_date;
+                const d = new Date(snapshotDate + "T00:00:00");
+                const formatted = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                chartLabel = `Assets as of ${formatted}`;
+                result.stock_balances.forEach(item => {
+                    stockTotals[item.entity_name] = (stockTotals[item.entity_name] || 0) + item.balance_inr;
+                    totalAssets += item.balance_inr;
+                });
+            }
+        } catch (e) {
+            console.warn("Failed to fetch current balance for pie chart:", e);
+            // Fallback: try closing_balance (likely 0 for current year)
+            rows.forEach(row => {
+                const entity = row.entity_name;
+                const bal = row.closing_balance || 0;
+                if (!stockTotals[entity]) stockTotals[entity] = 0;
+                stockTotals[entity] += bal;
+                totalAssets += bal;
+            });
+        }
+    }
+
+    // Update section title
+    if (chartTitleEl) chartTitleEl.textContent = `🧩 ${chartLabel} (INR)`;
 
     ctx.clearRect(0, 0, width, height);
     legendContainer.innerHTML = "";
