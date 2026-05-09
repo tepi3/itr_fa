@@ -96,6 +96,23 @@ function clearCalculatedSections() {
     
     const pieSection = document.getElementById("assetPieChartSection");
     if (pieSection) pieSection.classList.add("hidden");
+
+    // Clear sell simulator state
+    if (typeof simState !== 'undefined') {
+        simState.sells = [];
+        simState.nextRowId = 1;
+        const shSellsBody = document.getElementById("shSellsBody");
+        if (shSellsBody) shSellsBody.innerHTML = "";
+        
+        const shEmptyRow = document.getElementById("shEmptyRow");
+        if (shEmptyRow) shEmptyRow.style.display = "";
+        
+        const shSimulateBtn = document.getElementById("shSimulateBtn");
+        if (shSimulateBtn) shSimulateBtn.style.display = "none";
+        
+        const shResultsSection = document.getElementById("shResultsSection");
+        if (shResultsSection) shResultsSection.classList.add("hidden");
+    }
 }
 
 // ===== Initialization =====
