@@ -203,7 +203,26 @@
             </div>
         </section>
 
-        <!-- SBI Rates Used in Calculation -->
+        <!-- ITR Tax Year Capital Gains & Dividend Summary -->
+        <section id="taxYearSection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('taxYearContent')">
+                <h2>📈 ITR Capital Gains &amp; Dividend Summary</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div id="taxYearContent" class="collapsible-content">
+                <p class="hint" style="margin-bottom:14px;">
+                    Gains/losses and dividends mapped to Indian tax years and advance-tax quarterly buckets.
+                    <strong>LTCG/LTCL</strong> = held ≥ 2 years &nbsp;|&nbsp;
+                    <strong>STCG/STCL</strong> = held &lt; 2 years.
+                    Amounts in <strong>₹</strong>.
+                </p>
+                <div id="taxYearBlocks">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SBI Rates Used in Calculation (at bottom, collapsed by default) -->
         <section id="sbiRatesSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('sbiRatesContent')">
                 <h2>📐 SBI TT Rates Used in Calculation</h2>
@@ -222,25 +241,6 @@
                     </thead>
                     <tbody id="sbiRatesTableBody"></tbody>
                 </table>
-            </div>
-        </section>
-
-        <!-- ITR Tax Year Capital Gains & Dividend Summary -->
-        <section id="taxYearSection" class="card hidden">
-            <div class="collapsible-header" onclick="toggleSection('taxYearContent')">
-                <h2>📈 ITR Capital Gains &amp; Dividend Summary</h2>
-                <span class="toggle-icon">▼</span>
-            </div>
-            <div id="taxYearContent" class="collapsible-content">
-                <p class="hint" style="margin-bottom:14px;">
-                    Gains/losses and dividends mapped to Indian tax years and advance-tax quarterly buckets.
-                    <strong>LTCG/LTCL</strong> = held ≥ 2 years &nbsp;|&nbsp;
-                    <strong>STCG/STCL</strong> = held &lt; 2 years.
-                    Amounts in <strong>₹</strong>.
-                </p>
-                <div id="taxYearBlocks">
-                    <!-- Populated by JS -->
-                </div>
             </div>
         </section>
 
@@ -375,6 +375,9 @@
 
         </div>
         <!-- ===== END SELL HELPER ===== -->
+
+        <!-- Floating Calculate A3 Button -->
+        <button id="calcFab" class="calc-fab hidden" title="Calculate A3 Values">⚡ Calculate A3</button>
 
         <footer style="text-align: center; margin-top: 40px; padding: 20px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.9em;">
 

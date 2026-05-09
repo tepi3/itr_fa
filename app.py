@@ -669,9 +669,62 @@ def api_upload_etrade():
 
         from core.etrade_parser import process_etrade_file
         result = process_etrade_file(file_bytes, file.filename, portfolio)
+        enriched_portfolio = result["portfolio"]
+
+        # Enrich stocks that have empty company_info (newly created from E-Trade)
+        calendar_year = int(enriched_portfolio.get("calendar_year", 2024))
+        for stock in enriched_portfolio.get("stocks", []):
+            ci = stock.get("company_info", {})
+            # If company_info has no 'name', it's newly created and needs enrichment
+            if not ci.get("name"):
+                ticker = stock.get("ticker", "")
+                yahoo_ticker = stock.get("yahoo_ticker", ticker)
+                logger.info(f"Enriching E-Trade stock: {ticker}")
+                try:
+                    info = get_company_info(ticker)
+                    if info.get("success"):
+                        stock["company_info"] = {
+                            "country_code": info.get("country_code", ""),
+                            "name": info.get("name", ticker),
+                            "display_name": info.get("display_name", ticker),
+                            "address": info.get("address", ""),
+                            "zip": info.get("zip", ""),
+                            "nature": info.get("nature", "Company"),
+                        }
+                        if info.get("yahoo_ticker"):
+                            stock["yahoo_ticker"] = info["yahoo_ticker"]
+                            yahoo_ticker = info["yahoo_ticker"]
+                except Exception as e:
+                    logger.warning(f"Could not fetch company info for {ticker}: {e}")
+
+                # Fetch dividends
+                if not stock.get("skip_dividends", False):
+                    try:
+                        divs = get_dividends(yahoo_ticker, calendar_year)
+                        stock["dividends"] = [
+                            {
+                                "id": str(uuid.uuid4()),
+                                "ex_date": d["ex_date"],
+                                "amount": d["amount"],
+                            }
+                            for d in divs
+                        ]
+                        logger.info(f"Fetched {len(divs)} dividends for {ticker} in CY{calendar_year}")
+                    except Exception as e:
+                        logger.warning(f"Could not fetch dividends for {ticker}: {e}")
+
+                # Fetch yearly max price
+                try:
+                    peak_info = get_yearly_max_price(yahoo_ticker, calendar_year)
+                    if peak_info.get("max_price") is not None:
+                        stock["yearly_max_price"] = peak_info["max_price"]
+                        stock["yearly_max_price_date"] = peak_info["max_price_date"]
+                except Exception as e:
+                    logger.warning(f"Could not fetch yearly max price for {ticker}: {e}")
+
         return jsonify({
             "success": True,
-            "portfolio": result["portfolio"],
+            "portfolio": enriched_portfolio,
             "skipped_count": result["skipped_count"],
         })
     except Exception as e:
@@ -699,9 +752,58 @@ def api_upload_sell_details():
 
         from core.sell_details_parser import process_sell_details_file
         result = process_sell_details_file(file_bytes, file.filename, portfolio)
+        enriched_portfolio = result["portfolio"]
+
+        # Enrich stocks that have empty company_info (newly created from G&L file)
+        calendar_year = int(enriched_portfolio.get("calendar_year", 2024))
+        for stock in enriched_portfolio.get("stocks", []):
+            ci = stock.get("company_info", {})
+            if not ci.get("name"):
+                ticker = stock.get("ticker", "")
+                yahoo_ticker = stock.get("yahoo_ticker", ticker)
+                logger.info(f"Enriching G&L stock: {ticker}")
+                try:
+                    info = get_company_info(ticker)
+                    if info.get("success"):
+                        stock["company_info"] = {
+                            "country_code": info.get("country_code", ""),
+                            "name": info.get("name", ticker),
+                            "display_name": info.get("display_name", ticker),
+                            "address": info.get("address", ""),
+                            "zip": info.get("zip", ""),
+                            "nature": info.get("nature", "Company"),
+                        }
+                        if info.get("yahoo_ticker"):
+                            stock["yahoo_ticker"] = info["yahoo_ticker"]
+                            yahoo_ticker = info["yahoo_ticker"]
+                except Exception as e:
+                    logger.warning(f"Could not fetch company info for {ticker}: {e}")
+
+                if not stock.get("skip_dividends", False):
+                    try:
+                        divs = get_dividends(yahoo_ticker, calendar_year)
+                        stock["dividends"] = [
+                            {
+                                "id": str(uuid.uuid4()),
+                                "ex_date": d["ex_date"],
+                                "amount": d["amount"],
+                            }
+                            for d in divs
+                        ]
+                    except Exception as e:
+                        logger.warning(f"Could not fetch dividends for {ticker}: {e}")
+
+                try:
+                    peak_info = get_yearly_max_price(yahoo_ticker, calendar_year)
+                    if peak_info.get("max_price") is not None:
+                        stock["yearly_max_price"] = peak_info["max_price"]
+                        stock["yearly_max_price_date"] = peak_info["max_price_date"]
+                except Exception as e:
+                    logger.warning(f"Could not fetch yearly max price for {ticker}: {e}")
+
         return jsonify({
             "success": True,
-            "portfolio": result["portfolio"],
+            "portfolio": enriched_portfolio,
             "skipped_count": result["skipped_count"],
         })
     except Exception as e:
