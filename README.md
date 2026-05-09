@@ -1,4 +1,4 @@
-# ITR Schedule FA — Section A3 Helper Tool
+# FA Desk - Foreign Assets ITR Helper
 
 A local web tool to automate filling Section A3 (Foreign Equity & Debt Interest) of Schedule FA in Indian Income Tax Return.
 
