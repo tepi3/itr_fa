@@ -3123,7 +3123,7 @@ function updateDashboard() {
     // Assets + Dividends only available after calculation
     if (state.calculatedRows && state.calculatedRows.length > 0) {
         const totalAssets = state.calculatedRows.reduce((s, r) => s + (r.closing_balance || 0), 0);
-        const totalDivs = state.calculatedRows.reduce((s, r) => s + (r.total_gross_amount || 0), 0);
+        const totalDivs = state.calculatedRows.reduce((s, r) => s + (r.total_dividends || 0), 0);
         document.getElementById("dashTotalAssets").textContent = "\u20b9" + Math.round(totalAssets).toLocaleString("en-IN");
         document.getElementById("dashTotalDividends").textContent = "\u20b9" + Math.round(totalDivs).toLocaleString("en-IN");
     } else {
@@ -3301,9 +3301,9 @@ function renderYoYComparison() {
     if (!prevData || !prevData.rows || prevData.rows.length === 0) return;
 
     const curAssets = state.calculatedRows.reduce((s, r) => s + (r.closing_balance || 0), 0);
-    const curDivs = state.calculatedRows.reduce((s, r) => s + (r.total_gross_amount || 0), 0);
+    const curDivs = state.calculatedRows.reduce((s, r) => s + (r.total_dividends || 0), 0);
     const prevAssets = prevData.rows.reduce((s, r) => s + (r.closing_balance || 0), 0);
-    const prevDivs = prevData.rows.reduce((s, r) => s + (r.total_gross_amount || 0), 0);
+    const prevDivs = prevData.rows.reduce((s, r) => s + (r.total_dividends || 0), 0);
 
     const section = document.createElement("div");
     section.id = "yoySection";

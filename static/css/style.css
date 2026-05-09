@@ -1225,7 +1225,7 @@ tr:hover td { background: var(--bg-hover); }
 .quick-jump-nav {
     position: fixed;
     bottom: 90px;
-    right: 28px;
+    right: 50px;
     z-index: 200;
     display: flex;
     flex-direction: column;
@@ -1337,13 +1337,25 @@ tr:hover td { background: var(--bg-hover); }
 }
 
 /* ===== Sticky A3 Table Columns ===== */
-#a3Table th:nth-child(1), #a3Table td:nth-child(1) {
+#a3Table th:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--bg-tertiary);
+}
+#a3Table td:nth-child(1) {
     position: sticky;
     left: 0;
     z-index: 2;
     background: var(--bg-secondary);
 }
-#a3Table th:nth-child(3), #a3Table td:nth-child(3) {
+#a3Table th:nth-child(3) {
+    position: sticky;
+    left: 40px;
+    z-index: 3;
+    background: var(--bg-tertiary);
+}
+#a3Table td:nth-child(3) {
     position: sticky;
     left: 40px;
     z-index: 2;
@@ -1352,6 +1364,11 @@ tr:hover td { background: var(--bg-hover); }
 #a3Table .col-numbers td:nth-child(1),
 #a3Table .col-numbers td:nth-child(3) {
     background: var(--bg-tertiary);
+}
+
+#a3Table tr:hover td:nth-child(1),
+#a3Table tr:hover td:nth-child(3) {
+    background: var(--bg-hover);
 }
 
 /* ===== Drag Handle ===== */
