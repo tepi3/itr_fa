@@ -100,7 +100,7 @@ def process_etrade_file(file_bytes: bytes, filename: str, portfolio: dict) -> di
 
         # Skip transactions not in the current calendar year
         buy_year = int(date_val.split("-")[0])
-        if buy_year != calendar_year:
+        if buy_year > calendar_year:
             skipped_count += 1
             logger.debug(f"Skipping {sym} on {date_val} (not in CY{calendar_year})")
             continue
