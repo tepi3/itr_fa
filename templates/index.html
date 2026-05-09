@@ -203,28 +203,6 @@
             </div>
         </section>
 
-        <!-- SBI Rates Used in Calculation -->
-        <section id="sbiRatesSection" class="card hidden">
-            <div class="collapsible-header" onclick="toggleSection('sbiRatesContent')">
-                <h2>📐 SBI TT Rates Used in Calculation</h2>
-                <span class="toggle-icon">▼</span>
-            </div>
-            <div id="sbiRatesContent" class="collapsible-content">
-                <p class="hint" style="margin-bottom: 12px;">These are the specific SBI TT Buying rates applied to each calculation step.</p>
-                <table id="sbiRatesTable">
-                    <thead>
-                        <tr>
-                            <th>Calculation For</th>
-                            <th>Rate Date</th>
-                            <th>TT Buy Rate (₹)</th>
-                            <th>Source</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sbiRatesTableBody"></tbody>
-                </table>
-            </div>
-        </section>
-
         <!-- ITR Tax Year Capital Gains & Dividend Summary -->
         <section id="taxYearSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('taxYearContent')">
@@ -241,6 +219,28 @@
                 <div id="taxYearBlocks">
                     <!-- Populated by JS -->
                 </div>
+            </div>
+        </section>
+
+        <!-- SBI Rates Used in Calculation -->
+        <section id="sbiRatesSection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('sbiRatesContent')">
+                <h2>📐 SBI TT Rates Used in Calculation</h2>
+                <span class="toggle-icon" style="transform: rotate(-90deg); display: inline-block;">▼</span>
+            </div>
+            <div id="sbiRatesContent" class="collapsible-content collapsed">
+                <p class="hint" style="margin-bottom: 12px;">These are the specific SBI TT Buying rates applied to each calculation step.</p>
+                <table id="sbiRatesTable">
+                    <thead>
+                        <tr>
+                            <th>Calculation For</th>
+                            <th>Rate Date</th>
+                            <th>TT Buy Rate (₹)</th>
+                            <th>Source</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sbiRatesTableBody"></tbody>
+                </table>
             </div>
         </section>
 
