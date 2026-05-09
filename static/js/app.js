@@ -2400,7 +2400,7 @@ function shAddRow(lotIdx = 0) {
                 const sell = simState.sells.find(s => s.rowId === rowId);
                 if (sell) sell.sell_price = String(res.price);
                 const mktLabel = res.market_state !== "REGULAR" ? ` (${res.market_state})` : "";
-                showToast(`Live price: $${res.price}${mktLabel}`, "success");
+                showToast(`Live price for ${lot.ticker}: $${res.price}${mktLabel}`, "success");
                 updateBadge();
             } else {
                 showToast("Could not fetch live price", "warning");
