@@ -4,7 +4,17 @@ A local web tool to automate filling Section A3 (Foreign Equity & Debt Interest)
 
 ## Quick Start
 
+### One-liner to Clone, Install & Run
 ```bash
+git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r requirements.txt && python3 app.py
+```
+
+### Manual Setup
+```bash
+# Clone the repository
+git clone https://github.com/tepi3/itr_fa.git
+cd itr_fa
+
 # Install dependencies
 pip3 install -r requirements.txt
 
@@ -21,6 +31,7 @@ python3 app.py
 - **Auto stock lookup** — Enter ticker symbol (QCOM, NVDA, etc.), company info auto-filled via Yahoo Finance.
 - **E-Trade Import** — Automatically parse your E-Trade Holdings reports (Expanded "By Status" View) to populate all acquisition lots and sale transactions.
 - **E-Trade Sell Details Import** — Upload the Gain and Loss Expanded (G&L Expanded) exported `.xlsx` file from E-Trade to populate both acquisition lots and sell transactions.
+- **IBKR Import** — Upload your Interactive Brokers CSV transaction history to build the portfolio and apply FIFO sells.
 - **FIFO Sells** — Supports partial sells and fractional shares using First-In-First-Out logic.
 - **Multi-User Profiles** — Manage separate portfolios for different individuals with dedicated local storage.
 - **Manual Override** — Click any calculated cell in the results table to manually adjust values if needed.
@@ -90,6 +101,7 @@ itr_fa/
 │   ├── calculator.py         # A3 column calculations & tax year summary
 │   ├── csv_export.py         # ITR-compliant CSV generation
 │   ├── etrade_parser.py      # E-Trade report parser (CSV/XLSX)
+│   ├── ibkr_parser.py        # IBKR report parser (CSV)
 │   └── sell_details_parser.py # G&L Expanded sell details parser (CSV/XLSX)
 ├── data/                     # Runtime data (auto-created)
 │   ├── sbi_rates_cache.json  # Cached SBI rates & locked years
