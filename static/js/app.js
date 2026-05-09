@@ -2269,6 +2269,11 @@ function shImportLots() {
     for (const stock of state.portfolio.stocks) {
         for (const lot of (stock.lots || [])) {
             if (!lot.buy_date || !lot.quantity) continue;
+            
+            // Only show lots acquired on or before the selected calendar year
+            const buyYear = new Date(lot.buy_date).getFullYear();
+            if (buyYear > state.portfolio.calendar_year) continue;
+
             // Compute available qty (initial − all actual sells)
             let sold = 0;
             for (const s of (lot.sells || [])) sold += parseFloat(s.quantity) || 0;
