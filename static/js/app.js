@@ -2308,7 +2308,12 @@ function shAddRow(lotIdx = 0) {
         </td>
         <td class="sh-sell-buy-price" style="font-size:0.8rem;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap;"></td>
         <td><input type="date" class="sh-sell-date" value="${today}"></td>
-        <td><input type="number" class="sh-sell-qty" placeholder="0" step="any" min="0" style="width:80px;"></td>
+        <td>
+            <div class="price-input-group">
+                <input type="number" class="sh-sell-qty" placeholder="0" step="any" min="0" style="width:70px;">
+                <button class="btn btn-sm btn-outline sh-sell-all-btn" title="Sell all available quantity">All</button>
+            </div>
+        </td>
         <td>
             <div class="price-input-group">
                 <input type="number" class="sh-sell-price" placeholder="e.g. 135.50" step="any" min="0" style="min-width:110px;">
@@ -2377,6 +2382,17 @@ function shAddRow(lotIdx = 0) {
     tr.querySelector(".sh-sell-qty").addEventListener("input", e => {
         const sell = simState.sells.find(s => s.rowId === rowId);
         if (sell) sell.sell_qty = e.target.value;
+    });
+    tr.querySelector(".sh-sell-all-btn").addEventListener("click", () => {
+        const lotI = parseInt(tr.querySelector(".sh-lot-select").value);
+        const lot = simState.lots[lotI];
+        if (lot) {
+            const qtyInput = tr.querySelector(".sh-sell-qty");
+            qtyInput.value = lot.available_qty;
+            const sell = simState.sells.find(s => s.rowId === rowId);
+            if (sell) sell.sell_qty = String(lot.available_qty);
+            updateBadge();
+        }
     });
     tr.querySelector(".sh-sell-price").addEventListener("input", e => {
         const sell = simState.sells.find(s => s.rowId === rowId);
