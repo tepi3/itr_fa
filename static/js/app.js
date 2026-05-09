@@ -616,7 +616,13 @@ function renderStockCard(stock) {
     initCsvLotImport(card, stock);
 
     // Render existing lots, sells, and dividends
-    stock.lots.forEach(lot => renderLotRow(card, stock, lot));
+    stock.lots.forEach(lot => {
+        if (lot.buy_date) {
+            const buyYear = new Date(lot.buy_date).getFullYear();
+            if (buyYear > state.portfolio.calendar_year) return;
+        }
+        renderLotRow(card, stock, lot);
+    });
     stock.lots.forEach(lot => {
         (lot.sells || []).forEach(sell => renderSellRow(card, stock, lot, sell));
     });
