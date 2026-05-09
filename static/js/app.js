@@ -2709,10 +2709,12 @@ function showTutorialStep(index) {
     document.getElementById("tutorialPrevBtn").disabled = index === 0;
     document.getElementById("tutorialNextBtn").textContent = index === tutorialSteps.length - 1 ? "Finish ✓" : "Next →";
 
-    // Remove old spotlight
+    // Remove old spotlight and dimmed class
     document.querySelectorAll(".tutorial-spotlight").forEach(el => el.remove());
+    document.getElementById("tutorialBackdrop").classList.remove("dimmed");
 
     const tooltip = document.getElementById("tutorialTooltip");
+    tooltip.style.transform = "none"; // clear any previous centering transform
 
     if (target) {
         target.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2729,19 +2731,34 @@ function showTutorialStep(index) {
             spotlight.style.height = (rect.height + pad * 2) + "px";
             document.getElementById("tutorialOverlay").appendChild(spotlight);
 
-            // Position tooltip below target
-            const tooltipTop = rect.bottom + 16;
-            const tooltipLeft = Math.max(16, Math.min(rect.left, window.innerWidth - 400));
-            tooltip.style.top = tooltipTop + "px";
-            tooltip.style.left = tooltipLeft + "px";
+            // Position tooltip
+            let tooltipTop = rect.bottom + 16;
+            let tooltipLeft = rect.left;
 
-            // If tooltip goes off screen bottom, put above
-            if (tooltipTop + 200 > window.innerHeight) {
-                tooltip.style.top = (rect.top - 220) + "px";
-            }
+            // Wait a tick for the tooltip to have layout size
+            requestAnimationFrame(() => {
+                const ttRect = tooltip.getBoundingClientRect();
+                
+                // If it goes off bottom, place it above target
+                if (tooltipTop + ttRect.height > window.innerHeight - 10) {
+                    tooltipTop = rect.top - ttRect.height - 16;
+                }
+                
+                // Final clamp vertically
+                tooltipTop = Math.max(10, Math.min(tooltipTop, window.innerHeight - ttRect.height - 10));
+                
+                // Final clamp horizontally
+                tooltipLeft = Math.max(10, Math.min(tooltipLeft, window.innerWidth - ttRect.width - 10));
+
+                tooltip.style.top = tooltipTop + "px";
+                tooltip.style.left = tooltipLeft + "px";
+            });
+
         }, 300);
     } else {
         // Element not visible — center tooltip
+        // We add a class to the backdrop to dim the screen since there's no spotlight box-shadow to do it
+        document.getElementById("tutorialBackdrop").classList.add("dimmed");
         tooltip.style.top = "50%";
         tooltip.style.left = "50%";
         tooltip.style.transform = "translate(-50%, -50%)";
