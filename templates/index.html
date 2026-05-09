@@ -93,6 +93,19 @@
     </nav>
 
     <main id="appMain" class="hidden">
+        <!-- Quick Jump Sidebar -->
+        <nav id="quickJumpNav" class="quick-jump-nav">
+            <div class="qj-title">Jump to</div>
+            <button class="qj-btn" data-target="addStockSection" title="Add Stock / ETF">➕ Add Stock</button>
+            <button class="qj-btn" data-target="stockCards" title="Your portfolio stocks">📦 Stocks</button>
+            <button class="qj-btn" data-target="calcSection" title="Generate FA Report">⚡ Generate</button>
+            <button class="qj-btn" data-target="resultsSection" title="FA Report preview table">📊 Report</button>
+            <button class="qj-btn" data-target="stockSummarySection" title="Per-stock dividend summary">💰 Dividends</button>
+            <button class="qj-btn" data-target="assetPieChartSection" title="Assets pie chart">🧩 Assets</button>
+            <button class="qj-btn" data-target="taxYearSection" title="Tax year capital gains">📈 Tax Year</button>
+            <button class="qj-btn" data-target="sbiRatesSection" title="SBI TT rates used">💱 SBI Rates</button>
+        </nav>
+
         <!-- SBI Monthly Rates Manager (always available) -->
         <section id="monthlyRatesSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('monthlyRatesContent')">

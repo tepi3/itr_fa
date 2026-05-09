@@ -103,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initUserSelection();
     initSellHelper();
     initTutorial();
+    initQuickJump();
 });
 
 function initYearSelectors() {
@@ -2001,6 +2002,62 @@ function switchTab(tab) {
     document.getElementById("tabTaxStatement").classList.toggle("active", isTaxStatement);
 
     if (isSellHelper) shImportLots(); // auto-refresh lots when switching to helper
+
+    // Show quick-jump sidebar only on A3 tab
+    const qjNav = document.getElementById("quickJumpNav");
+    if (qjNav) qjNav.style.display = isA3 ? '' : 'none';
+}
+
+// ===== Quick Jump Sidebar =====
+function initQuickJump() {
+    const nav = document.getElementById("quickJumpNav");
+    if (!nav) return;
+
+    const btns = nav.querySelectorAll(".qj-btn");
+
+    // Click → smooth scroll
+    btns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const targetId = btn.dataset.target;
+            const el = document.getElementById(targetId);
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        });
+    });
+
+    // IntersectionObserver for active highlighting
+    const sectionIds = Array.from(btns).map(b => b.dataset.target);
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const btn = nav.querySelector(`.qj-btn[data-target="${entry.target.id}"]`);
+            if (!btn) return;
+
+            // Show/hide button based on whether section is in the DOM and visible
+            const isHidden = entry.target.classList.contains("hidden") ||
+                             entry.target.offsetParent === null;
+            btn.classList.toggle("qj-hidden", isHidden);
+
+            if (entry.isIntersecting) {
+                btns.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+            }
+        });
+    }, { rootMargin: "-10% 0px -70% 0px", threshold: 0 });
+
+    sectionIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+    });
+
+    // Periodically update button visibility (sections are added/removed dynamically)
+    setInterval(() => {
+        btns.forEach(btn => {
+            const el = document.getElementById(btn.dataset.target);
+            const isHidden = !el || el.classList.contains("hidden") || el.offsetParent === null;
+            btn.classList.toggle("qj-hidden", isHidden);
+        });
+    }, 1000);
 }
 
 // ===== Sell Simulator =====
