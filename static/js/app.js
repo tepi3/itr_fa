@@ -52,7 +52,7 @@ function restorePortfolioUI() {
     document.getElementById("stockCards").innerHTML = "";
     state.portfolio.stocks.forEach(stock => renderStockCard(stock));
     updateCalcButtonVisibility();
-    document.getElementById("resultsSection").classList.add("hidden");
+    clearCalculatedSections();
 }
 
 function updateUndoRedoButtons() {
@@ -68,6 +68,31 @@ function markDirty() {
 function markClean() {
     state.isDirty = false;
     document.getElementById("unsavedDot").classList.add("hidden");
+}
+
+/** Clear all calculated/results sections so stale data doesn't persist. */
+function clearCalculatedSections() {
+    state.calculatedRows = [];
+    state.sbiRatesUsed = [];
+    // Hide and clear results
+    document.getElementById("resultsSection").classList.add("hidden");
+    document.getElementById("a3TableBody").innerHTML = "";
+    // Hide and clear SBI rates used section
+    document.getElementById("sbiRatesSection").classList.add("hidden");
+    document.getElementById("sbiRatesTableBody").innerHTML = "";
+    // Hide and clear tax year summary section
+    document.getElementById("taxYearSection").classList.add("hidden");
+    document.getElementById("taxYearBlocks").innerHTML = "";
+    // Clear per-stock summary and pie chart
+    const summaryBody = document.getElementById("stockSummaryTableBody");
+    if (summaryBody) summaryBody.innerHTML = "";
+    const pieCanvas = document.getElementById("assetPieChart");
+    if (pieCanvas) {
+        const ctx = pieCanvas.getContext("2d");
+        ctx.clearRect(0, 0, pieCanvas.width, pieCanvas.height);
+    }
+    const pieLegend = document.getElementById("assetPieChartLegend");
+    if (pieLegend) pieLegend.innerHTML = "";
 }
 
 // ===== Initialization =====
@@ -122,6 +147,7 @@ function bindEvents() {
         if (e.key === "Enter") lookupStock();
     });
     document.getElementById("calculateBtn").addEventListener("click", calculateAll);
+    document.getElementById("calcFab").addEventListener("click", calculateAll);
     document.getElementById("exportCsvBtn").addEventListener("click", exportCSV);
     document.getElementById("saveBtn").addEventListener("click", savePortfolio);
     document.getElementById("saveAsBtn").addEventListener("click", savePortfolioAs);
@@ -160,6 +186,23 @@ function bindEvents() {
             redo();
         }
     });
+
+    // ===== Floating Calculate A3 Button (IntersectionObserver) =====
+    const calcSection = document.getElementById("calcSection");
+    const calcFab = document.getElementById("calcFab");
+    if (calcSection && calcFab && typeof IntersectionObserver !== "undefined") {
+        const calcObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // Show FAB only when calcSection is NOT visible AND has stocks
+                if (!entry.isIntersecting && !calcSection.classList.contains("hidden")) {
+                    calcFab.classList.remove("hidden");
+                } else {
+                    calcFab.classList.add("hidden");
+                }
+            });
+        }, { threshold: 0.1 });
+        calcObserver.observe(calcSection);
+    }
 }
 
 // ===== User Selection & Management =====
@@ -290,7 +333,7 @@ async function selectUser(username) {
     state.portfolio.overrides = {};
     state.portfolio.sbi_rate_overrides = {};
     document.getElementById("stockCards").innerHTML = "";
-    document.getElementById("resultsSection").classList.add("hidden");
+    clearCalculatedSections();
     
     await autoLoadForYear(state.portfolio.calendar_year);
 }
@@ -852,6 +895,14 @@ async function calculateAll() {
         document.getElementById("resultsSection").classList.remove("hidden");
         document.getElementById("sbiRatesSection").classList.remove("hidden");
 
+        // Auto-collapse SBI TT rates section (start minimised)
+        const sbiContent = document.getElementById("sbiRatesContent");
+        if (sbiContent && !sbiContent.classList.contains("collapsed")) {
+            sbiContent.classList.add("collapsed");
+            const sbiIcon = sbiContent.previousElementSibling.querySelector(".toggle-icon");
+            if (sbiIcon) sbiIcon.style.transform = "rotate(-90deg)";
+        }
+
         // Fetch and render ITR tax year capital gains & dividend summary
         await fetchTaxYearSummary();
 
@@ -1340,7 +1391,7 @@ function clearCurrentYear() {
     state.portfolio.stocks = [];
     state.portfolio.overrides = {};
     document.getElementById("stockCards").innerHTML = "";
-    document.getElementById("resultsSection").classList.add("hidden");
+    clearCalculatedSections();
     updateCalcButtonVisibility();
     showToast(`Cleared all data for CY${state.portfolio.calendar_year}`, "success");
 }
@@ -1502,7 +1553,7 @@ async function autoLoadForYear(year) {
             document.getElementById("stockCards").innerHTML = "";
             state.portfolio.stocks.forEach(stock => renderStockCard(stock));
             updateCalcButtonVisibility();
-            document.getElementById("resultsSection").classList.add("hidden");
+            clearCalculatedSections();
             hideLoading();
             showToast(`Loaded saved portfolio for CY${year}`, "success");
             return;
@@ -1521,7 +1572,7 @@ async function autoLoadForYear(year) {
             document.getElementById("stockCards").innerHTML = "";
             state.portfolio.stocks.forEach(stock => renderStockCard(stock));
             updateCalcButtonVisibility();
-            document.getElementById("resultsSection").classList.add("hidden");
+            clearCalculatedSections();
             hideLoading();
             showToast(`Imported ${state.portfolio.stocks.length} stock(s) from CY${sourceYear}`, "info");
             return;
@@ -1536,7 +1587,7 @@ async function autoLoadForYear(year) {
         };
         document.getElementById("stockCards").innerHTML = "";
         updateCalcButtonVisibility();
-        document.getElementById("resultsSection").classList.add("hidden");
+        clearCalculatedSections();
         hideLoading();
         showToast(`No data found for CY${year}. Starting fresh.`, "info");
     } catch (e) {
