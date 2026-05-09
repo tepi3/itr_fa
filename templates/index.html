@@ -161,11 +161,15 @@
 
         <!-- Results Section -->
         <section id="resultsSection" class="card hidden">
-            <div class="results-header">
+            <div class="collapsible-header" onclick="toggleSection('resultsContent')">
                 <h2>📊 FA Report Preview — Section A3</h2>
-                <button id="exportCsvBtn" class="btn btn-primary">📥 Export CSV</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="exportCsvBtn" class="btn btn-primary" onclick="event.stopPropagation();">📥 Export CSV</button>
+                    <span class="toggle-icon">▼</span>
+                </div>
             </div>
-            <div class="table-wrapper">
+            <div id="resultsContent" class="collapsible-content">
+                <div class="table-wrapper">
                 <table id="a3Table">
                     <thead>
                         <tr>
@@ -204,6 +208,7 @@
                     </thead>
                     <tbody id="stockSummaryTableBody"></tbody>
                 </table>
+            </div>
             </div>
             </div>
         </section>
