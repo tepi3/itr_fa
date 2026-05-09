@@ -77,8 +77,11 @@
                 <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
                 <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
                 <button id="redoBtn" class="btn btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪ Redo</button>
+                <button id="collapseAllBtn" class="btn btn-sm btn-outline" title="Collapse all stock cards">▶ Collapse All</button>
+                <button id="expandAllBtn" class="btn btn-sm btn-outline" title="Expand all stock cards">▼ Expand All</button>
                 <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
                 <button id="saveAsBtn" class="btn btn-primary" title="Save portfolio to your computer">💾 Save As</button>
+                <button id="themeToggleBtn" class="btn btn-sm btn-outline" title="Toggle dark/light theme">🌙</button>
                 <button id="helpBtn" class="btn btn-outline btn-help" title="Show feature tutorial">❓ Help</button>
                 <input type="file" id="openFileInput" accept=".json" style="display: none;">
             </div>
@@ -138,14 +141,22 @@
             </div>
         </section>
 
+        <!-- Portfolio Dashboard -->
+        <div id="portfolioDashboard" class="portfolio-dashboard hidden">
+            <div class="dash-stat"><span class="dash-icon">📦</span><span class="dash-value" id="dashStockCount">0</span><span class="dash-label">Stocks</span></div>
+            <div class="dash-stat"><span class="dash-icon">📋</span><span class="dash-value" id="dashLotCount">0</span><span class="dash-label">Lots</span></div>
+            <div class="dash-stat"><span class="dash-icon">💰</span><span class="dash-value" id="dashTotalAssets">—</span><span class="dash-label">Total Assets (₹)</span></div>
+            <div class="dash-stat"><span class="dash-icon">💵</span><span class="dash-value" id="dashTotalDividends">—</span><span class="dash-label">Total Dividends (₹)</span></div>
+        </div>
+
+        <!-- Stock Filter Bar -->
+        <div id="stockFilterBar" class="stock-filter-bar hidden">
+            <input type="text" id="stockFilterInput" placeholder="🔍 Filter stocks by ticker or name…">
+            <span id="stockFilterCount" class="stock-filter-count"></span>
+        </div>
+
         <!-- Stock Cards Container -->
         <div id="stockCards"></div>
-
-        <!-- Calculate Button -->
-        <section id="calcSection" class="card hidden">
-            <button id="calculateBtn" class="btn btn-accent btn-large">⚡ Generate FA Report</button>
-            <p class="hint">Fetches stock prices &amp; SBI TT rates, then computes all 12 Schedule FA A3 columns</p>
-        </section>
 
         <!-- Results Section -->
         <section id="resultsSection" class="card hidden">
@@ -392,6 +403,24 @@
         <!-- Floating Generate FA Report Button -->
         <button id="calcFab" class="calc-fab hidden" title="Generate FA Report">⚡ Generate FA Report</button>
 
+        <!-- Keyboard Shortcuts Modal -->
+        <div id="shortcutsModal" class="modal-backdrop hidden" onclick="if(event.target===this) this.classList.add('hidden')">
+            <div class="modal-box" style="max-width: 420px;">
+                <div class="modal-header">
+                    <h2>⌨️ Keyboard Shortcuts</h2>
+                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('shortcutsModal').classList.add('hidden')">✕</button>
+                </div>
+                <table style="width:100%; margin-top: 12px;">
+                    <tbody>
+                        <tr><td style="padding:8px;"><kbd>Ctrl+S</kbd></td><td>Save portfolio</td></tr>
+                        <tr><td style="padding:8px;"><kbd>Ctrl+Z</kbd></td><td>Undo</td></tr>
+                        <tr><td style="padding:8px;"><kbd>Ctrl+Shift+Z</kbd></td><td>Redo</td></tr>
+                        <tr><td style="padding:8px;"><kbd>?</kbd></td><td>Show this cheatsheet</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <footer style="text-align: center; margin-top: 40px; padding: 20px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.9em;">
 
             <p>© 2026 Piyush Tewari (tepi3). All rights reserved.</p>
@@ -401,9 +430,10 @@
 
     <!-- Stock Card Template -->
     <template id="stockCardTemplate">
-        <div class="stock-card card" data-stock-id="">
+        <div class="stock-card card" data-stock-id="" draggable="true">
             <div class="stock-card-header">
                 <div class="stock-info-summary">
+                    <span class="drag-handle" title="Drag to reorder">☰</span>
                     <span class="stock-ticker"></span>
                     <span class="stock-name"></span>
                     <span class="stock-peak-badge hidden" title="Yearly max closing price (used for Peak Value calculation)">
@@ -461,7 +491,11 @@
                 <div class="lots-section">
                     <div class="section-header">
                         <h3>Acquisition Lots</h3>
-                        <button class="btn btn-sm btn-primary add-lot-btn">+ Add Lot</button>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn btn-sm btn-outline import-lots-csv-btn" title="Import lots from CSV file">📂 Import CSV</button>
+                            <input type="file" class="import-lots-csv-input" accept=".csv" style="display:none;">
+                            <button class="btn btn-sm btn-primary add-lot-btn">+ Add Lot</button>
+                        </div>
                     </div>
                     <table class="lots-table">
                         <thead>

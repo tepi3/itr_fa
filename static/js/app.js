@@ -104,6 +104,11 @@ document.addEventListener("DOMContentLoaded", () => {
     initSellHelper();
     initTutorial();
     initQuickJump();
+    restoreTheme();
+    addYearChangeGuard();
+
+    // Auto-save draft every 30 seconds
+    setInterval(autoSaveDraft, 30000);
 });
 
 function initYearSelectors() {
@@ -147,7 +152,6 @@ function bindEvents() {
     document.getElementById("tickerInput").addEventListener("keypress", (e) => {
         if (e.key === "Enter") lookupStock();
     });
-    document.getElementById("calculateBtn").addEventListener("click", calculateAll);
     document.getElementById("calcFab").addEventListener("click", calculateAll);
     document.getElementById("exportCsvBtn").addEventListener("click", exportCSV);
     document.getElementById("saveBtn").addEventListener("click", savePortfolio);
@@ -176,7 +180,7 @@ function bindEvents() {
         fetchUsers();
     });
 
-    // Keyboard shortcuts for undo/redo
+    // Keyboard shortcuts
     document.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
             e.preventDefault();
@@ -186,27 +190,41 @@ function bindEvents() {
             e.preventDefault();
             redo();
         }
+        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+            e.preventDefault();
+            savePortfolio();
+        }
+        if (e.key === "?" && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+            document.getElementById("shortcutsModal").classList.toggle("hidden");
+        }
     });
 
-    // ===== Floating Calculate A3 Button + Quick Jump Nav (IntersectionObserver) =====
-    const calcSection = document.getElementById("calcSection");
-    const calcFab = document.getElementById("calcFab");
-    const qjNav = document.getElementById("quickJumpNav");
-    if (calcSection && calcFab && typeof IntersectionObserver !== "undefined") {
-        const calcObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                // Show FAB + quick-jump only when calcSection is NOT visible AND has stocks
-                if (!entry.isIntersecting && !calcSection.classList.contains("hidden")) {
-                    calcFab.classList.remove("hidden");
-                    if (qjNav) qjNav.classList.remove("hidden");
-                } else {
-                    calcFab.classList.add("hidden");
-                    if (qjNav) qjNav.classList.add("hidden");
-                }
-            });
-        }, { threshold: 0.1 });
-        calcObserver.observe(calcSection);
-    }
+    // Collapse All / Expand All
+    document.getElementById("collapseAllBtn").addEventListener("click", () => {
+        document.querySelectorAll(".stock-card-body").forEach(body => {
+            body.classList.add("collapsed");
+            const btn = body.closest(".stock-card").querySelector(".toggle-details-btn");
+            if (btn) btn.textContent = "▶ Details";
+        });
+    });
+    document.getElementById("expandAllBtn").addEventListener("click", () => {
+        document.querySelectorAll(".stock-card-body").forEach(body => {
+            body.classList.remove("collapsed");
+            const btn = body.closest(".stock-card").querySelector(".toggle-details-btn");
+            if (btn) btn.textContent = "▼ Details";
+        });
+    });
+
+    // Theme toggle
+    document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
+
+    // Stock filter
+    document.getElementById("stockFilterInput").addEventListener("input", filterStockCards);
+
+    // Warn before leaving with unsaved changes
+    window.addEventListener("beforeunload", (e) => {
+        if (state.isDirty) { e.preventDefault(); e.returnValue = ""; }
+    });
 }
 
 // ===== User Selection & Management =====
@@ -372,13 +390,45 @@ function showToast(message, type = "info", duration = 4000) {
 }
 
 // ===== Loading Overlay =====
+let _loadingMsgInterval = null;
+
 function showLoading(text = "Loading...") {
-    document.getElementById("loadingText").textContent = text;
-    document.getElementById("loadingOverlay").classList.remove("hidden");
+    const overlay = document.getElementById("loadingOverlay");
+    const textEl = document.getElementById("loadingText");
+    overlay.classList.remove("hidden");
+    textEl.innerHTML = text.replace(/\n/g, "<br>");
+
+    // Add progress bar if not present
+    if (!overlay.querySelector(".progress-bar-container")) {
+        const bar = document.createElement("div");
+        bar.className = "progress-bar-container";
+        bar.innerHTML = '<div class="progress-bar-fill"></div>';
+        overlay.querySelector(".loader").appendChild(bar);
+    }
+
+    // Cycle messages for FA Report generation
+    if (_loadingMsgInterval) clearInterval(_loadingMsgInterval);
+    if (text.includes("Generating FA Report")) {
+        const steps = [
+            "Fetching stock prices\u2026",
+            "Looking up SBI TT rates\u2026",
+            "Computing peak values\u2026",
+            "Calculating dividends\u2026",
+            "Building A3 rows\u2026",
+        ];
+        let idx = 0;
+        _loadingMsgInterval = setInterval(() => {
+            idx = (idx + 1) % steps.length;
+            textEl.innerHTML = `Generating FA Report\u2026<br><span style="font-size:0.85rem;color:var(--text-muted)">${steps[idx]}</span>`;
+        }, 2500);
+    }
 }
 
 function hideLoading() {
     document.getElementById("loadingOverlay").classList.add("hidden");
+    if (_loadingMsgInterval) { clearInterval(_loadingMsgInterval); _loadingMsgInterval = null; }
+    const bar = document.querySelector("#loadingOverlay .progress-bar-container");
+    if (bar) bar.remove();
 }
 
 // ===== Collapsible Sections =====
@@ -527,6 +577,12 @@ function renderStockCard(stock) {
 
     // Fetch company details button
     card.querySelector(".fetch-company-details-btn").addEventListener("click", () => fetchCompanyDetailsForStock(card, stock));
+
+    // Drag and drop reordering
+    initDragAndDrop(card, stock);
+
+    // CSV lot import
+    initCsvLotImport(card, stock);
 
     // Render existing lots, sells, and dividends
     stock.lots.forEach(lot => renderLotRow(card, stock, lot));
@@ -916,6 +972,13 @@ async function calculateAll() {
         // Scroll to results
         document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
         showToast(`FA Report generated — ${result.rows.length} row(s)`, "success");
+
+        // Update dashboard with calculated values
+        updateDashboard();
+
+        // Save for YoY comparison + render if prev year data exists
+        saveCalcResultsForYoY();
+        renderYoYComparison();
     } catch (e) {
         hideLoading();
         showToast(`Error: ${e.message}`, "error");
@@ -1245,6 +1308,7 @@ async function savePortfolio() {
 
         if (result.success) {
             markClean();
+            clearDraft(state.username, state.portfolio.calendar_year);
             showToast(`Saved for CY${state.portfolio.calendar_year}`, "success");
         } else {
             showToast(`Save failed: ${result.error}`, "error");
@@ -1504,12 +1568,20 @@ function generateId() {
 }
 
 function updateCalcButtonVisibility() {
-    const section = document.getElementById("calcSection");
-    if (state.portfolio.stocks.length > 0) {
-        section.classList.remove("hidden");
-    } else {
-        section.classList.add("hidden");
-    }
+    const hasStocks = state.portfolio.stocks.length > 0;
+
+    // FAB + Quick Jump Nav: visible when stocks exist
+    const fab = document.getElementById("calcFab");
+    const qjNav = document.getElementById("quickJumpNav");
+    if (fab) fab.classList.toggle("hidden", !hasStocks);
+    if (qjNav) qjNav.classList.toggle("hidden", !hasStocks);
+
+    // Filter bar: visible when ≥ 3 stocks
+    const filterBar = document.getElementById("stockFilterBar");
+    if (filterBar) filterBar.classList.toggle("hidden", state.portfolio.stocks.length < 3);
+
+    // Dashboard
+    updateDashboard();
 }
 
 // ===== Monthly Rates Manager =====
@@ -1622,6 +1694,7 @@ async function autoLoadForYear(year) {
             updateCalcButtonVisibility();
             clearCalculatedSections();
             showToast(`Loaded saved portfolio for CY${year}`, "success");
+            clearDraft(state.username, year);
             if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
             hideLoading();
             return;
@@ -1645,6 +1718,23 @@ async function autoLoadForYear(year) {
             if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
             hideLoading();
             return;
+        }
+
+        // Check for localStorage draft
+        const draft = checkForDraft(state.username, year);
+        if (draft && draft.portfolio && draft.portfolio.stocks && draft.portfolio.stocks.length > 0) {
+            hideLoading();
+            const ago = Math.round((Date.now() - draft.timestamp) / 60000);
+            if (confirm(`Found unsaved draft from ${ago} min ago with ${draft.portfolio.stocks.length} stock(s). Restore it?`)) {
+                state.portfolio = draft.portfolio;
+                document.getElementById("stockCards").innerHTML = "";
+                state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+                updateCalcButtonVisibility();
+                clearCalculatedSections();
+                showToast("Draft restored", "success");
+                if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
+                return;
+            }
         }
 
         // Clear and start fresh
@@ -1978,7 +2068,7 @@ function renderTaxYearSummary(taxYears) {
 // ===== Tab Switching =====
 function switchTab(tab) {
     const a3Els = [
-        "addStockSection", "stockCards", "calcSection",
+        "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
         "resultsSection", "sbiRatesSection", "taxYearSection",
         "monthlyRatesSection",
     ];
@@ -1989,7 +2079,6 @@ function switchTab(tab) {
     a3Els.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-        // monthlyRatesSection has its own hidden logic
         if (id === "monthlyRatesSection") {
             if (!isA3) el.classList.add("hidden");
             return;
@@ -2004,15 +2093,14 @@ function switchTab(tab) {
     document.getElementById("tabSellHelper").classList.toggle("active", isSellHelper);
     document.getElementById("tabTaxStatement").classList.toggle("active", isTaxStatement);
 
-    if (isSellHelper) shImportLots(); // auto-refresh lots when switching to helper
+    if (isSellHelper) shImportLots();
 
-    // Hide quick-jump nav + FAB on non-A3 tabs
+    // Show/hide FAB + quick-jump nav based on tab and stock count
     const qjNav = document.getElementById("quickJumpNav");
     const calcFab = document.getElementById("calcFab");
-    if (!isA3) {
-        if (qjNav) qjNav.classList.add("hidden");
-        if (calcFab) calcFab.classList.add("hidden");
-    }
+    const hasStocks = state.portfolio.stocks.length > 0;
+    if (calcFab) calcFab.classList.toggle("hidden", !isA3 || !hasStocks);
+    if (qjNav) qjNav.classList.toggle("hidden", !isA3 || !hasStocks);
 }
 
 // ===== Quick Jump Sidebar =====
@@ -3017,6 +3105,263 @@ function showTutorialStep(index) {
     }
 }
 
-// ===== Tab Switching — updated to show consolidated FY section =====
-// Override switchTab to also control consolidated FY section visibility
-const _origSwitchTab = typeof switchTab === "function" ? null : null; // placeholder
+// ===== Portfolio Dashboard =====
+function updateDashboard() {
+    const dash = document.getElementById("portfolioDashboard");
+    if (!dash) return;
+
+    const stocks = state.portfolio.stocks;
+    if (stocks.length === 0) {
+        dash.classList.add("hidden");
+        return;
+    }
+    dash.classList.remove("hidden");
+
+    document.getElementById("dashStockCount").textContent = stocks.length;
+    document.getElementById("dashLotCount").textContent = stocks.reduce((sum, s) => sum + (s.lots ? s.lots.length : 0), 0);
+
+    // Assets + Dividends only available after calculation
+    if (state.calculatedRows && state.calculatedRows.length > 0) {
+        const totalAssets = state.calculatedRows.reduce((s, r) => s + (r.closing_balance || 0), 0);
+        const totalDivs = state.calculatedRows.reduce((s, r) => s + (r.total_gross_amount || 0), 0);
+        document.getElementById("dashTotalAssets").textContent = "\u20b9" + Math.round(totalAssets).toLocaleString("en-IN");
+        document.getElementById("dashTotalDividends").textContent = "\u20b9" + Math.round(totalDivs).toLocaleString("en-IN");
+    } else {
+        document.getElementById("dashTotalAssets").textContent = "\u2014";
+        document.getElementById("dashTotalDividends").textContent = "\u2014";
+    }
+}
+
+// ===== Stock Filter =====
+function filterStockCards() {
+    const query = document.getElementById("stockFilterInput").value.toLowerCase().trim();
+    const cards = document.querySelectorAll(".stock-card");
+    let shown = 0;
+    cards.forEach(card => {
+        const ticker = (card.querySelector(".stock-ticker")?.textContent || "").toLowerCase();
+        const name = (card.querySelector(".stock-name")?.textContent || "").toLowerCase();
+        const match = !query || ticker.includes(query) || name.includes(query);
+        card.style.display = match ? "" : "none";
+        if (match) shown++;
+    });
+    const countEl = document.getElementById("stockFilterCount");
+    if (countEl) countEl.textContent = query ? `${shown} / ${cards.length}` : "";
+}
+
+// ===== Theme Toggle =====
+function toggleTheme() {
+    const root = document.documentElement;
+    const current = root.dataset.theme || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+    document.getElementById("themeToggleBtn").textContent = next === "dark" ? "\ud83c\udf19" : "\u2600\ufe0f";
+    try { localStorage.setItem("fa_desk_theme", next); } catch(e) {}
+}
+
+function restoreTheme() {
+    try {
+        const saved = localStorage.getItem("fa_desk_theme");
+        if (saved) {
+            document.documentElement.dataset.theme = saved;
+            const btn = document.getElementById("themeToggleBtn");
+            if (btn) btn.textContent = saved === "dark" ? "\ud83c\udf19" : "\u2600\ufe0f";
+        }
+    } catch(e) {}
+}
+
+// ===== Auto-Save Draft to localStorage =====
+function autoSaveDraft() {
+    if (!state.isDirty || !state.username) return;
+    try {
+        const key = `fa_desk_draft_${state.username}_${state.portfolio.calendar_year}`;
+        localStorage.setItem(key, JSON.stringify({
+            portfolio: state.portfolio,
+            timestamp: Date.now(),
+        }));
+    } catch(e) {}
+}
+
+function checkForDraft(username, year) {
+    try {
+        const key = `fa_desk_draft_${username}_${year}`;
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        return data;
+    } catch(e) { return null; }
+}
+
+function clearDraft(username, year) {
+    try { localStorage.removeItem(`fa_desk_draft_${username}_${year}`); } catch(e) {}
+}
+
+
+
+// ===== Drag and Drop Stock Reordering =====
+function initDragAndDrop(card, stock) {
+    card.addEventListener("dragstart", (e) => {
+        card.classList.add("dragging");
+        e.dataTransfer.setData("text/plain", stock.id);
+        e.dataTransfer.effectAllowed = "move";
+    });
+    card.addEventListener("dragend", () => {
+        card.classList.remove("dragging");
+        document.querySelectorAll(".stock-card.drag-over").forEach(c => c.classList.remove("drag-over"));
+    });
+    card.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        card.classList.add("drag-over");
+    });
+    card.addEventListener("dragleave", () => {
+        card.classList.remove("drag-over");
+    });
+    card.addEventListener("drop", (e) => {
+        e.preventDefault();
+        card.classList.remove("drag-over");
+        const draggedId = e.dataTransfer.getData("text/plain");
+        if (draggedId === stock.id) return;
+
+        pushUndoSnapshot();
+        const stocks = state.portfolio.stocks;
+        const fromIdx = stocks.findIndex(s => s.id === draggedId);
+        const toIdx = stocks.findIndex(s => s.id === stock.id);
+        if (fromIdx < 0 || toIdx < 0) return;
+
+        const [moved] = stocks.splice(fromIdx, 1);
+        stocks.splice(toIdx, 0, moved);
+
+        // Re-render DOM order
+        const container = document.getElementById("stockCards");
+        container.innerHTML = "";
+        stocks.forEach(s => renderStockCard(s));
+        showToast("Stock order updated", "info", 1500);
+    });
+}
+
+// ===== CSV Lot Import =====
+function initCsvLotImport(card, stock) {
+    const btn = card.querySelector(".import-lots-csv-btn");
+    const input = card.querySelector(".import-lots-csv-input");
+    if (!btn || !input) return;
+
+    btn.addEventListener("click", () => input.click());
+    input.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const text = ev.target.result;
+            const lines = text.trim().split("\n");
+            if (lines.length < 2) { showToast("CSV has no data rows", "warning"); return; }
+
+            pushUndoSnapshot();
+            const header = lines[0].toLowerCase();
+            let imported = 0, skipped = 0;
+
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(",").map(c => c.trim().replace(/^["']|["']$/g, ""));
+                if (cols.length < 3) { skipped++; continue; }
+
+                const buy_date = cols[0];
+                const quantity = parseFloat(cols[1]);
+                const buy_price = parseFloat(cols[2]);
+
+                if (!buy_date || isNaN(quantity) || isNaN(buy_price) || quantity <= 0) {
+                    skipped++; continue;
+                }
+
+                const lot = { id: generateId(), buy_date, quantity, buy_price };
+                stock.lots.push(lot);
+                renderLotRow(card, stock, lot);
+                imported++;
+            }
+            showToast(`Imported ${imported} lot(s)${skipped ? `, skipped ${skipped}` : ""}`, imported > 0 ? "success" : "warning");
+            updateDashboard();
+        };
+        reader.readAsText(file);
+        input.value = ""; // reset
+    });
+}
+
+// ===== Year-over-Year Comparison =====
+function renderYoYComparison() {
+    // Remove old section if exists
+    const old = document.getElementById("yoySection");
+    if (old) old.remove();
+
+    if (!state.calculatedRows || state.calculatedRows.length === 0) return;
+
+    const year = state.portfolio.calendar_year;
+    const prevKey = `fa_desk_calc_${state.username}_${year - 1}`;
+    let prevData;
+    try { prevData = JSON.parse(localStorage.getItem(prevKey)); } catch(e) {}
+
+    if (!prevData || !prevData.rows || prevData.rows.length === 0) return;
+
+    const curAssets = state.calculatedRows.reduce((s, r) => s + (r.closing_balance || 0), 0);
+    const curDivs = state.calculatedRows.reduce((s, r) => s + (r.total_gross_amount || 0), 0);
+    const prevAssets = prevData.rows.reduce((s, r) => s + (r.closing_balance || 0), 0);
+    const prevDivs = prevData.rows.reduce((s, r) => s + (r.total_gross_amount || 0), 0);
+
+    const section = document.createElement("div");
+    section.id = "yoySection";
+    section.className = "yoy-section";
+
+    const deltaAssets = curAssets - prevAssets;
+    const deltaDivs = curDivs - prevDivs;
+    const pctAssets = prevAssets ? ((deltaAssets / prevAssets) * 100).toFixed(1) : "N/A";
+    const pctDivs = prevDivs ? ((deltaDivs / prevDivs) * 100).toFixed(1) : "N/A";
+
+    section.innerHTML = `
+        <h3>\ud83d\udcc8 Year-over-Year: CY${year-1} \u2192 CY${year}</h3>
+        <div class="yoy-grid">
+            <div class="yoy-card">
+                <div class="yoy-label">Total Assets</div>
+                <div class="yoy-value">\u20b9${Math.round(curAssets).toLocaleString("en-IN")}</div>
+                <div class="yoy-delta ${deltaAssets >= 0 ? 'positive' : 'negative'}">${deltaAssets >= 0 ? '\u2191' : '\u2193'} ${pctAssets}%</div>
+            </div>
+            <div class="yoy-card">
+                <div class="yoy-label">Total Dividends</div>
+                <div class="yoy-value">\u20b9${Math.round(curDivs).toLocaleString("en-IN")}</div>
+                <div class="yoy-delta ${deltaDivs >= 0 ? 'positive' : 'negative'}">${deltaDivs >= 0 ? '\u2191' : '\u2193'} ${pctDivs}%</div>
+            </div>
+            <div class="yoy-card">
+                <div class="yoy-label">CY${year-1} Assets</div>
+                <div class="yoy-value" style="color:var(--text-secondary)">\u20b9${Math.round(prevAssets).toLocaleString("en-IN")}</div>
+                <div class="yoy-delta" style="color:var(--text-muted)">Previous year</div>
+            </div>
+        </div>
+    `;
+
+    const resultsSection = document.getElementById("resultsSection");
+    if (resultsSection) resultsSection.appendChild(section);
+}
+
+// Save calculation results for YoY
+function saveCalcResultsForYoY() {
+    if (!state.username || !state.calculatedRows || state.calculatedRows.length === 0) return;
+    try {
+        const key = `fa_desk_calc_${state.username}_${state.portfolio.calendar_year}`;
+        localStorage.setItem(key, JSON.stringify({ rows: state.calculatedRows }));
+    } catch(e) {}
+}
+
+// ===== Year Change Guard =====
+function addYearChangeGuard() {
+    const mainSelect = document.getElementById("yearSelect");
+    const originalHandler = mainSelect.onchange; // won't exist (addEventListener used)
+
+    // We need to intercept — wrap in new listener
+    // Remove old by re-attaching. Since we can't remove anonymous, we override with a capturing listener.
+    mainSelect.addEventListener("change", function guardHandler(e) {
+        if (state.isDirty) {
+            if (!confirm("You have unsaved changes. Switch year and discard them?")) {
+                e.stopImmediatePropagation();
+                mainSelect.value = state.portfolio.calendar_year;
+                return;
+            }
+        }
+    }, true); // capturing phase = runs first
+}
