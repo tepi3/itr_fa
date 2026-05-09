@@ -188,17 +188,20 @@ function bindEvents() {
         }
     });
 
-    // ===== Floating Calculate A3 Button (IntersectionObserver) =====
+    // ===== Floating Calculate A3 Button + Quick Jump Nav (IntersectionObserver) =====
     const calcSection = document.getElementById("calcSection");
     const calcFab = document.getElementById("calcFab");
+    const qjNav = document.getElementById("quickJumpNav");
     if (calcSection && calcFab && typeof IntersectionObserver !== "undefined") {
         const calcObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                // Show FAB only when calcSection is NOT visible AND has stocks
+                // Show FAB + quick-jump only when calcSection is NOT visible AND has stocks
                 if (!entry.isIntersecting && !calcSection.classList.contains("hidden")) {
                     calcFab.classList.remove("hidden");
+                    if (qjNav) qjNav.classList.remove("hidden");
                 } else {
                     calcFab.classList.add("hidden");
+                    if (qjNav) qjNav.classList.add("hidden");
                 }
             });
         }, { threshold: 0.1 });
@@ -2002,6 +2005,14 @@ function switchTab(tab) {
     document.getElementById("tabTaxStatement").classList.toggle("active", isTaxStatement);
 
     if (isSellHelper) shImportLots(); // auto-refresh lots when switching to helper
+
+    // Hide quick-jump nav + FAB on non-A3 tabs
+    const qjNav = document.getElementById("quickJumpNav");
+    const calcFab = document.getElementById("calcFab");
+    if (!isA3) {
+        if (qjNav) qjNav.classList.add("hidden");
+        if (calcFab) calcFab.classList.add("hidden");
+    }
 }
 
 // ===== Quick Jump Sidebar =====
