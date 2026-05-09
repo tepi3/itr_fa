@@ -68,18 +68,29 @@
             </div>
             <div class="header-actions">
                 <button id="fetchRatesBtn" class="btn btn-outline" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
+                <button id="fetchAllDividendsBtn" class="btn btn-outline" title="Fetch dividends for all stocks in current year">💰 Fetch All Dividends</button>
                 <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
                 <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
                 <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
-                <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload Etrade Data">📈 Upload Etrade</button>
-                <input type="file" id="etradeFileInput" style="display: none;" accept=".csv, .xlsx">
-                <button id="uploadSellDetailsBtn" class="btn btn-outline" title="Upload Sell Details (G&L Expanded)">📉 Upload Sell Details</button>
-                <input type="file" id="sellDetailsFileInput" style="display: none;" accept=".csv, .xlsx">
-                <button id="loadBtn" class="btn btn-outline" title="Load saved data">📂 Load</button>
-                <button id="saveBtn" class="btn btn-primary" title="Save current data">💾 Save</button>
+                <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload E-Trade files to import portfolio">📁 Upload ETRADE Docs</button>
+                <button id="loadBtn" class="btn btn-outline" title="Load saved data from server">📂 Load</button>
+                <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
+                <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
+                <button id="redoBtn" class="btn btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪ Redo</button>
+                <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
+                <button id="saveAsBtn" class="btn btn-primary" title="Save portfolio to your computer">💾 Save As</button>
+                <button id="helpBtn" class="btn btn-outline btn-help" title="Show feature tutorial">❓ Help</button>
+                <input type="file" id="openFileInput" accept=".json" style="display: none;">
             </div>
         </div>
     </header>
+
+    <!-- Tab Navigation -->
+    <nav id="tabNav" class="hidden tab-nav">
+        <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">📋 Schedule FA A3</button>
+        <button id="tabSellHelper" class="tab-btn" onclick="switchTab('sellHelper')">🧮 Sell Simulator</button>
+        <button id="tabTaxStatement" class="tab-btn" onclick="switchTab('taxStatement')">📊 Tax Statement</button>
+    </nav>
 
     <main id="appMain" class="hidden">
         <!-- SBI Monthly Rates Manager (always available) -->
@@ -181,6 +192,15 @@
                     <tbody id="stockSummaryTableBody"></tbody>
                 </table>
             </div>
+
+            <!-- Pie Chart: End-of-Year Assets by Stock -->
+            <div id="assetPieChartSection" style="margin-top: 30px;">
+                <h3 style="margin-bottom: 12px;">🧩 End-of-Year Assets by Stock (INR)</h3>
+                <div class="pie-chart-container">
+                    <canvas id="assetPieChart" width="400" height="400"></canvas>
+                    <div id="assetPieChartLegend" class="pie-chart-legend"></div>
+                </div>
+            </div>
         </section>
 
         <!-- SBI Rates Used in Calculation -->
@@ -204,8 +224,160 @@
                 </table>
             </div>
         </section>
-        
+
+        <!-- ITR Tax Year Capital Gains & Dividend Summary -->
+        <section id="taxYearSection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('taxYearContent')">
+                <h2>📈 ITR Capital Gains &amp; Dividend Summary</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div id="taxYearContent" class="collapsible-content">
+                <p class="hint" style="margin-bottom:14px;">
+                    Gains/losses and dividends mapped to Indian tax years and advance-tax quarterly buckets.
+                    <strong>LTCG/LTCL</strong> = held ≥ 2 years &nbsp;|&nbsp;
+                    <strong>STCG/STCL</strong> = held &lt; 2 years.
+                    Amounts in <strong>₹</strong>.
+                </p>
+                <div id="taxYearBlocks">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+
+
+        <!-- ===== TAX STATEMENT PANEL ===== -->
+        <div id="taxStatementPanel" class="hidden">
+            <section class="card">
+                <h2 style="margin-bottom:4px;">📊 Consolidated Tax Statement (Tax Year Apr–Mar)</h2>
+                <p class="hint" style="margin-bottom:16px;">
+                    Generate a unified tax view for a complete Indian Tax Year (Apr–Mar) by combining data from two calendar year reports.
+                    If a calendar year's report is missing, that portion is treated as zero.
+                </p>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                    <label for="fyYearSelect" style="margin-bottom:0;font-weight:500;">Tax Year:</label>
+                    <select id="fyYearSelect" style="width:auto;min-width:160px;"></select>
+                    <button id="generateFYBtn" class="btn btn-accent">⚡ Generate Consolidated Statement</button>
+                </div>
+                <div id="consolidatedFYBlocks"></div>
+            </section>
+        </div>
+
+        <!-- ===== SELL HELPER PANEL ===== -->
+        <div id="sellHelperPanel" class="hidden">
+
+            <section class="card" style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                    <div>
+                        <h2 style="margin:0 0 4px;">🧮 Sell Simulator — Tax Impact Simulator</h2>
+                        <p class="hint" style="margin:0;">Simulate hypothetical sells to preview STCG/LTCG tax impact. <strong>Portfolio is never modified.</strong></p>
+                    </div>
+                    <button id="shRefreshBtn" class="btn btn-outline" title="Re-import lots from current portfolio">↻ Refresh Lots</button>
+                </div>
+            </section>
+
+            <!-- Current Portfolio Lots Reference (read-only) -->
+            <section class="card" style="margin-bottom:16px;">
+                <div class="collapsible-header" onclick="toggleSection('shLotsRefContent')">
+                    <h3 style="margin:0;">📦 Current Portfolio Lots (Reference)</h3>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="shLotsRefContent" class="collapsible-content" style="margin-top:12px;">
+                    <p class="hint" style="margin-bottom:10px;">These are the acquisition lots from your current portfolio — for reference while building simulated sells. <strong>Not editable here.</strong></p>
+                    <div style="overflow-x:auto;">
+                        <table class="sh-lots-ref-table" id="shLotsRefTable">
+                            <thead>
+                                <tr>
+                                    <th>Stock</th>
+                                    <th>Buy Date</th>
+                                    <th>Buy Price ($)</th>
+                                    <th>Total Qty</th>
+                                    <th>Already Sold</th>
+                                    <th>Available Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shLotsRefBody">
+                                <tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-muted);font-size:0.85rem;">Switch to the Sell Simulator tab to load lots from your portfolio.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Simulated Sells Table -->
+            <section class="card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <h3 style="margin:0;">Simulated Sells</h3>
+                    <button id="shAddRowBtn" class="btn btn-primary btn-sm">➕ Add Sell</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table id="shSellsTable" style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Lot (Stock — Buy Date)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Buy Price ($)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Date</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Qty</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Price ($)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Holding</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="shSellsBody">
+                            <tr id="shEmptyRow">
+                                <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.875rem;">
+                                    No simulated sells yet. Click <strong>➕ Add Sell</strong> to begin.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top:16px;text-align:right;">
+                    <button id="shSimulateBtn" class="btn btn-accent btn-large" style="display:none;">⚡ Simulate Tax Impact</button>
+                </div>
+            </section>
+
+            <!-- Simulation Results -->
+            <section id="shResultsSection" class="card hidden">
+                <h3 style="margin-bottom:16px;">📊 Simulation Results</h3>
+
+                <!-- Per-sell breakdown -->
+                <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Per-Sell Breakdown</div>
+                <div style="overflow-x:auto;margin-bottom:24px;">
+                    <table id="shResultsTable" style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Stock</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Buy Date</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Date</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Qty</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Buy Cost (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sale Proceeds (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Gain / Loss (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Type</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR Buy</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR Sell</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shResultsBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Offset summary (rendered by JS) -->
+                <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Net After Set-Off (ITR §70/74)</div>
+                <div id="shOffsetCard"></div>
+
+                <p style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border);padding-top:12px;">
+                    ⚠ This is a <strong>simulation only</strong>. No portfolio data has been modified.
+                    TTBR rates are the last working day of the previous month as per ITR rules.
+                </p>
+            </section>
+
+        </div>
+        <!-- ===== END SELL HELPER ===== -->
+
         <footer style="text-align: center; margin-top: 40px; padding: 20px; color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.9em;">
+
             <p>© 2026 Piyush Tewari (tepi3). All rights reserved.</p>
             <p>Open-source tool for personal, non-commercial use only.</p>
         </footer>
@@ -295,9 +467,11 @@
                         <thead>
                             <tr>
                                 <th>Lot (Buy Date)</th>
+                                <th>Buy Price ($)</th>
                                 <th>Sell Date</th>
                                 <th>Quantity</th>
                                 <th class="sell-price-header">Sell Price ($)</th>
+                                <th>P&L</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -309,7 +483,10 @@
                 <div class="dividends-section">
                     <div class="section-header">
                         <h3>Dividends (in Calendar Year)</h3>
-                        <button class="btn btn-sm btn-primary add-div-btn">+ Add Dividend</button>
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-sm btn-outline fetch-dividends-btn" title="Re-fetch dividends for this stock from Yahoo Finance">🔄 Fetch Dividends</button>
+                            <button class="btn btn-sm btn-primary add-div-btn">+ Add Dividend</button>
+                        </div>
                     </div>
                     <p class="hint" style="margin-top:-5px; margin-bottom:8px;">Auto-fetched from Yahoo Finance. You can edit, delete, or add manually.</p>
                     <table class="dividends-table">
@@ -326,6 +503,67 @@
             </div>
         </div>
     </template>
+
+    <!-- ===== ETRADE Upload Modal ===== -->
+    <div id="etradeUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeEtradeModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 style="margin:0;">📁 Upload ETRADE Docs</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeEtradeModal()">✕ Close</button>
+            </div>
+            <p class="hint" style="margin:12px 0 20px;">Import your E-Trade exports to build the portfolio automatically. Upload one or both files — they'll be merged into a single consolidated portfolio.</p>
+
+            <div class="modal-file-row">
+                <div class="modal-file-label">
+                    <span class="modal-file-icon">📈</span>
+                    <div>
+                        <strong>Positions / Transactions File</strong>
+                        <p class="hint" style="margin:2px 0 0;">E-Trade positions or transactions export (CSV / XLSX). Populates stock lots with buy details.</p>
+                    </div>
+                </div>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="etradeFileInput">Choose File</label>
+                <input type="file" id="etradeFileInput" style="display:none;" accept=".csv,.xlsx">
+                <span id="etradeFileName" class="modal-file-chosen">No file chosen</span>
+            </div>
+
+            <div class="modal-file-row" style="margin-top:14px;">
+                <div class="modal-file-label">
+                    <span class="modal-file-icon">📉</span>
+                    <div>
+                        <strong>G&amp;L Expanded File <span style="font-weight:400;color:var(--text-muted);">(optional)</span></strong>
+                        <p class="hint" style="margin:2px 0 0;">E-Trade Gains &amp; Losses Expanded export (XLSX). Adds sell transactions on matched lots.</p>
+                    </div>
+                </div>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="sellDetailsFileInput">Choose File</label>
+                <input type="file" id="sellDetailsFileInput" style="display:none;" accept=".csv,.xlsx">
+                <span id="sellDetailsFileName" class="modal-file-chosen">No file chosen</span>
+            </div>
+
+            <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeEtradeModal()">Cancel</button>
+                <button id="etradeImportBtn" class="btn btn-accent">⚡ Import Portfolio</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END ETRADE Upload Modal ===== -->
+
+    <!-- ===== Tutorial Overlay ===== -->
+    <div id="tutorialOverlay" class="tutorial-overlay hidden">
+        <div id="tutorialBackdrop" class="tutorial-backdrop"></div>
+        <div id="tutorialTooltip" class="tutorial-tooltip">
+            <div class="tutorial-tooltip-header">
+                <span id="tutorialStepCounter" class="tutorial-step-counter"></span>
+                <button id="tutorialCloseBtn" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:0.72rem;">✕ Skip</button>
+            </div>
+            <h4 id="tutorialTitle" class="tutorial-title"></h4>
+            <p id="tutorialDesc" class="tutorial-desc"></p>
+            <div class="tutorial-nav">
+                <button id="tutorialPrevBtn" class="btn btn-sm btn-outline">← Prev</button>
+                <button id="tutorialNextBtn" class="btn btn-sm btn-primary">Next →</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END Tutorial Overlay ===== -->
 
     <script src="/static/js/app.js"></script>
 </body>
