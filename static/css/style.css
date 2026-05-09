@@ -1178,3 +1178,14 @@ tr:hover td { background: var(--bg-hover); }
     color: var(--accent) !important;
     font-size: 0.84rem !important;
 }
+
+/* ===== Calc Section Floater ===== */
+#calcSection {
+    position: sticky;
+    bottom: 20px;
+    z-index: 90;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--accent);
+    background: var(--bg-tertiary);
+    transition: transform 0.2s, box-shadow 0.2s;
+}

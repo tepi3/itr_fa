@@ -145,7 +145,9 @@ function bindEvents() {
         document.getElementById("appHeader").classList.add("hidden");
         document.getElementById("appMain").classList.add("hidden");
         document.getElementById("userSelectionScreen").classList.remove("hidden");
+        document.getElementById("tabNav").classList.add("hidden");
         state.username = null;
+        clearCalculationResults();
         fetchUsers();
     });
 
@@ -905,7 +907,7 @@ async function importEtradeDocs() {
 
     // ── Step 1: Upload Etrade positions/transactions (if provided) ──────
     if (etradeFile) {
-        showLoading("Step 1/2 — Parsing Positions / Transactions file...");
+        showLoading("Step 1/2 — Parsing Positions / Transactions file (fetching new ticker data may take a minute)...");
         try {
             const fd = new FormData();
             fd.append("file", etradeFile);
@@ -1216,6 +1218,7 @@ async function loadPortfolio() {
         // Re-render all stock cards
         document.getElementById("stockCards").innerHTML = "";
         state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+        clearCalculationResults();
         updateCalcButtonVisibility();
 
         showToast(`Loaded portfolio for CY${year}`, "success");
@@ -1325,6 +1328,7 @@ async function importPreviousYear() {
         // Re-render
         document.getElementById("stockCards").innerHTML = "";
         state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+        clearCalculationResults();
         updateCalcButtonVisibility();
 
         showToast(`Imported ${state.portfolio.stocks.length} stock(s) from CY${sourceYear}`, "success");
@@ -1334,13 +1338,26 @@ async function importPreviousYear() {
     }
 }
 
+function clearCalculationResults() {
+    document.getElementById("resultsSection").classList.add("hidden");
+    document.getElementById("sbiRatesSection").classList.add("hidden");
+    document.getElementById("taxYearSection").classList.add("hidden");
+    const summaryTbody = document.getElementById("stockSummaryTableBody");
+    if (summaryTbody) summaryTbody.innerHTML = "";
+    const sbiTbody = document.getElementById("sbiRatesTableBody");
+    if (sbiTbody) sbiTbody.innerHTML = "";
+    const assetPie = document.getElementById("assetPieChartLegend");
+    if (assetPie) assetPie.innerHTML = "";
+    state.calculatedRows = [];
+}
+
 function clearCurrentYear() {
     if (!confirm(`Are you sure you want to clear all data for CY${state.portfolio.calendar_year}? This will remove all stocks and overrides currently loaded on screen.`)) return;
     pushUndoSnapshot();
     state.portfolio.stocks = [];
     state.portfolio.overrides = {};
     document.getElementById("stockCards").innerHTML = "";
-    document.getElementById("resultsSection").classList.add("hidden");
+    clearCalculationResults();
     updateCalcButtonVisibility();
     showToast(`Cleared all data for CY${state.portfolio.calendar_year}`, "success");
 }

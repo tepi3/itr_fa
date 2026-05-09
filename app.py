@@ -668,7 +668,26 @@ def api_upload_etrade():
         portfolio = json.loads(portfolio_str)
 
         from core.etrade_parser import process_etrade_file
+        from core.yahoo_fetcher import get_company_info, get_dividends
         result = process_etrade_file(file_bytes, file.filename, portfolio)
+        
+        updated_portfolio = result["portfolio"]
+        calendar_year = updated_portfolio.get("calendar_year")
+        
+        for stock in updated_portfolio.get("stocks", []):
+            if not stock.get("company_info"):
+                info = get_company_info(stock["ticker"])
+                stock["company_info"] = info
+                if info and info.get("yahoo_ticker"):
+                    stock["yahoo_ticker"] = info["yahoo_ticker"]
+                    
+            if not stock.get("skip_dividends") and calendar_year and not stock.get("dividends"):
+                try:
+                    divs = get_dividends(stock.get("yahoo_ticker", stock["ticker"]), int(calendar_year))
+                    stock["dividends"] = divs
+                except Exception as e:
+                    logger.warning(f"Failed to fetch dividends for {stock['ticker']}: {e}")
+
         return jsonify({
             "success": True,
             "portfolio": result["portfolio"],
