@@ -922,15 +922,19 @@ tr:hover td { background: var(--bg-hover); }
 .tutorial-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(2px);
+    background: transparent;
     pointer-events: auto;
+    transition: background 0.3s;
+}
+.tutorial-backdrop.dimmed {
+    background: rgba(0, 0, 0, 0.4);
 }
 
 .tutorial-spotlight {
     position: absolute;
     border-radius: 8px;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 15px rgba(99, 102, 241, 0.4);
+    border: 2px solid var(--accent);
     z-index: 20001;
     pointer-events: none;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
