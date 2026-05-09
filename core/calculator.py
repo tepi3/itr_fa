@@ -33,7 +33,12 @@ def _format_date_display(date_str: str) -> str:
 def _get_rate_value(d: date, overrides: dict) -> tuple:
     """Get SBI TT rate value and metadata (USD only)."""
     result = get_sbi_tt_rate(d, overrides)
-    return result.get("rate"), result.get("rate_date"), result.get("source")
+    rate = result.get("rate")
+    if rate is None or rate == 0:
+        rate_date_str = result.get("rate_date")
+        month_name = date.fromisoformat(rate_date_str).strftime("%B %Y")
+        raise ValueError(f"SBI TT buying rate is missing or zero for {month_name} (needed for calculation). Please go to 'Monthly Rates' and update it.")
+    return rate, result.get("rate_date"), result.get("source")
 
 
 def calculate_initial_value(lot: dict, sbi_overrides: dict) -> dict:
@@ -185,6 +190,10 @@ def calculate_closing_balance(
     0 if fully sold before Dec 31.
     """
     dec31 = date(calendar_year, 12, 31)
+    today = date.today()
+    if calendar_year == today.year and today < dec31:
+        dec31 = today
+        
     buy_date = _parse_date(lot["buy_date"])
 
     # If bought after Dec 31, no closing balance

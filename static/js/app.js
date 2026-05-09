@@ -172,6 +172,7 @@ function bindEvents() {
     document.getElementById("generateFYBtn").addEventListener("click", fetchConsolidatedTaxSummary);
     
     document.getElementById("uploadEtradeBtn").addEventListener("click", openEtradeModal);
+    document.getElementById("uploadIbkrBtn").addEventListener("click", openIbkrModal);
     document.getElementById("switchUserBtn").addEventListener("click", () => {
         document.getElementById("appHeader").classList.add("hidden");
         document.getElementById("appMain").classList.add("hidden");
@@ -999,6 +1000,17 @@ function closeEtradeModal() {
     document.getElementById("sellDetailsFileName").textContent = "No file chosen";
 }
 
+// ===== IBKR Upload Modal =====
+function openIbkrModal() {
+    document.getElementById("ibkrUploadModal").classList.remove("hidden");
+}
+
+function closeIbkrModal() {
+    document.getElementById("ibkrUploadModal").classList.add("hidden");
+    document.getElementById("ibkrFileInput").value = "";
+    document.getElementById("ibkrFileName").textContent = "No file chosen";
+}
+
 // Wire file-chosen labels once DOM is ready (called from initSellHelper since DOMContentLoaded already ran)
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("etradeFileInput").addEventListener("change", e => {
@@ -1010,6 +1022,13 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("sellDetailsFileName").textContent = f ? f.name : "No file chosen";
     });
     document.getElementById("etradeImportBtn").addEventListener("click", importEtradeDocs);
+
+    // IBKR
+    document.getElementById("ibkrFileInput").addEventListener("change", e => {
+        const f = e.target.files[0];
+        document.getElementById("ibkrFileName").textContent = f ? f.name : "No file chosen";
+    });
+    document.getElementById("ibkrImportBtn").addEventListener("click", importIbkrDocs);
 });
 
 async function importEtradeDocs() {
@@ -1093,6 +1112,52 @@ async function importEtradeDocs() {
     }
 
     closeEtradeModal();
+}
+
+async function importIbkrDocs() {
+    const ibkrFile = document.getElementById("ibkrFileInput").files[0];
+
+    if (!ibkrFile) {
+        showToast("Please choose an IBKR file to import", "warning");
+        return;
+    }
+
+    showLoading("Parsing IBKR Transaction History...");
+    try {
+        const fd = new FormData();
+        fd.append("file", ibkrFile);
+        fd.append("portfolio", JSON.stringify(state.portfolio));
+        const resp = await fetch("/api/upload-ibkr", { method: "POST", body: fd });
+        const result = await resp.json();
+        
+        if (result.success) {
+            state.portfolio = result.portfolio;
+            const totalSkipped = result.skipped_count || 0;
+            
+            document.getElementById("stockCards").innerHTML = "";
+            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+            updateCalcButtonVisibility();
+            clearCalculatedSections();
+            markDirty();
+
+            const cy = state.portfolio.calendar_year || "";
+            showToast(`IBKR Portfolio imported successfully`, "success");
+
+            if (totalSkipped > 0) {
+                showToast(
+                    `⚠ ${totalSkipped} transaction${totalSkipped > 1 ? "s" : ""} skipped — dated after CY${cy}`,
+                    "warning"
+                );
+            }
+            closeIbkrModal();
+        } else {
+            showToast("IBKR file error: " + result.error, "error");
+        }
+    } catch (err) {
+        showToast("IBKR upload failed: " + err.message, "error");
+    } finally {
+        hideLoading();
+    }
 }
 
 
@@ -2861,6 +2926,9 @@ async function renderAssetPieChart(rows) {
     const legendContainer = document.getElementById("assetPieChartLegend");
     const chartTitleEl = document.getElementById("assetPieChartTitle");
     if (!canvas || !legendContainer) return;
+
+    const section = document.getElementById("assetPieChartSection");
+    if (section) section.classList.remove("hidden");
 
     const ctx = canvas.getContext("2d");
     const width = canvas.width;

@@ -73,6 +73,7 @@
                 <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
                 <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
                 <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload E-Trade files to import portfolio">📁 Upload ETRADE Docs</button>
+                <button id="uploadIbkrBtn" class="btn btn-outline" title="Upload IBKR CSV to import portfolio">📁 Upload IBKR Docs</button>
                 <button id="loadBtn" class="btn btn-outline" title="Load saved data from server">📂 Load</button>
                 <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
                 <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
@@ -204,14 +205,6 @@
                     <tbody id="stockSummaryTableBody"></tbody>
                 </table>
             </div>
-
-            <!-- Pie Chart: End-of-Year Assets by Stock -->
-            <div id="assetPieChartSection" style="margin-top: 30px;">
-                <h3 id="assetPieChartTitle" style="margin-bottom: 12px;">🧩 End-of-Year Assets by Stock (INR)</h3>
-                <div class="pie-chart-container">
-                    <canvas id="assetPieChart" width="400" height="400"></canvas>
-                    <div id="assetPieChartLegend" class="pie-chart-legend"></div>
-                </div>
             </div>
         </section>
 
@@ -230,6 +223,20 @@
                 </p>
                 <div id="taxYearBlocks">
                     <!-- Populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Pie Chart: End-of-Year Assets by Stock -->
+        <section id="assetPieChartSection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('assetPieChartContent')">
+                <h2 id="assetPieChartTitle">🧩 End-of-Year Assets by Stock (INR)</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div id="assetPieChartContent" class="collapsible-content">
+                <div class="pie-chart-container">
+                    <canvas id="assetPieChart" width="400" height="400"></canvas>
+                    <div id="assetPieChartLegend" class="pie-chart-legend"></div>
                 </div>
             </div>
         </section>
@@ -599,6 +606,36 @@
         </div>
     </div>
     <!-- ===== END ETRADE Upload Modal ===== -->
+
+    <!-- ===== IBKR Upload Modal ===== -->
+    <div id="ibkrUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeIbkrModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 style="margin:0;">📁 Upload IBKR Docs</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeIbkrModal()">✕ Close</button>
+            </div>
+            <p class="hint" style="margin:12px 0 20px;">Import your IBKR CSV export to build the portfolio automatically.</p>
+
+            <div class="modal-file-row">
+                <div class="modal-file-label">
+                    <span class="modal-file-icon">📈</span>
+                    <div>
+                        <strong>Transaction History File</strong>
+                        <p class="hint" style="margin:2px 0 0;">IBKR CSV export containing the 'Transaction History' section. Populates stock lots with buy and sell details.</p>
+                    </div>
+                </div>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="ibkrFileInput">Choose File</label>
+                <input type="file" id="ibkrFileInput" style="display:none;" accept=".csv">
+                <span id="ibkrFileName" class="modal-file-chosen">No file chosen</span>
+            </div>
+
+            <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeIbkrModal()">Cancel</button>
+                <button id="ibkrImportBtn" class="btn btn-accent">⚡ Import Portfolio</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END IBKR Upload Modal ===== -->
 
     <!-- ===== Tutorial Overlay ===== -->
     <div id="tutorialOverlay" class="tutorial-overlay hidden">

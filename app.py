@@ -708,6 +708,61 @@ def api_upload_etrade():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/upload-ibkr", methods=["POST"])
+def api_upload_ibkr():
+    """Upload and parse an IBKR CSV file."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if not file.filename.endswith('.csv'):
+        return jsonify({"error": "File must be a CSV"}), 400
+
+    try:
+        file_bytes = file.read()
+        portfolio_str = request.form.get("portfolio", "{}")
+        portfolio = json.loads(portfolio_str)
+
+        from core.ibkr_parser import process_ibkr_file
+        result = process_ibkr_file(file_bytes, file.filename, portfolio)
+        enriched_portfolio = result["portfolio"]
+
+        # Enrich stocks that have empty company_info (newly created from IBKR)
+        calendar_year = int(enriched_portfolio.get("calendar_year", 2024))
+        for stock in enriched_portfolio.get("stocks", []):
+            ci = stock.get("company_info", {})
+            if not ci.get("name"):
+                ticker = stock.get("ticker", "")
+                yahoo_ticker = stock.get("yahoo_ticker", ticker)
+                logger.info(f"Enriching IBKR stock: {ticker}")
+                try:
+                    info = get_company_info(ticker)
+                    if info.get("success"):
+                        stock["company_info"] = {
+                            "country_code": info.get("country_code", ""),
+                            "name": info.get("name", ticker),
+                            "display_name": info.get("display_name", ticker),
+                            "address": info.get("address", ""),
+                            "zip": info.get("zip", ""),
+                            "nature": info.get("nature", "Company"),
+                        }
+                        if info.get("yahoo_ticker"):
+                            stock["yahoo_ticker"] = info["yahoo_ticker"]
+                            yahoo_ticker = info["yahoo_ticker"]
+                except Exception as e:
+                    logger.warning(f"Could not fetch company info for {ticker}: {e}")
+
+        return jsonify({
+            "success": True,
+            "portfolio": enriched_portfolio,
+            "skipped_count": result["skipped_count"],
+        })
+    except Exception as e:
+        logger.exception("IBKR upload error")
+        return jsonify({"success": False, "error": str(e)}), 500
 @app.route("/api/upload-sell-details", methods=["POST"])
 def api_upload_sell_details():
     """Upload and parse a G&L Expanded file to populate acquisition lots and sell transactions."""
