@@ -14,14 +14,70 @@ const state = {
     },
     calculatedRows: [],
     sbiRatesUsed: [],
+    isDirty: false, // Track unsaved changes
 };
+
+// ===== Undo/Redo =====
+const undoStack = [];
+const redoStack = [];
+const MAX_UNDO = 50;
+
+function pushUndoSnapshot() {
+    undoStack.push(JSON.parse(JSON.stringify(state.portfolio)));
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+    redoStack.length = 0; // clear redo on new action
+    updateUndoRedoButtons();
+    markDirty();
+}
+
+function undo() {
+    if (undoStack.length === 0) return;
+    redoStack.push(JSON.parse(JSON.stringify(state.portfolio)));
+    state.portfolio = undoStack.pop();
+    restorePortfolioUI();
+    updateUndoRedoButtons();
+    showToast("Undone", "info", 1500);
+}
+
+function redo() {
+    if (redoStack.length === 0) return;
+    undoStack.push(JSON.parse(JSON.stringify(state.portfolio)));
+    state.portfolio = redoStack.pop();
+    restorePortfolioUI();
+    updateUndoRedoButtons();
+    showToast("Redone", "info", 1500);
+}
+
+function restorePortfolioUI() {
+    document.getElementById("stockCards").innerHTML = "";
+    state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+    updateCalcButtonVisibility();
+    document.getElementById("resultsSection").classList.add("hidden");
+}
+
+function updateUndoRedoButtons() {
+    document.getElementById("undoBtn").disabled = undoStack.length === 0;
+    document.getElementById("redoBtn").disabled = redoStack.length === 0;
+}
+
+function markDirty() {
+    state.isDirty = true;
+    document.getElementById("unsavedDot").classList.remove("hidden");
+}
+
+function markClean() {
+    state.isDirty = false;
+    document.getElementById("unsavedDot").classList.add("hidden");
+}
 
 // ===== Initialization =====
 document.addEventListener("DOMContentLoaded", () => {
     initYearSelectors();
+    initFYYearSelector();
     bindEvents();
     initUserSelection();
     initSellHelper();
+    initTutorial();
 });
 
 function initYearSelectors() {
@@ -70,12 +126,17 @@ function bindEvents() {
     document.getElementById("saveBtn").addEventListener("click", savePortfolio);
     document.getElementById("loadBtn").addEventListener("click", loadPortfolio);
     document.getElementById("fetchRatesBtn").addEventListener("click", fetchSbiRates);
+    document.getElementById("fetchAllDividendsBtn").addEventListener("click", fetchAllDividends);
     document.getElementById("importPrevBtn").addEventListener("click", importPreviousYear);
     document.getElementById("clearYearBtn").addEventListener("click", clearCurrentYear);
     document.getElementById("viewRatesBtn").addEventListener("click", showMonthlyRates);
     document.getElementById("refreshMonthlyRatesBtn").addEventListener("click", loadMonthlyRates);
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
     document.getElementById("lockRatesBtn").addEventListener("click", toggleLockRates);
+    document.getElementById("undoBtn").addEventListener("click", undo);
+    document.getElementById("redoBtn").addEventListener("click", redo);
+    document.getElementById("helpBtn").addEventListener("click", startTutorial);
+    document.getElementById("generateFYBtn").addEventListener("click", fetchConsolidatedTaxSummary);
     
     document.getElementById("uploadEtradeBtn").addEventListener("click", openEtradeModal);
     document.getElementById("switchUserBtn").addEventListener("click", () => {
@@ -84,6 +145,18 @@ function bindEvents() {
         document.getElementById("userSelectionScreen").classList.remove("hidden");
         state.username = null;
         fetchUsers();
+    });
+
+    // Keyboard shortcuts for undo/redo
+    document.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+            e.preventDefault();
+            undo();
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === "Z" || (e.key === "z" && e.shiftKey))) {
+            e.preventDefault();
+            redo();
+        }
     });
 }
 
@@ -279,6 +352,7 @@ async function lookupStock() {
         return showToast(`${ticker} is already added`, "warning");
     }
 
+    pushUndoSnapshot();
     showLoading(`Looking up ${ticker}...`);
     try {
         const info = await apiPost("/api/lookup-stock", { ticker });
@@ -383,6 +457,7 @@ function renderStockCard(stock) {
 
     // Remove stock
     card.querySelector(".remove-stock-btn").addEventListener("click", () => {
+        pushUndoSnapshot();
         state.portfolio.stocks = state.portfolio.stocks.filter(s => s.id !== stock.id);
         card.remove();
         updateCalcButtonVisibility();
@@ -397,6 +472,9 @@ function renderStockCard(stock) {
 
     // Add div button
     card.querySelector(".add-div-btn").addEventListener("click", () => addDividendRow(card, stock));
+
+    // Fetch dividends button
+    card.querySelector(".fetch-dividends-btn").addEventListener("click", () => fetchDividendsForStock(card, stock));
 
     // Render existing lots, sells, and dividends
     stock.lots.forEach(lot => renderLotRow(card, stock, lot));
@@ -436,7 +514,10 @@ function addLotRow(card, stock, lotData = null) {
         sells: [],
     };
 
-    if (!lotData) stock.lots.push(lot);
+    if (!lotData) {
+        pushUndoSnapshot();
+        stock.lots.push(lot);
+    }
 
     renderLotRow(card, stock, lot);
 }
@@ -498,6 +579,7 @@ function renderLotRow(card, stock, lot) {
 
     // Remove
     tr.querySelector(".remove-lot-btn").addEventListener("click", () => {
+        pushUndoSnapshot();
         stock.lots = stock.lots.filter(l => l.id !== lot.id);
         tr.remove();
         updateSellLotOptions(card, stock);
@@ -524,6 +606,7 @@ function addSellRow(card, stock, lotId = null, sellData = null) {
     };
 
     if (!sellData) {
+        pushUndoSnapshot();
         if (!targetLot.sells) targetLot.sells = [];
         targetLot.sells.push(sell);
     }
@@ -542,11 +625,15 @@ function renderSellRow(card, stock, lot, sell) {
         `<option value="${l.id}" ${l.id === lot.id ? "selected" : ""}>${l.buy_date || "No date"} (qty: ${l.quantity || 0})</option>`
     ).join("");
 
+    const buyPrice = lot.buy_price ? `$${parseFloat(lot.buy_price).toFixed(2)}` : "—";
+
     tr.innerHTML = `
         <td><select class="sell-lot-select">${lotOptions}</select></td>
+        <td class="sell-buy-price">${buyPrice}</td>
         <td><input type="date" class="sell-date" value="${sell.sell_date}"></td>
         <td><input type="number" class="sell-qty" value="${sell.quantity}" step="any" min="0" placeholder="0"></td>
         <td><input type="number" class="sell-price" value="${sell.sell_price}" step="any" min="0" placeholder="0.00"></td>
+        <td class="sell-pl-container"></td>
         <td><button class="btn btn-sm btn-danger remove-sell-btn">✕</button></td>
     `;
 
@@ -569,11 +656,21 @@ function renderSellRow(card, stock, lot, sell) {
             if (!newLot.sells) newLot.sells = [];
             newLot.sells.push(sell);
             tr.dataset.lotId = newLot.id;
+            
+            // Update displayed buy price
+            const buyPriceCell = tr.querySelector(".sell-buy-price");
+            if (buyPriceCell) {
+                buyPriceCell.textContent = newLot.buy_price ? `$${parseFloat(newLot.buy_price).toFixed(2)}` : "—";
+            }
+            // Clear P&L as it needs recalculation
+            const plContainer = tr.querySelector(".sell-pl-container");
+            if (plContainer) plContainer.innerHTML = "";
         }
     });
 
     // Remove
     tr.querySelector(".remove-sell-btn").addEventListener("click", () => {
+        pushUndoSnapshot();
         const parentLot = stock.lots.find(l => l.id === tr.dataset.lotId);
         if (parentLot) {
             parentLot.sells = (parentLot.sells || []).filter(s => s.id !== sell.id);
@@ -610,6 +707,7 @@ function addDividendRow(card, stock, divData = null) {
         amount: "",
     };
     if (!divData) {
+        pushUndoSnapshot();
         if (!stock.dividends) stock.dividends = [];
         stock.dividends.push(div);
     }
@@ -635,6 +733,7 @@ function renderDividendRow(card, stock, div) {
     });
 
     tr.querySelector(".remove-div-btn").addEventListener("click", () => {
+        pushUndoSnapshot();
         stock.dividends = (stock.dividends || []).filter(d => d.id !== div.id);
         tr.remove();
     });
@@ -715,6 +814,38 @@ async function calculateAll() {
             const card = document.querySelector(`.stock-card[data-stock-id="${stockId}"]`);
             if (card) showPeakPriceBadge(card, info.price, info.date);
         });
+
+        // Apply P&L badges to sell rows
+        result.rows.forEach(row => {
+            if (row.calculation_details && row.calculation_details.sales && row.calculation_details.sales.sale_entries) {
+                row.calculation_details.sales.sale_entries.forEach(sellEntry => {
+                    if (sellEntry.sell_id) {
+                        const tr = document.querySelector(`tr[data-sell-id="${sellEntry.sell_id}"]`);
+                        if (tr) {
+                            const plContainer = tr.querySelector(".sell-pl-container");
+                            if (plContainer) {
+                                const usdVal = sellEntry.profit_loss_usd || 0;
+                                const inrVal = sellEntry.profit_loss_inr || 0;
+                                const isProfit = usdVal >= 0;
+                                const cls = isProfit ? "profit" : "loss";
+                                const usdText = (isProfit ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
+                                const inrText = (inrVal >= 0 ? "+₹" : "-₹") + Math.abs(inrVal).toLocaleString("en-IN");
+                                
+                                plContainer.innerHTML = `
+                                    <div class="sell-pl-badge ${cls}" title="USD P&L: ${usdText} | INR P&L: ${inrText}">
+                                        <span>${usdText}</span>
+                                        <span style="font-size:0.65rem;opacity:0.8;">${inrText}</span>
+                                    </div>
+                                `;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        // Render Pie Chart
+        renderAssetPieChart(result.rows);
 
         document.getElementById("resultsSection").classList.remove("hidden");
         document.getElementById("sbiRatesSection").classList.remove("hidden");
@@ -847,7 +978,29 @@ function renderResultsTable(rows) {
     const tbody = document.getElementById("a3TableBody");
     tbody.innerHTML = "";
 
+    let currentEntity = null;
+    let stockProceedsTotal = 0;
+
+    const flushSubtotal = () => {
+        if (currentEntity && stockProceedsTotal > 0) {
+            const tr = document.createElement("tr");
+            tr.className = "stock-subtotal-row";
+            tr.innerHTML = `
+                <td colspan="11" style="text-align: right;">Total Gross Proceeds for <strong>${currentEntity}</strong></td>
+                <td>${formatINR(stockProceedsTotal)}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    };
+
     rows.forEach((row, idx) => {
+        if (currentEntity !== null && currentEntity !== row.entity_name) {
+            flushSubtotal();
+            stockProceedsTotal = 0;
+        }
+        currentEntity = row.entity_name;
+        stockProceedsTotal += (row.sale_proceeds || 0);
+
         const tr = document.createElement("tr");
 
         // Columns 1-7 (text)
@@ -893,6 +1046,8 @@ function renderResultsTable(rows) {
 
         tbody.appendChild(tr);
     });
+
+    flushSubtotal(); // Flush last stock
 }
 
 function enableCellEdit(td, row, fieldKey) {
@@ -1029,6 +1184,7 @@ async function savePortfolio() {
         hideLoading();
 
         if (result.success) {
+            markClean();
             showToast(`Saved for CY${state.portfolio.calendar_year}`, "success");
         } else {
             showToast(`Save failed: ${result.error}`, "error");
@@ -1125,7 +1281,7 @@ async function importPreviousYear() {
 
 function clearCurrentYear() {
     if (!confirm(`Are you sure you want to clear all data for CY${state.portfolio.calendar_year}? This will remove all stocks and overrides currently loaded on screen.`)) return;
-    
+    pushUndoSnapshot();
     state.portfolio.stocks = [];
     state.portfolio.overrides = {};
     document.getElementById("stockCards").innerHTML = "";
@@ -1652,21 +1808,28 @@ function switchTab(tab) {
         "monthlyRatesSection",
     ];
     const isA3 = tab === "a3";
+    const isSellHelper = tab === "sellHelper";
+    const isTaxStatement = tab === "taxStatement";
+
     a3Els.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-        // monthlyRatesSection has its own hidden logic — only toggle if switching away
+        // monthlyRatesSection has its own hidden logic
         if (id === "monthlyRatesSection") {
             if (!isA3) el.classList.add("hidden");
             return;
         }
         el.classList.toggle("hidden", !isA3);
     });
-    document.getElementById("sellHelperPanel").classList.toggle("hidden", isA3);
-    document.getElementById("tabA3").classList.toggle("active", isA3);
-    document.getElementById("tabSellHelper").classList.toggle("active", !isA3);
 
-    if (!isA3) shImportLots(); // auto-refresh lots when switching to helper
+    document.getElementById("sellHelperPanel").classList.toggle("hidden", !isSellHelper);
+    document.getElementById("taxStatementPanel").classList.toggle("hidden", !isTaxStatement);
+
+    document.getElementById("tabA3").classList.toggle("active", isA3);
+    document.getElementById("tabSellHelper").classList.toggle("active", isSellHelper);
+    document.getElementById("tabTaxStatement").classList.toggle("active", isTaxStatement);
+
+    if (isSellHelper) shImportLots(); // auto-refresh lots when switching to helper
 }
 
 // ===== Sell Simulator =====
@@ -1709,6 +1872,8 @@ function shImportLots() {
         const curVal = sel.value;
         sel.innerHTML = shLotOptions(curVal);
     });
+    // Render the read-only lots reference table
+    shRenderLotsReference();
     if (simState.lots.length === 0 && simState.sells.length === 0) {
         showToast("No available lots found in current portfolio", "warning");
     }
@@ -1740,6 +1905,7 @@ function shAddRow(lotIdx = 0) {
         <td>
             <select class="sh-lot-select">${shLotOptions(lotIdx)}</select>
         </td>
+        <td class="sh-sell-buy-price" style="font-size:0.8rem;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap;"></td>
         <td><input type="date" class="sh-sell-date" value="${today}"></td>
         <td><input type="number" class="sh-sell-qty" placeholder="0" step="any" min="0" style="width:80px;"></td>
         <td>
@@ -1751,6 +1917,20 @@ function shAddRow(lotIdx = 0) {
         <td><span class="sh-holding-badge neutral">—</span></td>
         <td><button class="btn btn-sm btn-danger sh-remove-btn">✕</button></td>
     `;
+
+    // Update buy price helper
+    const updateBuyPrice = () => {
+        const lotI = parseInt(tr.querySelector(".sh-lot-select").value);
+        const lot = simState.lots[lotI];
+        const cell = tr.querySelector(".sh-sell-buy-price");
+        if (lot && lot.buy_price) {
+            cell.textContent = `$${parseFloat(lot.buy_price).toFixed(2)}`;
+        } else {
+            cell.textContent = "—";
+        }
+    };
+    updateBuyPrice();
+    tr.querySelector(".sh-lot-select").addEventListener("change", updateBuyPrice);
 
     // Holding badge updater
     const updateBadge = () => {
@@ -2015,3 +2195,504 @@ function shRenderResults(data) {
     offCard.appendChild(card);
     showToast(`Simulated ${data.sells.length} sell(s) successfully`, "success");
 }
+
+// ===== Fetch Dividends (Per-Stock & All) =====
+async function fetchDividendsForStock(card, stock) {
+    const ticker = stock.yahoo_ticker || stock.ticker;
+    const year = state.portfolio.calendar_year;
+    const btn = card.querySelector(".fetch-dividends-btn");
+    btn.disabled = true;
+    btn.textContent = "⏳ Fetching…";
+    try {
+        const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`);
+        pushUndoSnapshot();
+        stock.dividends = (data.dividends || []).map(d => ({
+            id: generateId(), ex_date: d.ex_date, amount: d.amount,
+        }));
+        // Re-render dividends tbody
+        const tbody = card.querySelector(".dividends-tbody");
+        tbody.innerHTML = "";
+        stock.dividends.forEach(div => renderDividendRow(card, stock, div));
+        showToast(`Fetched ${stock.dividends.length} dividend(s) for ${stock.ticker}`, "success");
+    } catch (e) {
+        showToast(`Failed to fetch dividends for ${stock.ticker}: ${e.message}`, "error");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "🔄 Fetch Dividends";
+    }
+}
+
+async function fetchAllDividends() {
+    if (state.portfolio.stocks.length === 0) return showToast("No stocks to fetch dividends for", "warning");
+    pushUndoSnapshot();
+    showLoading("Fetching dividends for all stocks…");
+    let total = 0;
+    for (const stock of state.portfolio.stocks) {
+        if (stock.skip_dividends) continue;
+        const ticker = stock.yahoo_ticker || stock.ticker;
+        try {
+            const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${state.portfolio.calendar_year}`);
+            stock.dividends = (data.dividends || []).map(d => ({
+                id: generateId(), ex_date: d.ex_date, amount: d.amount,
+            }));
+            total += stock.dividends.length;
+            const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
+            if (card) {
+                const tbody = card.querySelector(".dividends-tbody");
+                tbody.innerHTML = "";
+                stock.dividends.forEach(div => renderDividendRow(card, stock, div));
+            }
+        } catch (e) { console.warn(`Dividend fetch failed for ${ticker}`, e); }
+    }
+    hideLoading();
+    showToast(`Fetched ${total} total dividend(s) across all stocks`, "success");
+}
+
+// ===== FY Year Selector =====
+function initFYYearSelector() {
+    const select = document.getElementById("fyYearSelect");
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 2000; y--) {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = `FY ${y}-${String(y + 1).slice(-2)} (Apr ${y} – Mar ${y + 1})`;
+        if (y === state.portfolio.calendar_year) opt.selected = true;
+        select.appendChild(opt);
+    }
+}
+
+// ===== Consolidated FY Tax Summary =====
+async function fetchConsolidatedTaxSummary() {
+    const fyStart = parseInt(document.getElementById("fyYearSelect").value);
+    if (!fyStart || !state.username) return showToast("Select a financial year", "warning");
+    showLoading(`Generating consolidated statement for FY ${fyStart}-${String(fyStart + 1).slice(-2)}…`);
+    try {
+        const result = await apiPost("/api/consolidated-tax-summary", {
+            fy_start_year: fyStart, username: state.username,
+        });
+        hideLoading();
+        if (!result.success) return showToast(result.error || "Failed", "error");
+        renderConsolidatedTaxSummary(result.consolidated);
+        document.getElementById("consolidatedFYSection").classList.remove("hidden");
+        document.getElementById("consolidatedFYSection").scrollIntoView({ behavior: "smooth" });
+    } catch (e) {
+        hideLoading();
+        showToast(`Error: ${e.message}`, "error");
+    }
+}
+
+function renderConsolidatedTaxSummary(data) {
+    const container = document.getElementById("consolidatedFYBlocks");
+    container.innerHTML = "";
+
+    // Source availability badges
+    const sourceDiv = document.createElement("div");
+    sourceDiv.style.cssText = "margin-bottom:16px;";
+    sourceDiv.innerHTML = `
+        <span class="fy-source-note ${data.has_cy_start ? 'available' : 'missing'}">${data.has_cy_start ? '✓' : '⚠'} CY${data.fy_start_year} ${data.has_cy_start ? 'loaded' : 'missing (treated as 0)'}</span>
+        <span class="fy-source-note ${data.has_cy_end ? 'available' : 'missing'}">${data.has_cy_end ? '✓' : '⚠'} CY${data.fy_end_year} ${data.has_cy_end ? 'loaded' : 'missing (treated as 0)'}</span>
+    `;
+    container.appendChild(sourceDiv);
+
+    // Reuse the same rendering as renderTaxYearSummary but for a single consolidated block
+    const fakeYears = { prev: data };
+    // Render using existing helper — just the "prev" key
+    const quarterLabels = { q1: "Up to 15/6", q2: "16/6 – 15/9", q3: "16/9 – 15/12", q4: "16/12 – 15/3", q5: "16/3 – 31/3" };
+    const quarters = ["q1", "q2", "q3", "q4", "q5"];
+    const categoryMeta = {
+        ltcg: { label: "LTCG", color: "var(--success)", title: "Long-Term Capital Gain" },
+        ltcl: { label: "LTCL", color: "var(--danger)", title: "Long-Term Capital Loss" },
+        stcg: { label: "STCG", color: "#22c55e", title: "Short-Term Capital Gain" },
+        stcl: { label: "STCL", color: "#f97316", title: "Short-Term Capital Loss" },
+        dividends: { label: "Div", color: "var(--accent)", title: "Dividend Income" },
+    };
+    const categoryOrder = ["ltcg", "ltcl", "stcg", "stcl", "dividends"];
+    const ty = data;
+    const hasData = Object.values(ty.totals).some(b => b.total > 0);
+
+    const block = document.createElement("div");
+    block.style.cssText = "margin-bottom:24px;";
+
+    const headerEl = document.createElement("div");
+    headerEl.style.cssText = "display:flex;align-items:center;gap:12px;padding:10px 16px;margin-bottom:16px;background:var(--bg-input);border-radius:8px;border-left:4px solid var(--accent);";
+    headerEl.innerHTML = `<span style="font-size:1.1rem;font-weight:700;color:var(--text-main);">${ty.fy_label} — Consolidated</span>` +
+        (!hasData ? `<span style="color:var(--text-muted);font-size:0.85rem;">(no data)</span>` : "");
+    block.appendChild(headerEl);
+
+    if (!hasData) {
+        block.innerHTML += `<p style="color:var(--text-muted);padding:0 16px;font-size:0.875rem;">No gains, losses, or dividends found for this financial year.</p>`;
+        container.appendChild(block);
+        return;
+    }
+
+    // Build table (same pattern as renderTaxYearSummary)
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "overflow-x:auto;margin-bottom:24px;";
+    const table = document.createElement("table");
+    table.style.cssText = "width:100%;border-collapse:collapse;font-size:0.84rem;";
+
+    const thead = document.createElement("thead");
+    const hrow = document.createElement("tr");
+    ["Stock / Category"].concat(quarters.map(q => quarterLabels[q])).concat(["Total"]).forEach((h, i) => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        th.style.cssText = `padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-weight:600;font-size:0.76rem;text-align:${i === 0 ? "left" : "right"};border-bottom:2px solid var(--border);white-space:nowrap;`;
+        hrow.appendChild(th);
+    });
+    thead.appendChild(hrow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    Object.keys(ty.stocks).forEach((ticker, sIdx) => {
+        const stockData = ty.stocks[ticker];
+        const sHeaderRow = document.createElement("tr");
+        const sHeaderTd = document.createElement("td");
+        sHeaderTd.colSpan = 7;
+        sHeaderTd.style.cssText = `padding:10px 10px 4px;font-weight:700;color:var(--text-main);font-size:0.88rem;border-top:${sIdx > 0 ? "2px solid var(--border)" : "none"};`;
+        sHeaderTd.innerHTML = `<span style="opacity:0.4;margin-right:6px;">◆</span>${ticker}`;
+        sHeaderRow.appendChild(sHeaderTd);
+        tbody.appendChild(sHeaderRow);
+
+        categoryOrder.forEach(cat => {
+            const bucket = stockData[cat];
+            if (bucket.total === 0) return;
+            const meta = categoryMeta[cat];
+            const tr = document.createElement("tr");
+            tr.addEventListener("mouseenter", () => tr.style.background = "var(--bg-input)");
+            tr.addEventListener("mouseleave", () => tr.style.background = "");
+            const labelTd = document.createElement("td");
+            labelTd.style.cssText = "padding:5px 10px 5px 26px;white-space:nowrap;";
+            labelTd.innerHTML = `<span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.71rem;font-weight:700;letter-spacing:0.04em;background:${meta.color}22;color:${meta.color};border:1px solid ${meta.color}44;" title="${meta.title}">${meta.label}</span>`;
+            tr.appendChild(labelTd);
+            quarters.concat(["total"]).forEach(qk => {
+                const td = document.createElement("td");
+                const val = bucket[qk] || 0;
+                td.style.cssText = `padding:5px 10px;text-align:right;color:${val > 0 ? meta.color : "var(--text-muted)"};font-variant-numeric:tabular-nums;`;
+                td.textContent = val > 0 ? formatINR(val) : "—";
+                if (qk === "total") { td.style.fontWeight = "700"; td.style.borderLeft = "1px solid var(--border)"; }
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+    });
+
+    // Grand totals
+    const sepRow = document.createElement("tr");
+    const sepTd = document.createElement("td");
+    sepTd.colSpan = 7;
+    sepTd.style.cssText = "padding:0;border-top:2px solid var(--accent);";
+    sepRow.appendChild(sepTd);
+    tbody.appendChild(sepRow);
+
+    categoryOrder.forEach(cat => {
+        const bucket = ty.totals[cat];
+        if (bucket.total === 0) return;
+        const meta = categoryMeta[cat];
+        const tr = document.createElement("tr");
+        tr.style.background = "var(--bg-input)";
+        const labelTd = document.createElement("td");
+        labelTd.style.cssText = "padding:7px 10px;font-weight:700;font-size:0.82rem;white-space:nowrap;";
+        labelTd.innerHTML = `<span style="color:var(--text-muted);font-size:0.72rem;margin-right:5px;">TOTAL</span><span style="color:${meta.color};font-weight:800;">${meta.label}</span>`;
+        tr.appendChild(labelTd);
+        quarters.concat(["total"]).forEach(qk => {
+            const td = document.createElement("td");
+            const val = bucket[qk] || 0;
+            td.style.cssText = `padding:7px 10px;text-align:right;font-weight:700;color:${val > 0 ? meta.color : "var(--text-muted)"};font-variant-numeric:tabular-nums;`;
+            td.textContent = val > 0 ? formatINR(val) : "—";
+            if (qk === "total") { td.style.borderLeft = "1px solid var(--border)"; td.style.background = meta.color + "11"; }
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    block.appendChild(wrapper);
+
+    // Offset card
+    const off = ty.offset;
+    if (off) {
+        const sec2Header = document.createElement("div");
+        sec2Header.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;";
+        sec2Header.textContent = "Net Capital Gains After Set-Off (ITR §70/74)";
+        block.appendChild(sec2Header);
+
+        const offCard = document.createElement("div");
+        offCard.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:28px;";
+
+        function buildCol(title, rows, netLabel, netVal) {
+            const col = document.createElement("div");
+            const colTitle = document.createElement("div");
+            colTitle.style.cssText = "font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;";
+            colTitle.textContent = title;
+            col.appendChild(colTitle);
+            const lineBox = document.createElement("div");
+            lineBox.style.cssText = "display:flex;flex-direction:column;gap:4px;";
+            rows.forEach(row => {
+                if (!row || (row.val === 0 && !row.alwaysShow)) return;
+                const line = document.createElement("div");
+                line.style.cssText = "display:flex;justify-content:space-between;align-items:baseline;gap:8px;";
+                const lbl = document.createElement("span");
+                lbl.style.cssText = `font-size:0.82rem;color:${row.dim ? "var(--text-muted)" : "var(--text-main)"};white-space:nowrap;`;
+                lbl.innerHTML = (row.prefix ? `<span style="font-weight:600;margin-right:4px;color:${row.pc};">${row.prefix}</span>` : "") + row.label;
+                const amt = document.createElement("span");
+                amt.style.cssText = `font-size:0.85rem;font-weight:600;color:${row.color};font-variant-numeric:tabular-nums;white-space:nowrap;`;
+                amt.textContent = row.val === 0 ? "—" : (row.neg ? "−" : "") + "₹" + formatINR(row.val);
+                line.appendChild(lbl); line.appendChild(amt);
+                lineBox.appendChild(line);
+            });
+            const netRow = document.createElement("div");
+            netRow.style.cssText = `display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 12px;border-radius:7px;background:${netVal > 0 ? "var(--success)" : "var(--bg-card)"}18;border:1px solid ${netVal > 0 ? "var(--success)" : "var(--border)"}44;`;
+            netRow.innerHTML = `<span style="font-size:0.85rem;font-weight:700;color:var(--text-main);">${netLabel}</span><span style="font-size:1rem;font-weight:800;color:${netVal > 0 ? "var(--success)" : "var(--text-muted)"};font-variant-numeric:tabular-nums;">${netVal > 0 ? "₹" + formatINR(netVal) : "₹0"}</span>`;
+            col.appendChild(lineBox);
+            col.appendChild(netRow);
+            return col;
+        }
+
+        offCard.appendChild(buildCol("Short-Term Capital Gains", [
+            { label: "Gross STCG", val: off.gross_stcg, color: "#22c55e", alwaysShow: true },
+            { label: "STCL set off vs STCG", val: off.stcl_vs_stcg, color: "var(--danger)", neg: true, prefix: "−", pc: "var(--danger)", dim: true },
+            off.stcl_vs_ltcg > 0 ? { label: "Residual STCL → LTCG", val: off.stcl_vs_ltcg, color: "#f97316", dim: true } : null,
+        ], "Net STCG (Taxable)", off.net_stcg));
+
+        offCard.appendChild(buildCol("Long-Term Capital Gains", [
+            { label: "Gross LTCG", val: off.gross_ltcg, color: "var(--success)", alwaysShow: true },
+            { label: "LTCL set off vs LTCG", val: off.ltcl_vs_ltcg, color: "var(--danger)", neg: true, prefix: "−", pc: "var(--danger)", dim: true },
+            off.stcl_vs_ltcg > 0 ? { label: "Residual STCL set off vs LTCG", val: off.stcl_vs_ltcg, color: "#f97316", neg: true, prefix: "−", pc: "#f97316", dim: true } : null,
+        ], "Net LTCG (Taxable)", off.net_ltcg));
+
+        block.appendChild(offCard);
+    }
+
+    container.appendChild(block);
+    showToast(`Consolidated statement generated for ${data.fy_label}`, "success");
+}
+
+// ===== Sell Simulator Lots Reference =====
+function shRenderLotsReference() {
+    const tbody = document.getElementById("shLotsRefBody");
+    tbody.innerHTML = "";
+    if (simState.lots.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-muted);font-size:0.85rem;">No lots available. Load a portfolio on the Schedule FA A3 tab first.</td></tr>`;
+        return;
+    }
+    for (const stock of state.portfolio.stocks) {
+        for (const lot of (stock.lots || [])) {
+            if (!lot.buy_date || !lot.quantity) continue;
+            const totalQty = parseFloat(lot.quantity) || 0;
+            let sold = 0;
+            for (const s of (lot.sells || [])) sold += parseFloat(s.quantity) || 0;
+            const avail = totalQty - sold;
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${stock.ticker}</td>
+                <td>${lot.buy_date}</td>
+                <td>$${(parseFloat(lot.buy_price) || 0).toFixed(2)}</td>
+                <td>${totalQty}</td>
+                <td>${sold > 0 ? sold : "—"}</td>
+                <td class="${avail > 0 ? 'avail-positive' : 'avail-zero'}">${avail}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+}
+
+// ===== Pie Chart =====
+function renderAssetPieChart(rows) {
+    const canvas = document.getElementById("assetPieChart");
+    const legendContainer = document.getElementById("assetPieChartLegend");
+    if (!canvas || !legendContainer) return;
+
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(centerX, centerY) - 10;
+
+    // Aggregate by stock
+    const stockTotals = {};
+    let totalAssets = 0;
+
+    rows.forEach(row => {
+        const entity = row.entity_name;
+        const bal = row.closing_balance || 0;
+        if (!stockTotals[entity]) stockTotals[entity] = 0;
+        stockTotals[entity] += bal;
+        totalAssets += bal;
+    });
+
+    ctx.clearRect(0, 0, width, height);
+    legendContainer.innerHTML = "";
+
+    if (totalAssets === 0) {
+        ctx.fillStyle = "var(--text-muted)";
+        ctx.font = "14px Inter";
+        ctx.textAlign = "center";
+        ctx.fillText("No assets to display", centerX, centerY);
+        return;
+    }
+
+    // Sort by value descending
+    const sortedStocks = Object.entries(stockTotals).sort((a, b) => b[1] - a[1]);
+    
+    // Vibrant color palette
+    const colors = [
+        "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+        "#ec4899", "#06b6d4", "#f97316", "#14b8a6", "#6366f1"
+    ];
+
+    let startAngle = -0.5 * Math.PI; // Start at top
+
+    sortedStocks.forEach(([entity, value], idx) => {
+        if (value <= 0) return;
+
+        const sliceAngle = (value / totalAssets) * 2 * Math.PI;
+        const color = colors[idx % colors.length];
+
+        // Draw slice
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // Add small border between slices for aesthetics
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "var(--bg-secondary)";
+        ctx.stroke();
+
+        startAngle += sliceAngle;
+
+        // Build legend
+        const pct = ((value / totalAssets) * 100).toFixed(1);
+        const item = document.createElement("div");
+        item.className = "pie-legend-item";
+        item.innerHTML = `
+            <div class="pie-legend-swatch" style="background-color: ${color};"></div>
+            <div class="pie-legend-label">${entity}</div>
+            <div class="pie-legend-value">₹${value.toLocaleString("en-IN")}</div>
+            <div class="pie-legend-pct">${pct}%</div>
+        `;
+        legendContainer.appendChild(item);
+    });
+
+    // Draw donut hole (optional, but looks premium)
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * 0.55, 0, 2 * Math.PI);
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--bg-secondary").trim();
+    ctx.fill();
+
+    // Text in center
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim();
+    ctx.font = "bold 16px Inter";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Total Assets", centerX, centerY - 10);
+    ctx.font = "bold 18px Inter";
+    ctx.fillText(`₹${totalAssets.toLocaleString("en-IN")}`, centerX, centerY + 12);
+}
+
+// ===== Tutorial System =====
+const tutorialSteps = [
+    { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., QCOM, NVDA, VWRA) and click Lookup to add it to your portfolio. Tickers for non-US exchanges are auto-resolved." },
+    { selector: ".add-lot-btn", title: "Acquisition Lots", desc: "Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the 📈 Fetch button to auto-fill the closing price." },
+    { selector: ".add-sell-btn", title: "Sell Transactions", desc: "Record any sell transactions against a specific lot. The tool uses FIFO matching and tracks partial sells." },
+    { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Click to re-fetch dividend data from Yahoo Finance for the current calendar year. Dividends are also auto-fetched when adding a stock." },
+    { selector: "#fetchAllDividendsBtn", title: "Fetch All Dividends", desc: "Batch-fetch dividend data for all stocks at once. Useful when starting a new year or refreshing data." },
+    { selector: "#calculateBtn", title: "Calculate A3 Values", desc: "Computes all 12 columns of Schedule FA Section A3, including initial value, peak value, closing balance, dividends, and sale proceeds — all in ₹ using SBI TT rates." },
+    { selector: "#fetchRatesBtn", title: "SBI TT Rates", desc: "Downloads SBI TT Buying rates from the cloud. These rates are used to convert USD values to ₹ for ITR filing." },
+    { selector: "#viewRatesBtn", title: "Monthly Rates Manager", desc: "View, edit, and lock SBI TT rates per month. Locked years are preserved during rate refreshes." },
+    { selector: "#undoBtn", title: "Undo / Redo", desc: "Made a mistake? Undo any portfolio change with ↩ Undo or Ctrl+Z. Redo with ↪ Redo or Ctrl+Shift+Z. Supports up to 50 levels." },
+    { selector: "#generateFYBtn", title: "Consolidated Tax Statement", desc: "Generate a unified tax view for a complete Financial Year (Apr–Mar) by combining two calendar year reports. Includes LTCG/STCG netting with ITR §70/74 set-off." },
+    { selector: "#tabSellHelper", title: "Sell Simulator", desc: "Switch to the Sell Simulator tab to simulate hypothetical sells and preview their STCG/LTCG tax impact — without modifying your portfolio." },
+    { selector: "#saveBtn", title: "Save & Load", desc: "Save your portfolio to disk. The pulsing dot indicates unsaved changes. Use Load to restore previously saved data." },
+];
+
+let currentTutorialStep = -1;
+
+function initTutorial() {
+    document.getElementById("tutorialCloseBtn").addEventListener("click", endTutorial);
+    document.getElementById("tutorialNextBtn").addEventListener("click", nextTutorialStep);
+    document.getElementById("tutorialPrevBtn").addEventListener("click", prevTutorialStep);
+    document.getElementById("tutorialBackdrop").addEventListener("click", endTutorial);
+}
+
+function startTutorial() {
+    currentTutorialStep = -1;
+    document.getElementById("tutorialOverlay").classList.remove("hidden");
+    nextTutorialStep();
+}
+
+function endTutorial() {
+    document.getElementById("tutorialOverlay").classList.add("hidden");
+    // Remove any existing spotlight
+    document.querySelectorAll(".tutorial-spotlight").forEach(el => el.remove());
+    currentTutorialStep = -1;
+}
+
+function nextTutorialStep() {
+    currentTutorialStep++;
+    if (currentTutorialStep >= tutorialSteps.length) { endTutorial(); return; }
+    showTutorialStep(currentTutorialStep);
+}
+
+function prevTutorialStep() {
+    if (currentTutorialStep <= 0) return;
+    currentTutorialStep--;
+    showTutorialStep(currentTutorialStep);
+}
+
+function showTutorialStep(index) {
+    const step = tutorialSteps[index];
+    const target = document.querySelector(step.selector);
+
+    document.getElementById("tutorialStepCounter").textContent = `Step ${index + 1} of ${tutorialSteps.length}`;
+    document.getElementById("tutorialTitle").textContent = step.title;
+    document.getElementById("tutorialDesc").textContent = step.desc;
+    document.getElementById("tutorialPrevBtn").disabled = index === 0;
+    document.getElementById("tutorialNextBtn").textContent = index === tutorialSteps.length - 1 ? "Finish ✓" : "Next →";
+
+    // Remove old spotlight
+    document.querySelectorAll(".tutorial-spotlight").forEach(el => el.remove());
+
+    const tooltip = document.getElementById("tutorialTooltip");
+
+    if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => {
+            const rect = target.getBoundingClientRect();
+            const pad = 8;
+
+            // Create spotlight cutout
+            const spotlight = document.createElement("div");
+            spotlight.className = "tutorial-spotlight";
+            spotlight.style.top = (rect.top - pad) + "px";
+            spotlight.style.left = (rect.left - pad) + "px";
+            spotlight.style.width = (rect.width + pad * 2) + "px";
+            spotlight.style.height = (rect.height + pad * 2) + "px";
+            document.getElementById("tutorialOverlay").appendChild(spotlight);
+
+            // Position tooltip below target
+            const tooltipTop = rect.bottom + 16;
+            const tooltipLeft = Math.max(16, Math.min(rect.left, window.innerWidth - 400));
+            tooltip.style.top = tooltipTop + "px";
+            tooltip.style.left = tooltipLeft + "px";
+
+            // If tooltip goes off screen bottom, put above
+            if (tooltipTop + 200 > window.innerHeight) {
+                tooltip.style.top = (rect.top - 220) + "px";
+            }
+        }, 300);
+    } else {
+        // Element not visible — center tooltip
+        tooltip.style.top = "50%";
+        tooltip.style.left = "50%";
+        tooltip.style.transform = "translate(-50%, -50%)";
+    }
+}
+
+// ===== Tab Switching — updated to show consolidated FY section =====
+// Override switchTab to also control consolidated FY section visibility
+const _origSwitchTab = typeof switchTab === "function" ? null : null; // placeholder

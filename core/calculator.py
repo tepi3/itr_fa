@@ -312,9 +312,15 @@ def calculate_sale_proceeds(
     Calculate column 12: Total sale proceeds (₹).
     = Σ(sell_price × sell_qty × TTBR(last_wd_prev_month_of_sell_date))
     Only for sells within the calendar year.
+
+    Also computes per-sell P&L in both USD and INR for display.
     """
     total_proceeds_inr = 0
     sale_entries = []
+
+    buy_price = float(lot.get("buy_price", 0))
+    buy_date = _parse_date(lot["buy_date"])
+    buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides)
 
     for sell in lot.get("sells", []):
         sell_date = _parse_date(sell["sell_date"])
@@ -323,13 +329,16 @@ def calculate_sale_proceeds(
 
         sell_price = float(sell["sell_price"])
         sell_qty = float(sell["quantity"])
+        sell_id = sell.get("id")
 
         rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides)
         if rate is None:
             sale_entries.append({
+                "sell_id": sell_id,
                 "sell_date": sell["sell_date"],
                 "sell_price": sell_price,
                 "quantity": sell_qty,
+                "buy_price": buy_price,
                 "error": f"SBI rate not found",
             })
             continue
@@ -337,13 +346,25 @@ def calculate_sale_proceeds(
         proceeds_inr = sell_price * sell_qty * rate
         total_proceeds_inr += proceeds_inr
 
+        # P&L calculations
+        pl_usd = round((sell_price - buy_price) * sell_qty, 2)
+        buy_cost_inr = round(buy_price * sell_qty * buy_rate) if buy_rate else None
+        pl_inr = round(proceeds_inr - buy_cost_inr) if buy_cost_inr is not None else None
+
         sale_entries.append({
+            "sell_id": sell_id,
             "sell_date": sell["sell_date"],
             "sell_price": sell_price,
             "quantity": sell_qty,
+            "buy_price": buy_price,
             "ttbr": rate,
             "rate_date": rate_date,
             "proceeds_inr": round(proceeds_inr),
+            "buy_cost_inr": buy_cost_inr,
+            "profit_loss_usd": pl_usd,
+            "profit_loss_inr": pl_inr,
+            "buy_ttbr": buy_rate,
+            "buy_rate_date": buy_rate_date,
         })
 
     return {

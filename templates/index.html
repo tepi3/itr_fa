@@ -68,12 +68,16 @@
             </div>
             <div class="header-actions">
                 <button id="fetchRatesBtn" class="btn btn-outline" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
+                <button id="fetchAllDividendsBtn" class="btn btn-outline" title="Fetch dividends for all stocks in current year">💰 Fetch All Dividends</button>
                 <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
                 <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
                 <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
                 <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload E-Trade files to import portfolio">📁 Upload ETRADE Docs</button>
                 <button id="loadBtn" class="btn btn-outline" title="Load saved data">📂 Load</button>
-                <button id="saveBtn" class="btn btn-primary" title="Save current data">💾 Save</button>
+                <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
+                <button id="redoBtn" class="btn btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪ Redo</button>
+                <button id="saveBtn" class="btn btn-primary" title="Save current data"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
+                <button id="helpBtn" class="btn btn-outline btn-help" title="Show feature tutorial">❓ Help</button>
             </div>
         </div>
     </header>
@@ -82,6 +86,7 @@
     <nav id="tabNav" class="hidden tab-nav">
         <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">📋 Schedule FA A3</button>
         <button id="tabSellHelper" class="tab-btn" onclick="switchTab('sellHelper')">🧮 Sell Simulator</button>
+        <button id="tabTaxStatement" class="tab-btn" onclick="switchTab('taxStatement')">📊 Tax Statement</button>
     </nav>
 
     <main id="appMain" class="hidden">
@@ -184,6 +189,15 @@
                     <tbody id="stockSummaryTableBody"></tbody>
                 </table>
             </div>
+
+            <!-- Pie Chart: End-of-Year Assets by Stock -->
+            <div id="assetPieChartSection" style="margin-top: 30px;">
+                <h3 style="margin-bottom: 12px;">🧩 End-of-Year Assets by Stock (INR)</h3>
+                <div class="pie-chart-container">
+                    <canvas id="assetPieChart" width="400" height="400"></canvas>
+                    <div id="assetPieChartLegend" class="pie-chart-legend"></div>
+                </div>
+            </div>
         </section>
 
         <!-- SBI Rates Used in Calculation -->
@@ -227,6 +241,25 @@
             </div>
         </section>
 
+
+
+        <!-- ===== TAX STATEMENT PANEL ===== -->
+        <div id="taxStatementPanel" class="hidden">
+            <section class="card">
+                <h2 style="margin-bottom:4px;">📊 Consolidated Tax Statement (Financial Year Apr–Mar)</h2>
+                <p class="hint" style="margin-bottom:16px;">
+                    Generate a unified tax view for a complete Indian Financial Year (Apr–Mar) by combining data from two calendar year reports.
+                    If a calendar year's report is missing, that portion is treated as zero.
+                </p>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                    <label for="fyYearSelect" style="margin-bottom:0;font-weight:500;">Financial Year:</label>
+                    <select id="fyYearSelect" style="width:auto;min-width:160px;"></select>
+                    <button id="generateFYBtn" class="btn btn-accent">⚡ Generate Consolidated Statement</button>
+                </div>
+                <div id="consolidatedFYBlocks"></div>
+            </section>
+        </div>
+
         <!-- ===== SELL HELPER PANEL ===== -->
         <div id="sellHelperPanel" class="hidden">
 
@@ -237,6 +270,34 @@
                         <p class="hint" style="margin:0;">Simulate hypothetical sells to preview STCG/LTCG tax impact. <strong>Portfolio is never modified.</strong></p>
                     </div>
                     <button id="shRefreshBtn" class="btn btn-outline" title="Re-import lots from current portfolio">↻ Refresh Lots</button>
+                </div>
+            </section>
+
+            <!-- Current Portfolio Lots Reference (read-only) -->
+            <section class="card" style="margin-bottom:16px;">
+                <div class="collapsible-header" onclick="toggleSection('shLotsRefContent')">
+                    <h3 style="margin:0;">📦 Current Portfolio Lots (Reference)</h3>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="shLotsRefContent" class="collapsible-content" style="margin-top:12px;">
+                    <p class="hint" style="margin-bottom:10px;">These are the acquisition lots from your current portfolio — for reference while building simulated sells. <strong>Not editable here.</strong></p>
+                    <div style="overflow-x:auto;">
+                        <table class="sh-lots-ref-table" id="shLotsRefTable">
+                            <thead>
+                                <tr>
+                                    <th>Stock</th>
+                                    <th>Buy Date</th>
+                                    <th>Buy Price ($)</th>
+                                    <th>Total Qty</th>
+                                    <th>Already Sold</th>
+                                    <th>Available Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shLotsRefBody">
+                                <tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-muted);font-size:0.85rem;">Switch to the Sell Simulator tab to load lots from your portfolio.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
@@ -251,6 +312,7 @@
                         <thead>
                             <tr>
                                 <th style="text-align:left;padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Lot (Stock — Buy Date)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Buy Price ($)</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Date</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Qty</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.76rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Price ($)</th>
@@ -402,9 +464,11 @@
                         <thead>
                             <tr>
                                 <th>Lot (Buy Date)</th>
+                                <th>Buy Price ($)</th>
                                 <th>Sell Date</th>
                                 <th>Quantity</th>
                                 <th class="sell-price-header">Sell Price ($)</th>
+                                <th>P&L</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -416,7 +480,10 @@
                 <div class="dividends-section">
                     <div class="section-header">
                         <h3>Dividends (in Calendar Year)</h3>
-                        <button class="btn btn-sm btn-primary add-div-btn">+ Add Dividend</button>
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-sm btn-outline fetch-dividends-btn" title="Re-fetch dividends for this stock from Yahoo Finance">🔄 Fetch Dividends</button>
+                            <button class="btn btn-sm btn-primary add-div-btn">+ Add Dividend</button>
+                        </div>
                     </div>
                     <p class="hint" style="margin-top:-5px; margin-bottom:8px;">Auto-fetched from Yahoo Finance. You can edit, delete, or add manually.</p>
                     <table class="dividends-table">
@@ -476,6 +543,24 @@
         </div>
     </div>
     <!-- ===== END ETRADE Upload Modal ===== -->
+
+    <!-- ===== Tutorial Overlay ===== -->
+    <div id="tutorialOverlay" class="tutorial-overlay hidden">
+        <div id="tutorialBackdrop" class="tutorial-backdrop"></div>
+        <div id="tutorialTooltip" class="tutorial-tooltip">
+            <div class="tutorial-tooltip-header">
+                <span id="tutorialStepCounter" class="tutorial-step-counter"></span>
+                <button id="tutorialCloseBtn" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:0.72rem;">✕ Skip</button>
+            </div>
+            <h4 id="tutorialTitle" class="tutorial-title"></h4>
+            <p id="tutorialDesc" class="tutorial-desc"></p>
+            <div class="tutorial-nav">
+                <button id="tutorialPrevBtn" class="btn btn-sm btn-outline">← Prev</button>
+                <button id="tutorialNextBtn" class="btn btn-sm btn-primary">Next →</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END Tutorial Overlay ===== -->
 
     <script src="/static/js/app.js"></script>
 </body>

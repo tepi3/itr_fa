@@ -881,3 +881,296 @@ tr:hover td { background: var(--bg-hover); }
     text-overflow: ellipsis;
     max-width: 160px;
 }
+
+/* ===== Unsaved Changes Indicator ===== */
+.unsaved-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warning);
+    margin-right: 4px;
+    animation: pulse 1.5s ease-in-out infinite;
+    vertical-align: middle;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* ===== Help Button ===== */
+.btn-help {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12));
+    color: var(--accent);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+.btn-help:hover {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    border-color: transparent;
+}
+
+/* ===== Tutorial Overlay ===== */
+.tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    pointer-events: none;
+}
+
+.tutorial-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    pointer-events: auto;
+}
+
+.tutorial-spotlight {
+    position: absolute;
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+    z-index: 20001;
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tutorial-tooltip {
+    position: absolute;
+    z-index: 20002;
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    max-width: 380px;
+    min-width: 280px;
+    box-shadow: 0 8px 40px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(99, 102, 241, 0.15);
+    pointer-events: auto;
+    animation: tutorialFadeIn 0.3s ease;
+}
+
+@keyframes tutorialFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tutorial-tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.tutorial-step-counter {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--accent-light);
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+
+.tutorial-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+}
+
+.tutorial-desc {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin: 0 0 16px;
+}
+
+.tutorial-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* ===== Sell Simulator Lots Reference Table ===== */
+.sh-lots-ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+}
+
+.sh-lots-ref-table th {
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    font-size: 0.73rem;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-bottom: 2px solid var(--border);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.sh-lots-ref-table th:first-child,
+.sh-lots-ref-table th:nth-child(2) {
+    text-align: left;
+}
+
+.sh-lots-ref-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--text-secondary);
+}
+
+.sh-lots-ref-table td:first-child {
+    text-align: left;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.sh-lots-ref-table td:nth-child(2) {
+    text-align: left;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.sh-lots-ref-table tr:hover td {
+    background: var(--bg-hover);
+}
+
+.sh-lots-ref-table .avail-positive {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.sh-lots-ref-table .avail-zero {
+    color: var(--text-muted);
+}
+
+/* ===== Consolidated FY Section ===== */
+#consolidatedFYSection .fy-source-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.fy-source-note.available {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.fy-source-note.missing {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+/* ===== Pie Chart ===== */
+.pie-chart-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    flex-wrap: wrap;
+    padding: 16px 0;
+}
+
+.pie-chart-container canvas {
+    flex-shrink: 0;
+    max-width: 320px;
+    max-height: 320px;
+}
+
+.pie-chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+}
+
+.pie-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.pie-legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.pie-legend-label {
+    font-weight: 600;
+    flex: 1;
+}
+
+.pie-legend-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.pie-legend-pct {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* ===== Sell P&L Badges ===== */
+.sell-pl-badge {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+}
+
+.sell-pl-badge.profit {
+    background: var(--success-light);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.sell-pl-badge.loss {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.sell-pl-badge.neutral {
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
+.sell-buy-price {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ===== Stock Subtotal Row in A3 Results ===== */
+.stock-subtotal-row td {
+    background: var(--bg-tertiary) !important;
+    font-weight: 700 !important;
+    border-top: 2px solid var(--accent) !important;
+    border-bottom: 2px solid var(--accent) !important;
+    color: var(--accent) !important;
+    font-size: 0.84rem !important;
+}

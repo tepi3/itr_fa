@@ -260,6 +260,127 @@ def api_tax_year_summary():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/consolidated-tax-summary", methods=["POST"])
+def api_consolidated_tax_summary():
+    """
+    Generate a consolidated tax statement for a full Indian Financial Year (Apr–Mar).
+
+    FY 2024-25 = Apr 2024 – Mar 2025.
+    This combines:
+      - CY2024 portfolio's "curr" tax year (Apr 2024 – Dec 2024)
+      - CY2025 portfolio's "prev" tax year (Jan 2025 – Mar 2025)
+
+    If either portfolio is missing, that half is treated as zero.
+    """
+    data = request.get_json()
+    fy_start_year = data.get("fy_start_year")
+    username = data.get("username", "Default")
+
+    if not fy_start_year:
+        return jsonify({"error": "fy_start_year required"}), 400
+
+    fy_start_year = int(fy_start_year)
+    fy_end_year = fy_start_year + 1
+
+    user_dir, _ = get_user_dir(username)
+
+    # Load CY portfolios for both halves
+    def load_portfolio(cy_year):
+        filepath = user_dir / f"portfolio_CY{cy_year}.json"
+        if not filepath.exists():
+            return None
+        with open(filepath, "r") as f:
+            return json.load(f)
+
+    cy_start_portfolio = load_portfolio(fy_start_year)
+    cy_end_portfolio = load_portfolio(fy_end_year)
+
+    # Calculate tax year summaries for each half
+    def empty_quarters():
+        return {"q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0, "total": 0}
+
+    def empty_stock_entry():
+        return {
+            "ltcg": empty_quarters(), "ltcl": empty_quarters(),
+            "stcg": empty_quarters(), "stcl": empty_quarters(),
+            "dividends": empty_quarters(),
+        }
+
+    # Build the two halves
+    curr_half = None  # Apr–Dec from CY start year ("curr" tax year)
+    prev_half = None  # Jan–Mar from CY end year ("prev" tax year)
+
+    if cy_start_portfolio:
+        try:
+            result = calculate_tax_year_summary(cy_start_portfolio)
+            curr_half = result["tax_years"]["curr"]
+        except Exception as e:
+            logger.warning(f"Could not compute tax summary for CY{fy_start_year}: {e}")
+
+    if cy_end_portfolio:
+        try:
+            result = calculate_tax_year_summary(cy_end_portfolio)
+            prev_half = result["tax_years"]["prev"]
+        except Exception as e:
+            logger.warning(f"Could not compute tax summary for CY{fy_end_year}: {e}")
+
+    # Merge both halves into a single consolidated view
+    def merge_quarters(a, b):
+        merged = {}
+        for k in ("q1", "q2", "q3", "q4", "q5", "total"):
+            merged[k] = round((a.get(k, 0) or 0) + (b.get(k, 0) or 0))
+        return merged
+
+    def merge_stock_entries(a, b):
+        merged = {}
+        for cat in ("ltcg", "ltcl", "stcg", "stcl", "dividends"):
+            merged[cat] = merge_quarters(a.get(cat, empty_quarters()), b.get(cat, empty_quarters()))
+        return merged
+
+    # Merge stocks
+    all_tickers = set()
+    if curr_half:
+        all_tickers.update(curr_half.get("stocks", {}).keys())
+    if prev_half:
+        all_tickers.update(prev_half.get("stocks", {}).keys())
+
+    merged_stocks = {}
+    for ticker in all_tickers:
+        a = (curr_half or {}).get("stocks", {}).get(ticker, empty_stock_entry())
+        b = (prev_half or {}).get("stocks", {}).get(ticker, empty_stock_entry())
+        merged_stocks[ticker] = merge_stock_entries(a, b)
+
+    # Merge totals
+    a_totals = (curr_half or {}).get("totals", empty_stock_entry())
+    b_totals = (prev_half or {}).get("totals", empty_stock_entry())
+    merged_totals = merge_stock_entries(a_totals, b_totals)
+
+    # Build merged structure for offset computation
+    from core.calculator import compute_offset_summary
+    merged_ty = {
+        "prev": {
+            "label": f"FY {fy_start_year}-{str(fy_end_year)[-2:]}",
+            "stocks": merged_stocks,
+            "totals": merged_totals,
+        },
+        "curr": {
+            "label": "",
+            "stocks": {},
+            "totals": empty_stock_entry(),
+        },
+    }
+    compute_offset_summary(merged_ty)
+
+    consolidated = merged_ty["prev"]
+    consolidated["fy_label"] = f"FY {fy_start_year}-{str(fy_end_year)[-2:]}"
+    consolidated["fy_start_year"] = fy_start_year
+    consolidated["fy_end_year"] = fy_end_year
+    consolidated["has_cy_start"] = cy_start_portfolio is not None
+    consolidated["has_cy_end"] = cy_end_portfolio is not None
+
+    return jsonify({"success": True, "consolidated": consolidated})
+
+
 @app.route("/api/live-price", methods=["GET"])
 def api_live_price():
     """Get the current live market price for a ticker (intraday, not dividend-adjusted)."""
