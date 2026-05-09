@@ -2002,10 +2002,6 @@ function switchTab(tab) {
     document.getElementById("tabTaxStatement").classList.toggle("active", isTaxStatement);
 
     if (isSellHelper) shImportLots(); // auto-refresh lots when switching to helper
-
-    // Show quick-jump sidebar only on A3 tab
-    const qjNav = document.getElementById("quickJumpNav");
-    if (qjNav) qjNav.style.display = isA3 ? '' : 'none';
 }
 
 // ===== Quick Jump Sidebar =====

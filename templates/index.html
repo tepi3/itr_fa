@@ -93,18 +93,6 @@
     </nav>
 
     <main id="appMain" class="hidden">
-        <!-- Quick Jump Sidebar -->
-        <nav id="quickJumpNav" class="quick-jump-nav">
-            <div class="qj-title">Jump to</div>
-            <button class="qj-btn" data-target="addStockSection" title="Add Stock / ETF">➕ Add Stock</button>
-            <button class="qj-btn" data-target="stockCards" title="Your portfolio stocks">📦 Stocks</button>
-            <button class="qj-btn" data-target="calcSection" title="Generate FA Report">⚡ Generate</button>
-            <button class="qj-btn" data-target="resultsSection" title="FA Report preview table">📊 Report</button>
-            <button class="qj-btn" data-target="stockSummarySection" title="Per-stock dividend summary">💰 Dividends</button>
-            <button class="qj-btn" data-target="assetPieChartSection" title="Assets pie chart">🧩 Assets</button>
-            <button class="qj-btn" data-target="taxYearSection" title="Tax year capital gains">📈 Tax Year</button>
-            <button class="qj-btn" data-target="sbiRatesSection" title="SBI TT rates used">💱 SBI Rates</button>
-        </nav>
 
         <!-- SBI Monthly Rates Manager (always available) -->
         <section id="monthlyRatesSection" class="card hidden">
@@ -153,10 +141,24 @@
         <!-- Stock Cards Container -->
         <div id="stockCards"></div>
 
-        <!-- Calculate Button -->
+        <!-- Calculate Button + Quick Jump -->
         <section id="calcSection" class="card hidden">
-            <button id="calculateBtn" class="btn btn-accent btn-large">⚡ Generate FA Report</button>
-            <p class="hint">Fetches stock prices &amp; SBI TT rates, then computes all 12 Schedule FA A3 columns</p>
+            <div class="calc-section-layout">
+                <div class="calc-section-main">
+                    <button id="calculateBtn" class="btn btn-accent btn-large">⚡ Generate FA Report</button>
+                    <p class="hint">Fetches stock prices &amp; SBI TT rates, then computes all 12 Schedule FA A3 columns</p>
+                </div>
+                <nav id="quickJumpNav" class="quick-jump-nav">
+                    <div class="qj-title">Jump to section</div>
+                    <button class="qj-btn" data-target="addStockSection" title="Add Stock / ETF">➕ Add Stock</button>
+                    <button class="qj-btn" data-target="stockCards" title="Your portfolio stocks">📦 Stocks</button>
+                    <button class="qj-btn" data-target="resultsSection" title="FA Report preview table">📊 Report</button>
+                    <button class="qj-btn" data-target="stockSummarySection" title="Per-stock dividend summary">💰 Dividends</button>
+                    <button class="qj-btn" data-target="assetPieChartSection" title="Assets pie chart">🧩 Assets</button>
+                    <button class="qj-btn" data-target="taxYearSection" title="Tax year capital gains">📈 Tax Year</button>
+                    <button class="qj-btn" data-target="sbiRatesSection" title="SBI TT rates used">💱 SBI Rates</button>
+                </nav>
+            </div>
         </section>
 
         <!-- Results Section -->
