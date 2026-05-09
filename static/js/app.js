@@ -2689,7 +2689,7 @@ function initFYYearSelector() {
     for (let y = currentYear; y >= 2000; y--) {
         const opt = document.createElement("option");
         opt.value = y;
-        opt.textContent = `FY ${y}-${String(y + 1).slice(-2)} (Apr ${y} – Mar ${y + 1})`;
+        opt.textContent = `TY ${y}-${String(y + 1).slice(-2)} (Apr ${y} – Mar ${y + 1})`;
         if (y === state.portfolio.calendar_year) opt.selected = true;
         select.appendChild(opt);
     }
@@ -2699,7 +2699,7 @@ function initFYYearSelector() {
 async function fetchConsolidatedTaxSummary() {
     const fyStart = parseInt(document.getElementById("fyYearSelect").value);
     if (!fyStart || !state.username) return showToast("Select a tax year", "warning");
-    showLoading(`Generating consolidated statement for FY ${fyStart}-${String(fyStart + 1).slice(-2)}…`);
+    showLoading(`Generating consolidated statement for TY ${fyStart}-${String(fyStart + 1).slice(-2)}…`);
     try {
         const result = await apiPost("/api/consolidated-tax-summary", {
             fy_start_year: fyStart, username: state.username,

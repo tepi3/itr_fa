@@ -265,7 +265,7 @@ def api_consolidated_tax_summary():
     """
     Generate a consolidated tax statement for a full Indian Tax Year (Apr–Mar).
 
-    FY 2024-25 = Apr 2024 – Mar 2025.
+    TY 2024-25 = Apr 2024 – Mar 2025.
     This combines:
       - CY2024 portfolio's "curr" tax year (Apr 2024 – Dec 2024)
       - CY2025 portfolio's "prev" tax year (Jan 2025 – Mar 2025)
@@ -359,7 +359,7 @@ def api_consolidated_tax_summary():
     from core.calculator import compute_offset_summary
     merged_ty = {
         "prev": {
-            "label": f"FY {fy_start_year}-{str(fy_end_year)[-2:]}",
+            "label": f"TY {fy_start_year}-{str(fy_end_year)[-2:]}",
             "stocks": merged_stocks,
             "totals": merged_totals,
         },
@@ -372,7 +372,7 @@ def api_consolidated_tax_summary():
     compute_offset_summary(merged_ty)
 
     consolidated = merged_ty["prev"]
-    consolidated["fy_label"] = f"FY {fy_start_year}-{str(fy_end_year)[-2:]}"
+    consolidated["fy_label"] = f"TY {fy_start_year}-{str(fy_end_year)[-2:]}"
     consolidated["fy_start_year"] = fy_start_year
     consolidated["fy_end_year"] = fy_end_year
     consolidated["has_cy_start"] = cy_start_portfolio is not None
