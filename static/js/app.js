@@ -22,30 +22,53 @@ const undoStack = [];
 const redoStack = [];
 const MAX_UNDO = 50;
 
-function pushUndoSnapshot() {
-    undoStack.push(JSON.parse(JSON.stringify(state.portfolio)));
+function pushUndoSnapshot(label = "Action") {
+    undoStack.push({
+        portfolio: JSON.parse(JSON.stringify(state.portfolio)),
+        label: label,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    });
     if (undoStack.length > MAX_UNDO) undoStack.shift();
     redoStack.length = 0; // clear redo on new action
     updateUndoRedoButtons();
     markDirty();
+    if (!document.getElementById("historyPanel").classList.contains("hidden")) {
+        renderHistoryList();
+    }
 }
 
 function undo() {
     if (undoStack.length === 0) return;
-    redoStack.push(JSON.parse(JSON.stringify(state.portfolio)));
-    state.portfolio = undoStack.pop();
+    redoStack.push({
+        portfolio: JSON.parse(JSON.stringify(state.portfolio)),
+        label: "Redo state",
+        timestamp: new Date().toLocaleTimeString()
+    });
+    const snapshot = undoStack.pop();
+    state.portfolio = snapshot.portfolio;
     restorePortfolioUI();
     updateUndoRedoButtons();
-    showToast("Undone", "info", 1500);
+    if (!document.getElementById("historyPanel").classList.contains("hidden")) {
+        renderHistoryList();
+    }
+    showToast(`Undo: ${snapshot.label}`, "info", 1500);
 }
 
 function redo() {
     if (redoStack.length === 0) return;
-    undoStack.push(JSON.parse(JSON.stringify(state.portfolio)));
-    state.portfolio = redoStack.pop();
+    undoStack.push({
+        portfolio: JSON.parse(JSON.stringify(state.portfolio)),
+        label: "Undo state",
+        timestamp: new Date().toLocaleTimeString()
+    });
+    const snapshot = redoStack.pop();
+    state.portfolio = snapshot.portfolio;
     restorePortfolioUI();
     updateUndoRedoButtons();
-    showToast("Redone", "info", 1500);
+    if (!document.getElementById("historyPanel").classList.contains("hidden")) {
+        renderHistoryList();
+    }
+    showToast("Redo successful", "info", 1500);
 }
 
 function restorePortfolioUI() {
@@ -56,8 +79,40 @@ function restorePortfolioUI() {
 }
 
 function updateUndoRedoButtons() {
-    document.getElementById("undoBtn").disabled = undoStack.length === 0;
-    document.getElementById("redoBtn").disabled = redoStack.length === 0;
+    const undoBtn = document.getElementById("undoBtn");
+    const redoBtn = document.getElementById("redoBtn");
+    if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+    if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+}
+
+// ===== History Panel =====
+function toggleHistoryPanel() {
+    const panel = document.getElementById("historyPanel");
+    panel.classList.toggle("hidden");
+    if (!panel.classList.contains("hidden")) {
+        renderHistoryList();
+    }
+}
+
+function renderHistoryList() {
+    const list = document.getElementById("historyList");
+    list.innerHTML = "";
+    
+    if (undoStack.length === 0) {
+        list.innerHTML = '<p class="hint" style="text-align:center;padding:20px;">No actions recorded yet</p>';
+        return;
+    }
+    
+    // Show in reverse order (newest first)
+    [...undoStack].reverse().forEach((item) => {
+        const el = document.createElement("div");
+        el.className = "history-item";
+        el.innerHTML = `
+            <span class="history-label">${item.label}</span>
+            <span class="history-time">${item.timestamp}</span>
+        `;
+        list.appendChild(el);
+    });
 }
 
 function markDirty() {
@@ -190,6 +245,8 @@ function bindEvents() {
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
     document.getElementById("generateFYBtn").addEventListener("click", fetchConsolidatedTaxSummary);
+
+    setupInteractions();
 
     document.getElementById("uploadDocsBtn").addEventListener("click", openPlatformModal);
     document.getElementById("switchUserBtn").addEventListener("click", () => {
@@ -580,6 +637,157 @@ async function lookupStock() {
     }
 }
 
+// ===== Sparklines & Tooltips =====
+let _sparklineCache = {};
+
+function initTickerHover(el, ticker) {
+    el.classList.add("ticker-hover");
+    el.addEventListener("mouseenter", async (e) => {
+        console.log(`Hovering on ticker: ${ticker}`);
+        const popup = document.getElementById("sparklinePopup");
+        const canvas = document.getElementById("sparklineCanvas");
+        const tickerEl = document.getElementById("sparklineTicker");
+        const priceEl = document.getElementById("sparklinePrice");
+        
+        tickerEl.textContent = ticker;
+        priceEl.textContent = "Loading...";
+        
+        popup.classList.remove("hidden");
+        const rect = el.getBoundingClientRect();
+        // Since popup is position: fixed, we use rect directly (viewport coords)
+        // No need for window.scrollY/X
+        popup.style.top = (rect.bottom + 8) + "px";
+        popup.style.left = Math.max(10, rect.left) + "px";
+        
+        // Ensure popup doesn't go off-screen right
+        const popupRect = popup.getBoundingClientRect();
+        if (rect.left + 320 > window.innerWidth) {
+            popup.style.left = (window.innerWidth - 330) + "px";
+        }
+        
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        try {
+            if (!_sparklineCache[ticker]) {
+                console.log(`Fetching history for ${ticker}...`);
+                const res = await apiGet(`/api/ticker-history?ticker=${encodeURIComponent(ticker)}`);
+                console.log(`Received ${res.prices ? res.prices.length : 0} points for ${ticker}`);
+                _sparklineCache[ticker] = res.prices || [];
+            }
+            
+            const prices = _sparklineCache[ticker];
+            if (prices.length > 0) {
+                const firstPrice = prices[0].close;
+                const lastPrice = prices[prices.length - 1].close;
+                const minPrice = Math.min(...prices.map(p => p.close));
+                const maxPrice = Math.max(...prices.map(p => p.close));
+                
+                priceEl.textContent = `$${lastPrice.toFixed(2)}`;
+                document.getElementById("sparklineMin").textContent = `Low: $${minPrice.toFixed(2)}`;
+                document.getElementById("sparklineMax").textContent = `High: $${maxPrice.toFixed(2)}`;
+                
+                console.log(`Drawing sparkline for ${ticker}`);
+                drawSparkline(canvas, prices, lastPrice >= firstPrice);
+            } else {
+                priceEl.textContent = "No data";
+                console.warn(`No price data for ${ticker}`);
+            }
+        } catch (e) {
+            priceEl.textContent = "Error";
+            console.error(`Sparkline error for ${ticker}:`, e);
+        }
+    });
+    
+    el.addEventListener("mouseleave", () => {
+        document.getElementById("sparklinePopup").classList.add("hidden");
+    });
+}
+
+function drawSparkline(canvas, data, isPositive = true) {
+    if (!data || data.length === 0) {
+        console.warn("drawSparkline: No data to draw");
+        return;
+    }
+    
+    // Filter for valid numbers to prevent NaN coordinates
+    const validPoints = data.filter(p => p.close != null && !isNaN(p.close));
+    if (validPoints.length < 2) {
+        console.warn("drawSparkline: Insufficient valid points");
+        return;
+    }
+
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+    const padding = 10;
+    
+    const points = validPoints.map(p => p.close);
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const range = (max - min) || 1;
+    
+    console.log(`Drawing ${validPoints.length} points. Min: ${min}, Max: ${max}, Range: ${range}`);
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    // DEBUG: Draw a subtle border around canvas to verify visibility
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.strokeRect(0, 0, width, height);
+
+    // Color based on performance
+    const mainColor = isPositive ? "#10b981" : "#ef4444";
+    const lightColor = isPositive ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)";
+    
+    // Draw trendline
+    ctx.strokeStyle = mainColor;
+    ctx.lineWidth = 2.0; 
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    
+    validPoints.forEach((p, i) => {
+        const x = (i / (validPoints.length - 1)) * (width - 2 * padding) + padding;
+        const y = height - ((p.close - min) / range) * (height - 2 * padding) - padding;
+        
+        if (isNaN(x) || isNaN(y)) return;
+        
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    
+    // Gradient fill under the curve
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, lightColor);
+    grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    
+    // Complete the fill path
+    ctx.lineTo(width - padding, height - padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+}
+
+function showTooltip(el, text) {
+    const tip = document.getElementById("globalTooltip");
+    el.addEventListener("mouseenter", () => {
+        tip.textContent = text;
+        tip.classList.remove("hidden");
+        const rect = el.getBoundingClientRect();
+        tip.style.top = (rect.top + window.scrollY - tip.offsetHeight - 8) + "px";
+        tip.style.left = (rect.left + window.scrollX + (rect.width/2) - (tip.offsetWidth/2)) + "px";
+    });
+    el.addEventListener("mouseleave", () => tip.classList.add("hidden"));
+}
+
+// ===== Common Setup =====
+function setupInteractions() {
+    // History btn
+    document.getElementById("historyBtn").addEventListener("click", toggleHistoryPanel);
+}
+
 // ===== Render Stock Card =====
 function setCardLoading(stockId, isLoading) {
     const card = document.querySelector(`.stock-card[data-stock-id="${stockId}"]`);
@@ -599,6 +807,8 @@ function renderStockCard(stock) {
     card.dataset.stockId = stock.id;
     card.querySelector(".stock-ticker").textContent = stock.ticker;
     card.querySelector(".stock-name").textContent = stock.company_info.name;
+
+    initTickerHover(card.querySelector(".stock-ticker"), stock.yahoo_ticker || stock.ticker);
 
     // Update price column headers
     const buyHeader = card.querySelector(".buy-price-header");
@@ -1388,16 +1598,19 @@ function renderResultsTable(rows) {
             row.acquire_date,
         ];
 
-        textCols.forEach(val => {
+        textCols.forEach((val, i) => {
             const td = document.createElement("td");
             td.textContent = val || "";
+            if (i === 2) { // Entity Name column
+                initTickerHover(td, row.ticker || val);
+            }
             tr.appendChild(td);
         });
 
         // Columns 8-12 (numeric, editable)
         const numFields = [
             { key: "initial_value", val: row.initial_value },
-            { key: "peak_value", val: row.peak_value },
+            { key: "peak_value", val: row.peak_value, peak: row.calculation_details?.peak },
             { key: "closing_balance", val: row.closing_balance },
             { key: "total_dividends", val: row.total_dividends },
             { key: "sale_proceeds", val: row.sale_proceeds },
@@ -1409,7 +1622,12 @@ function renderResultsTable(rows) {
             if (row.is_overridden && row.is_overridden[field.key]) {
                 td.classList.add("overridden");
             }
-            td.innerHTML = `${formatINR(field.val)}<span class="edit-icon">✏️</span>`;
+            
+            const val = field.val != null ? Math.round(field.val) : 0;
+            const textVal = val > 0 ? formatINR(val) : "0";
+            
+            td.innerHTML = `<span>${textVal}</span><span class="edit-icon">✏️</span>`;
+            
             td.dataset.lotId = row.lot_id;
             td.dataset.field = field.key;
             td.dataset.originalValue = field.val;
@@ -1680,8 +1898,37 @@ async function fetchRuntimeDataForAllStocks() {
         idx++;
         const ticker = stock.yahoo_ticker || stock.ticker;
         showLoading(`Fetching live data (${idx}/${total}): ${stock.ticker}…`);
-        
+
         setCardLoading(stock.id, true);
+
+        // Fetch company info if missing details
+        if (!stock.company_info || !stock.company_info.name || !stock.company_info.address) {
+            try {
+                const info = await apiPost("/api/lookup-stock", { ticker: ticker });
+                if (info.success) {
+                    stock.company_info = {
+                        country_code: info.country_code,
+                        name: info.name,
+                        display_name: info.display_name,
+                        address: info.address,
+                        zip: info.zip,
+                        nature: info.nature
+                    };
+                    if (info.yahoo_ticker) stock.yahoo_ticker = info.yahoo_ticker;
+
+                    // Update UI card immediately
+                    const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
+                    if (card) {
+                        card.querySelector(".stock-name").textContent = stock.company_info.name;
+                        card.querySelector(".company-country").value = stock.company_info.country_code || "";
+                        card.querySelector(".company-name").value = stock.company_info.display_name || "";
+                        card.querySelector(".company-address").value = stock.company_info.address || "";
+                        card.querySelector(".company-zip").value = stock.company_info.zip || "";
+                        card.querySelector(".company-nature").value = stock.company_info.nature || "Company";
+                    }
+                }
+            } catch (e) { console.warn(`Company info fetch failed for ${ticker}`, e); }
+        }
 
         // Fetch dividends
         if (!stock.skip_dividends) {
@@ -1713,7 +1960,6 @@ async function fetchRuntimeDataForAllStocks() {
         setCardLoading(stock.id, false);
     }
 }
-
 async function fetchSbiRates() {
     showLoading("Downloading SBI USD rates from GitHub...");
     try {

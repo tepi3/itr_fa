@@ -113,6 +113,8 @@ def get_historical_prices(ticker: str, start_date: str, end_date: str) -> list:
     try:
         t = yf.Ticker(yahoo_ticker)
         hist = t.history(start=start_date, end=end_date, auto_adjust=False)
+        
+        logger.info(f"Prices for {yahoo_ticker}: found {len(hist)} rows")
 
         prices = []
         for idx, row in hist.iterrows():

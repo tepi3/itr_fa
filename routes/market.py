@@ -8,11 +8,26 @@ from core.sbi_rates import (
 )
 from core.stock_data import (
     get_company_info, get_price_on_date, get_dividends,
-    has_dividends, get_yearly_max_price, get_live_price
+    has_dividends, get_yearly_max_price, get_live_price,
+    get_historical_prices
 )
+from datetime import date as dt_date, timedelta
 
 logger = logging.getLogger(__name__)
 market_bp = Blueprint("market", __name__)
+
+@market_bp.route("/api/ticker-history", methods=["GET"])
+def api_ticker_history():
+    """Get the last 2 years of closing prices for a ticker."""
+    ticker = request.args.get("ticker", "").strip()
+    if not ticker:
+        return jsonify({"error": "ticker parameter required"}), 400
+    
+    end = dt_date.today()
+    start = end - timedelta(days=750) # Fetch 2 years + buffer
+    
+    prices = get_historical_prices(ticker, start.isoformat(), end.isoformat())
+    return jsonify({"ticker": ticker, "prices": prices})
 
 @market_bp.route("/api/lookup-stock", methods=["POST"])
 def api_lookup_stock():

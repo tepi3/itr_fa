@@ -77,6 +77,7 @@
                 <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
                 <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
                 <button id="redoBtn" class="btn btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪ Redo</button>
+                <button id="historyBtn" class="btn btn-outline" title="View action history">📜 History</button>
                 <button id="collapseAllBtn" class="btn btn-sm btn-outline" title="Collapse all stock cards">▶ Collapse All</button>
                 <button id="expandAllBtn" class="btn btn-sm btn-outline" title="Expand all stock cards">▼ Expand All</button>
                 <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
@@ -717,6 +718,34 @@
         </div>
     </div>
     <!-- ===== END Tutorial Overlay ===== -->
+
+    <!-- ===== History Side Panel ===== -->
+    <div id="historyPanel" class="side-panel hidden">
+        <div class="side-panel-header">
+            <h3>📜 Action History</h3>
+            <button class="btn btn-sm btn-outline" onclick="toggleHistoryPanel()">✕</button>
+        </div>
+        <div id="historyList" class="side-panel-content">
+            <!-- History items will be injected here -->
+        </div>
+    </div>
+
+    <!-- ===== Ticker Sparkline Popup ===== -->
+    <div id="sparklinePopup" class="sparkline-popup hidden">
+        <div class="sparkline-header">
+            <span id="sparklineTicker">TICKER</span>
+            <span id="sparklinePrice">$0.00</span>
+        </div>
+        <canvas id="sparklineCanvas" width="280" height="80"></canvas>
+        <div class="sparkline-details">
+            <span id="sparklineMin">Low: $0</span>
+            <span id="sparklineMax">High: $0</span>
+        </div>
+        <div class="sparkline-footer">Last 2 Years</div>
+    </div>
+
+    <!-- ===== Global Tooltip ===== -->
+    <div id="globalTooltip" class="global-tooltip hidden"></div>
 
     <script src="/static/js/app.js"></script>
 </body>

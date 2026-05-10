@@ -440,6 +440,7 @@ def calculate_a3_rows(portfolio: dict) -> list:
             row = {
                 "lot_id": lot_id,
                 "sl_no": sl_no,
+                "ticker": ticker,
                 "country": company.get("country_code", ""),
                 "entity_name": company.get("display_name", ticker),
                 "address": company.get("address", ""),
