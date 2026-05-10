@@ -72,8 +72,7 @@
                 <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
                 <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
                 <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
-                <button id="uploadEtradeBtn" class="btn btn-outline" title="Upload E-Trade files to import portfolio">📁 Upload ETRADE Docs</button>
-                <button id="uploadIbkrBtn" class="btn btn-outline" title="Upload IBKR CSV to import portfolio">📁 Upload IBKR Docs</button>
+                <button id="uploadDocsBtn" class="btn btn-outline" title="Upload broker files to import portfolio">📁 Upload Docs</button>
                 <button id="loadBtn" class="btn btn-outline" title="Load saved data from server">📂 Load</button>
                 <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
                 <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
@@ -147,6 +146,7 @@
             <div class="dash-stat"><span class="dash-icon">📦</span><span class="dash-value" id="dashStockCount">0</span><span class="dash-label">Stocks</span></div>
             <div class="dash-stat"><span class="dash-icon">📋</span><span class="dash-value" id="dashLotCount">0</span><span class="dash-label">Lots</span></div>
             <div class="dash-stat"><span class="dash-icon">💰</span><span class="dash-value" id="dashTotalAssets">—</span><span class="dash-label">Total Assets (₹)</span></div>
+            <div class="dash-stat"><span class="dash-icon">📈</span><span class="dash-value" id="dashUnrealizedGain">—</span><span class="dash-label">Unrealized G/L (₹)</span></div>
             <div class="dash-stat"><span class="dash-icon">💵</span><span class="dash-value" id="dashTotalDividends">—</span><span class="dash-label">Total Dividends (₹)</span></div>
         </div>
 
@@ -569,6 +569,29 @@
         </div>
     </template>
 
+    <!-- ===== Platform Selection Modal ===== -->
+    <div id="platformModal" class="modal-backdrop hidden" onclick="if(event.target===this)closePlatformModal()">
+        <div class="modal-box" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2 style="margin:0;">📁 Upload Docs</h2>
+                <button class="btn btn-sm btn-outline" onclick="closePlatformModal()">✕ Close</button>
+            </div>
+            <p class="hint" style="margin:12px 0 20px;">Select your trading platform to continue with the import.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 8px;">
+                <button onclick="selectPlatform('etrade')" class="btn btn-outline" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px;">
+                    <span style="font-size: 2rem;">E*</span>
+                    <strong>E*TRADE</strong>
+                </button>
+                <button onclick="selectPlatform('ibkr')" class="btn btn-outline" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px;">
+                    <span style="font-size: 2rem;">I</span>
+                    <strong>IBKR</strong>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END Platform Selection Modal ===== -->
+
     <!-- ===== ETRADE Upload Modal ===== -->
     <div id="etradeUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeEtradeModal()">
         <div class="modal-box">
@@ -641,6 +664,41 @@
         </div>
     </div>
     <!-- ===== END IBKR Upload Modal ===== -->
+
+    <!-- ===== Import Review Modal ===== -->
+    <div id="importReviewModal" class="modal-backdrop hidden">
+        <div class="modal-box large">
+            <div class="modal-header">
+                <h2 style="margin:0;">📋 Review Transactions to Import</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeImportReview()">✕ Cancel</button>
+            </div>
+            <div class="modal-body" style="padding:16px 0;">
+                <p class="hint" style="margin-bottom:16px;">
+                    The following transactions were found in your file. Review them before they are added to your portfolio.
+                </p>
+                <div class="table-wrapper" style="max-height:400px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm);">
+                    <table id="importReviewTable">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"><input type="checkbox" id="selectAllImportBtn" checked></th>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Symbol</th>
+                                <th>Quantity</th>
+                                <th>Price ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="importReviewTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeImportReview()">Cancel</button>
+                <button id="confirmImportBtn" class="btn btn-accent">✅ Apply to Portfolio</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END Import Review Modal ===== -->
 
     <!-- ===== Tutorial Overlay ===== -->
     <div id="tutorialOverlay" class="tutorial-overlay hidden">

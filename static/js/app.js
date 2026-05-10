@@ -190,10 +190,10 @@ function bindEvents() {
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
     document.getElementById("generateFYBtn").addEventListener("click", fetchConsolidatedTaxSummary);
-    
-    document.getElementById("uploadEtradeBtn").addEventListener("click", openEtradeModal);
-    document.getElementById("uploadIbkrBtn").addEventListener("click", openIbkrModal);
+
+    document.getElementById("uploadDocsBtn").addEventListener("click", openPlatformModal);
     document.getElementById("switchUserBtn").addEventListener("click", () => {
+
         document.getElementById("appHeader").classList.add("hidden");
         document.getElementById("appMain").classList.add("hidden");
         document.getElementById("userSelectionScreen").classList.remove("hidden");
@@ -391,6 +391,41 @@ async function selectUser(username) {
     await autoLoadForYear(state.portfolio.calendar_year);
 }
 
+// ===== Skeleton Loaders =====
+function renderStockCardSkeletons(count = 3) {
+    const container = document.getElementById("stockCards");
+    container.innerHTML = "";
+    for (let i = 0; i < count; i++) {
+        const skeleton = document.createElement("div");
+        skeleton.className = "skeleton-card";
+        skeleton.innerHTML = `
+            <div class="skeleton skeleton-line title"></div>
+            <div class="skeleton skeleton-line medium"></div>
+            <div class="skeleton skeleton-line short"></div>
+            <div style="margin-top:auto; display:flex; gap:8px;">
+                <div class="skeleton" style="width:80px; height:32px; border-radius:16px;"></div>
+                <div class="skeleton" style="width:80px; height:32px; border-radius:16px;"></div>
+            </div>
+        `;
+        container.appendChild(skeleton);
+    }
+}
+
+function renderDashboardSkeletons() {
+    const dash = document.getElementById("portfolioDashboard");
+    if (!dash) return;
+    dash.classList.remove("hidden");
+    dash.innerHTML = `
+        <div class="skeleton-stat-grid" style="width:100%;">
+            <div class="skeleton skeleton-stat-card"></div>
+            <div class="skeleton skeleton-stat-card"></div>
+            <div class="skeleton skeleton-stat-card"></div>
+            <div class="skeleton skeleton-stat-card"></div>
+            <div class="skeleton skeleton-stat-card"></div>
+        </div>
+    `;
+}
+
 // ===== API Helpers =====
 async function apiPost(url, data) {
     const resp = await fetch(url, {
@@ -546,6 +581,16 @@ async function lookupStock() {
 }
 
 // ===== Render Stock Card =====
+function setCardLoading(stockId, isLoading) {
+    const card = document.querySelector(`.stock-card[data-stock-id="${stockId}"]`);
+    if (!card) return;
+    if (isLoading) {
+        card.classList.add("loading-skeleton");
+    } else {
+        card.classList.remove("loading-skeleton");
+    }
+}
+
 function renderStockCard(stock) {
     const template = document.getElementById("stockCardTemplate");
     const clone = template.content.cloneNode(true);
@@ -899,6 +944,8 @@ async function calculateAll() {
         return showToast("Add at least one lot with a date and quantity", "warning");
     }
 
+    renderDashboardSkeletons();
+    state.portfolio.stocks.forEach(s => setCardLoading(s.id, true));
     showLoading("Generating FA Report...\nThis may take a moment (fetching prices & rates)");
 
     try {
@@ -1010,6 +1057,9 @@ async function calculateAll() {
         document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
         showToast(`FA Report generated — ${result.rows.length} row(s)`, "success");
 
+        // Clear all loading states
+        state.portfolio.stocks.forEach(s => setCardLoading(s.id, false));
+
         // Update dashboard with calculated values
         updateDashboard();
 
@@ -1019,6 +1069,116 @@ async function calculateAll() {
     } catch (e) {
         hideLoading();
         showToast(`Error: ${e.message}`, "error");
+    }
+}
+
+// ===== Import Review Modal =====
+let proposedTransactions = [];
+
+function showImportReview(transactions, label) {
+    proposedTransactions = transactions;
+    const modal = document.getElementById("importReviewModal");
+    const tbody = document.getElementById("importReviewTableBody");
+    tbody.innerHTML = "";
+
+    const selectAllBtn = document.getElementById("selectAllImportBtn");
+    selectAllBtn.checked = true;
+
+    if (!transactions || transactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted);">No new transactions found for this year.</td></tr>';
+        document.getElementById("confirmImportBtn").disabled = true;
+    } else {
+        document.getElementById("confirmImportBtn").disabled = false;
+        transactions.forEach((tx, idx) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><input type="checkbox" class="tx-import-check" data-idx="${idx}" checked></td>
+                <td><span class="badge ${tx.type === 'BUY' ? 'badge-success' : 'badge-danger'}">${tx.type}</span></td>
+                <td>${tx.date}</td>
+                <td><strong>${tx.symbol}</strong></td>
+                <td>${tx.qty.toLocaleString()}</td>
+                <td>$${tx.price.toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Select All logic
+    selectAllBtn.onchange = () => {
+        const checks = document.querySelectorAll(".tx-import-check");
+        checks.forEach(c => c.checked = selectAllBtn.checked);
+    };
+
+    modal.classList.remove("hidden");
+    
+    // Set up confirmation button
+    const confirmBtn = document.getElementById("confirmImportBtn");
+    confirmBtn.onclick = async () => {
+        const selectedIndices = Array.from(document.querySelectorAll(".tx-import-check:checked")).map(c => parseInt(c.dataset.idx));
+        if (selectedIndices.length === 0) {
+            showToast("No transactions selected", "warning");
+            return;
+        }
+
+        const selectedTxs = selectedIndices.map(i => proposedTransactions[i]);
+
+        showLoading("Merging selected transactions...");
+        try {
+            const result = await apiPost("/api/merge", {
+                portfolio: state.portfolio,
+                transactions: selectedTxs
+            });
+            
+            if (result.success) {
+                state.portfolio = result.portfolio;
+                renderPortfolio();
+                closeImportReview();
+                closeEtradeModal();
+                closeIbkrModal();
+                showToast(`${label} imported successfully (${selectedTxs.length} tx)`, "success");
+                // Enrich missing company info for new stocks
+                if (state.portfolio.stocks.length > 0) {
+                    await fetchRuntimeDataForAllStocks();
+                }
+                pushUndoSnapshot();
+            } else {
+                showToast("Merge error: " + result.error, "error");
+            }
+        } catch (e) {
+            showToast("Merge failed: " + e.message, "error");
+        } finally {
+            hideLoading();
+        }
+    };
+}
+
+function closeImportReview() {
+    document.getElementById("importReviewModal").classList.add("hidden");
+    proposedTransactions = [];
+}
+
+function renderPortfolio() {
+    document.getElementById("stockCards").innerHTML = "";
+    state.portfolio.stocks.forEach(stock => renderStockCard(stock));
+    updateCalcButtonVisibility();
+    updateDashboard();
+}
+
+// ===== Platform Selection Modal =====
+function openPlatformModal() {
+    document.getElementById("platformModal").classList.remove("hidden");
+}
+
+function closePlatformModal() {
+    document.getElementById("platformModal").classList.add("hidden");
+}
+
+function selectPlatform(platform) {
+    closePlatformModal();
+    if (platform === "etrade") {
+        openEtradeModal();
+    } else if (platform === "ibkr") {
+        openIbkrModal();
     }
 }
 
@@ -1076,8 +1236,9 @@ async function importEtradeDocs() {
         return;
     }
 
-    let portfolio = state.portfolio;
+    let portfolio = state.portfolio; // Local reference stays same
     let totalSkipped = 0;
+    let allTransactions = [];
 
     // ── Step 1: Upload Etrade positions/transactions (if provided) ──────
     if (etradeFile) {
@@ -1089,8 +1250,8 @@ async function importEtradeDocs() {
             const resp = await fetch("/api/upload-etrade", { method: "POST", body: fd });
             const result = await resp.json();
             if (result.success) {
-                portfolio = result.portfolio;
                 totalSkipped += result.skipped_count || 0;
+                if (result.transactions) allTransactions = allTransactions.concat(result.transactions);
             } else {
                 hideLoading();
                 showToast("Positions file error: " + result.error, "error");
@@ -1113,8 +1274,8 @@ async function importEtradeDocs() {
             const resp = await fetch("/api/upload-sell-details", { method: "POST", body: fd });
             const result = await resp.json();
             if (result.success) {
-                portfolio = result.portfolio;
                 totalSkipped += result.skipped_count || 0;
+                if (result.transactions) allTransactions = allTransactions.concat(result.transactions);
             } else {
                 hideLoading();
                 showToast("G&L file error: " + result.error, "error");
@@ -1127,18 +1288,15 @@ async function importEtradeDocs() {
         }
     }
 
-    // ── Done — apply consolidated portfolio ─────────────────────────────
+    // ── Done — show review wizard ───────────────────────────────────────
     hideLoading();
-    state.portfolio = portfolio;
-    document.getElementById("stockCards").innerHTML = "";
-    state.portfolio.stocks.forEach(stock => renderStockCard(stock));
-    updateCalcButtonVisibility();
-
+    closeEtradeModal(); // Close the upload modal first
+    
     const cy = portfolio.calendar_year || "";
     const parts = [];
-    if (etradeFile) parts.push("positions");
-    if (sellFile)   parts.push("G&L sell details");
-    showToast(`Portfolio imported successfully (${parts.join(" + ")})`, "success");
+    if (etradeFile) parts.push("Positions");
+    if (sellFile)   parts.push("G&L Sell Details");
+    const label = parts.join(" + ");
 
     if (totalSkipped > 0) {
         showToast(
@@ -1147,7 +1305,7 @@ async function importEtradeDocs() {
         );
     }
 
-    closeEtradeModal();
+    showImportReview(allTransactions, label);
 }
 
 async function importIbkrDocs() {
@@ -1167,17 +1325,8 @@ async function importIbkrDocs() {
         const result = await resp.json();
         
         if (result.success) {
-            state.portfolio = result.portfolio;
             const totalSkipped = result.skipped_count || 0;
-            
-            document.getElementById("stockCards").innerHTML = "";
-            state.portfolio.stocks.forEach(stock => renderStockCard(stock));
-            updateCalcButtonVisibility();
-            clearCalculatedSections();
-            markDirty();
-
-            const cy = state.portfolio.calendar_year || "";
-            showToast(`IBKR Portfolio imported successfully`, "success");
+            const cy = result.calendar_year || "";
 
             if (totalSkipped > 0) {
                 showToast(
@@ -1186,6 +1335,7 @@ async function importIbkrDocs() {
                 );
             }
             closeIbkrModal();
+            showImportReview(result.transactions || [], "IBKR Portfolio");
         } else {
             showToast("IBKR file error: " + result.error, "error");
         }
@@ -1422,28 +1572,29 @@ async function savePortfolio() {
 
 async function loadPortfolio() {
     const year = state.portfolio.calendar_year;
-    showLoading(`Loading CY${year}...`);
+    showLoading(`Loading data for CY${year}...`);
+    renderDashboardSkeletons();
+    renderStockCardSkeletons(3);
 
     try {
-        const resp = await fetch(`/api/load?year=${year}&username=${encodeURIComponent(state.username)}`);
-        const data = await resp.json();
+        const result = await apiGet(`/api/load?year=${year}&username=${encodeURIComponent(state.username)}`);
         hideLoading();
 
-        if (!data.success) {
-            return showToast(data.error || `No saved data for CY${year}`, "warning");
+        if (!result.success) {
+            return showToast(result.error || `No saved data for CY${year}`, "warning");
         }
 
-        state.portfolio = data.portfolio;
+        state.portfolio = result.portfolio;
         document.getElementById("yearSelect").value = state.portfolio.calendar_year;
 
         // Re-render all stock cards
         document.getElementById("stockCards").innerHTML = "";
         state.portfolio.stocks.forEach(stock => renderStockCard(stock));
         updateCalcButtonVisibility();
+        updateDashboard();
 
         showToast(`Loaded portfolio for CY${year}`, "success");
         if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
-        hideLoading();
     } catch (e) {
         hideLoading();
         showToast(`Load error: ${e.message}`, "error");
@@ -1529,7 +1680,8 @@ async function fetchRuntimeDataForAllStocks() {
         idx++;
         const ticker = stock.yahoo_ticker || stock.ticker;
         showLoading(`Fetching live data (${idx}/${total}): ${stock.ticker}…`);
-        const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
+        
+        setCardLoading(stock.id, true);
 
         // Fetch dividends
         if (!stock.skip_dividends) {
@@ -1538,6 +1690,7 @@ async function fetchRuntimeDataForAllStocks() {
                 stock.dividends = (divData.dividends || []).map(d => ({
                     id: generateId(), ex_date: d.ex_date, amount: d.amount,
                 }));
+                const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
                 if (card) {
                     const tbody = card.querySelector(".dividends-tbody");
                     tbody.innerHTML = "";
@@ -1552,9 +1705,12 @@ async function fetchRuntimeDataForAllStocks() {
             if (peakInfo.max_price != null) {
                 stock.yearly_max_price = peakInfo.max_price;
                 stock.yearly_max_price_date = peakInfo.max_price_date;
+                const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
                 if (card) showPeakPriceBadge(card, peakInfo.max_price, peakInfo.max_price_date);
             }
         } catch (e) { console.warn(`Peak price fetch failed for ${ticker}`, e); }
+
+        setCardLoading(stock.id, false);
     }
 }
 
@@ -1783,6 +1939,9 @@ async function toggleLockRates() {
 // ===== Auto-Load Portfolio on Year Change =====
 async function autoLoadForYear(year) {
     showLoading(`Loading CY${year}...`);
+    renderDashboardSkeletons();
+    renderStockCardSkeletons(3);
+
     try {
         // Try to load saved portfolio
         const resp = await fetch(`/api/load?year=${year}&username=${encodeURIComponent(state.username)}`);
@@ -1794,6 +1953,7 @@ async function autoLoadForYear(year) {
             state.portfolio.stocks.forEach(stock => renderStockCard(stock));
             updateCalcButtonVisibility();
             clearCalculatedSections();
+            updateDashboard();
             showToast(`Loaded saved portfolio for CY${year}`, "success");
             clearDraft(state.username, year);
             if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
@@ -1815,6 +1975,7 @@ async function autoLoadForYear(year) {
             state.portfolio.stocks.forEach(stock => renderStockCard(stock));
             updateCalcButtonVisibility();
             clearCalculatedSections();
+            updateDashboard();
             showToast(`Imported ${state.portfolio.stocks.length} stock(s) from CY${sourceYear}`, "info");
             if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
             hideLoading();
@@ -1832,6 +1993,7 @@ async function autoLoadForYear(year) {
                 state.portfolio.stocks.forEach(stock => renderStockCard(stock));
                 updateCalcButtonVisibility();
                 clearCalculatedSections();
+                updateDashboard();
                 showToast("Draft restored", "success");
                 if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
                 return;
@@ -1848,6 +2010,7 @@ async function autoLoadForYear(year) {
         document.getElementById("stockCards").innerHTML = "";
         updateCalcButtonVisibility();
         clearCalculatedSections();
+        updateDashboard();
         hideLoading();
         showToast(`No data found for CY${year}. Starting fresh.`, "info");
     } catch (e) {
@@ -1886,11 +2049,11 @@ function renderTaxYearSummary(taxYears) {
     const quarters = ["q1", "q2", "q3", "q4", "q5"];
 
     const categoryMeta = {
-        ltcg:      { label: "LTCG", color: "var(--success)", title: "Long-Term Capital Gain (held ≥ 2 yrs)" },
-        ltcl:      { label: "LTCL", color: "var(--danger)",  title: "Long-Term Capital Loss (held ≥ 2 yrs)" },
-        stcg:      { label: "STCG", color: "#22c55e",        title: "Short-Term Capital Gain (held < 2 yrs)" },
-        stcl:      { label: "STCL", color: "#f97316",        title: "Short-Term Capital Loss (held < 2 yrs)" },
-        dividends: { label: "Div",  color: "var(--accent)",  title: "Dividend Income" },
+        ltcg:      { label: "LTCG", color: "#10b981", title: "Long-Term Capital Gain (held ≥ 2 yrs)" },
+        ltcl:      { label: "LTCL", color: "#ef4444", title: "Long-Term Capital Loss (held ≥ 2 yrs)" },
+        stcg:      { label: "STCG", color: "#22c55e", title: "Short-Term Capital Gain (held < 2 yrs)" },
+        stcl:      { label: "STCL", color: "#f97316", title: "Short-Term Capital Loss (held < 2 yrs)" },
+        dividends: { label: "Div",  color: "#6366f1", title: "Dividend Income" },
     };
     const categoryOrder = ["ltcg", "ltcl", "stcg", "stcl", "dividends"];
 
@@ -2530,8 +2693,8 @@ function shRenderResults(data) {
     tbody.innerHTML = "";
 
     const catMeta = {
-        ltcg: { label: "LTCG", color: "var(--success)" },
-        ltcl: { label: "LTCL", color: "var(--danger)" },
+        ltcg: { label: "LTCG", color: "#10b981" },
+        ltcl: { label: "LTCL", color: "#ef4444" },
         stcg: { label: "STCG", color: "#22c55e" },
         stcl: { label: "STCL", color: "#f97316" },
     };
@@ -2780,11 +2943,11 @@ function renderConsolidatedTaxSummary(data) {
     const quarterLabels = { q1: "Up to 15/6", q2: "16/6 – 15/9", q3: "16/9 – 15/12", q4: "16/12 – 15/3", q5: "16/3 – 31/3" };
     const quarters = ["q1", "q2", "q3", "q4", "q5"];
     const categoryMeta = {
-        ltcg: { label: "LTCG", color: "var(--success)", title: "Long-Term Capital Gain" },
-        ltcl: { label: "LTCL", color: "var(--danger)", title: "Long-Term Capital Loss" },
+        ltcg: { label: "LTCG", color: "#10b981", title: "Long-Term Capital Gain" },
+        ltcl: { label: "LTCL", color: "#ef4444", title: "Long-Term Capital Loss" },
         stcg: { label: "STCG", color: "#22c55e", title: "Short-Term Capital Gain" },
         stcl: { label: "STCL", color: "#f97316", title: "Short-Term Capital Loss" },
-        dividends: { label: "Div", color: "var(--accent)", title: "Dividend Income" },
+        dividends: { label: "Div", color: "#6366f1", title: "Dividend Income" },
     };
     const categoryOrder = ["ltcg", "ltcl", "stcg", "stcl", "dividends"];
     const ty = data;
@@ -3242,6 +3405,17 @@ function updateDashboard() {
     }
     dash.classList.remove("hidden");
 
+    // Restore structure if skeletons are present
+    if (dash.querySelector(".skeleton-stat-grid")) {
+        dash.innerHTML = `
+            <div class="dash-stat"><span class="dash-icon">📦</span><span class="dash-value" id="dashStockCount">0</span><span class="dash-label">Stocks</span></div>
+            <div class="dash-stat"><span class="dash-icon">📋</span><span class="dash-value" id="dashLotCount">0</span><span class="dash-label">Lots</span></div>
+            <div class="dash-stat"><span class="dash-icon">💰</span><span class="dash-value" id="dashTotalAssets">—</span><span class="dash-label">Total Assets (₹)</span></div>
+            <div class="dash-stat"><span class="dash-icon">📈</span><span class="dash-value" id="dashUnrealizedGain">—</span><span class="dash-label">Unrealized G/L (₹)</span></div>
+            <div class="dash-stat"><span class="dash-icon">💵</span><span class="dash-value" id="dashTotalDividends">—</span><span class="dash-label">Total Dividends (₹)</span></div>
+        `;
+    }
+
     document.getElementById("dashStockCount").textContent = stocks.length;
     document.getElementById("dashLotCount").textContent = stocks.reduce((sum, s) => sum + (s.lots ? s.lots.length : 0), 0);
 
@@ -3249,11 +3423,33 @@ function updateDashboard() {
     if (state.calculatedRows && state.calculatedRows.length > 0) {
         const totalAssets = state.calculatedRows.reduce((s, r) => s + (r.closing_balance || 0), 0);
         const totalDivs = state.calculatedRows.reduce((s, r) => s + (r.total_dividends || 0), 0);
+        
+        // Calculate Unrealized Gain/Loss
+        // Unrealized G/L = Closing Balance - (Initial Cost of REMAINING shares)
+        let totalUnrealizedGain = 0;
+        state.calculatedRows.forEach(row => {
+            const closing = row.closing_balance || 0;
+            const details = row.calculation_details;
+            if (closing > 0 && details && details.initial && details.closing) {
+                const initialRate = details.initial.rate || 0;
+                const buyPrice = details.initial.components?.buy_price || 0;
+                const remainingQty = details.closing.remaining_qty || 0;
+                const costBasisRemaining = buyPrice * remainingQty * initialRate;
+                totalUnrealizedGain += (closing - costBasisRemaining);
+            }
+        });
+
         document.getElementById("dashTotalAssets").textContent = "\u20b9" + Math.round(totalAssets).toLocaleString("en-IN");
         document.getElementById("dashTotalDividends").textContent = "\u20b9" + Math.round(totalDivs).toLocaleString("en-IN");
+        
+        const gainEl = document.getElementById("dashUnrealizedGain");
+        gainEl.textContent = (totalUnrealizedGain >= 0 ? "+" : "") + "\u20b9" + Math.round(totalUnrealizedGain).toLocaleString("en-IN");
+        gainEl.style.color = totalUnrealizedGain >= 0 ? "var(--success)" : "var(--danger)";
     } else {
         document.getElementById("dashTotalAssets").textContent = "\u2014";
         document.getElementById("dashTotalDividends").textContent = "\u2014";
+        document.getElementById("dashUnrealizedGain").textContent = "\u2014";
+        document.getElementById("dashUnrealizedGain").style.color = "";
     }
 }
 

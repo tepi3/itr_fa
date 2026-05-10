@@ -1,0 +1,173 @@
+import logging
+import json
+from datetime import datetime
+from flask import Blueprint, jsonify, request
+from core.utils import get_user_dir
+from core.etrade_parser import process_etrade_file
+from core.ibkr_parser import process_ibkr_file
+from core.sell_details_parser import process_sell_details_file
+from core.stock_data import get_company_info
+
+from core.merger import apply_transactions
+
+logger = logging.getLogger(__name__)
+parsers_bp = Blueprint("parsers", __name__)
+
+@parsers_bp.route("/api/merge", methods=["POST"])
+def api_merge_transactions():
+    """Apply a selected list of transactions to a portfolio."""
+    data = request.get_json()
+    portfolio = data.get("portfolio")
+    transactions = data.get("transactions")
+
+    if not portfolio or transactions is None:
+        return jsonify({"error": "portfolio and transactions required"}), 400
+
+    try:
+        updated_portfolio = apply_transactions(portfolio, transactions)
+        return jsonify({"success": True, "portfolio": updated_portfolio})
+    except Exception as e:
+        logger.exception("Merge error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@parsers_bp.route("/api/import-previous-year", methods=["POST"])
+def api_import_previous_year():
+    """Import unsold lots from a previous year's portfolio."""
+    data = request.get_json()
+    source_year = data.get("source_year")
+    target_year = data.get("target_year")
+    username = request.args.get("username", "Default")
+    
+    if not source_year or not target_year:
+        return jsonify({"error": "source_year and target_year required"}), 400
+
+    user_dir, _ = get_user_dir(username)
+    source_file = user_dir / f"portfolio_CY{source_year}.json"
+    
+    if not source_file.exists():
+        return jsonify({"error": f"Source portfolio CY{source_year} not found"}), 404
+
+    try:
+        with open(source_file, "r") as f:
+            source_portfolio = json.load(f)
+        
+        # Logic to carry forward unsold lots
+        new_stocks = []
+        for stock in source_portfolio.get("stocks", []):
+            new_lots = []
+            for lot in stock.get("lots", []):
+                # Calculate remaining qty
+                sold_qty = sum(float(s["quantity"]) for s in lot.get("sells", []))
+                if sold_qty < float(lot["quantity"]):
+                    # Carry forward the lot, but strip sells from previous years
+                    # The calculator handles qty_remaining by looking at all sells
+                    new_lots.append(lot)
+            
+            if new_lots:
+                new_stock = stock.copy()
+                new_stock["lots"] = new_lots
+                # Reset CY-specific fields
+                new_stock.pop("dividends", None)
+                new_stock.pop("yearly_max_price", None)
+                new_stock.pop("yearly_max_price_date", None)
+                new_stocks.append(new_stock)
+
+        imported_portfolio = {
+            "calendar_year": int(target_year),
+            "stocks": new_stocks,
+            "overrides": source_portfolio.get("overrides", {}),
+            "sbi_rate_overrides": source_portfolio.get("sbi_rate_overrides", {}),
+        }
+        return jsonify({"success": True, "portfolio": imported_portfolio})
+    except Exception as e:
+        logger.exception("Import previous year error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@parsers_bp.route("/api/upload-etrade", methods=["POST"])
+def api_upload_etrade():
+    """Upload and parse E-Trade holdings expanded report."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    portfolio_data = request.form.get("portfolio")
+    if portfolio_data:
+        portfolio = json.loads(portfolio_data)
+        calendar_year = portfolio.get("calendar_year", datetime.now().year)
+    else:
+        calendar_year = request.form.get("calendar_year", datetime.now().year)
+    
+    temp_portfolio = {"calendar_year": int(calendar_year), "stocks": []}
+
+    try:
+        file_bytes = file.read()
+        result = process_etrade_file(file_bytes, file.filename, temp_portfolio)
+        return jsonify({
+            "success": True, 
+            "transactions": result.get("transactions", []),
+            "skipped_count": result.get("skipped_count", 0),
+            "calendar_year": int(calendar_year)
+        })
+    except Exception as e:
+        logger.exception("E-Trade upload error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@parsers_bp.route("/api/upload-ibkr", methods=["POST"])
+def api_upload_ibkr():
+    """Upload and parse IBKR CSV report."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files["file"]
+    
+    portfolio_data = request.form.get("portfolio")
+    if portfolio_data:
+        portfolio = json.loads(portfolio_data)
+        calendar_year = portfolio.get("calendar_year", datetime.now().year)
+    else:
+        calendar_year = request.form.get("calendar_year", datetime.now().year)
+        
+    temp_portfolio = {"calendar_year": int(calendar_year), "stocks": []}
+
+    try:
+        file_bytes = file.read()
+        result = process_ibkr_file(file_bytes, file.filename, temp_portfolio)
+        return jsonify({
+            "success": True, 
+            "transactions": result.get("transactions", []),
+            "skipped_count": result.get("skipped_count", 0),
+            "calendar_year": int(calendar_year)
+        })
+    except Exception as e:
+        logger.exception("IBKR upload error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@parsers_bp.route("/api/upload-sell-details", methods=["POST"])
+def api_upload_sell_details():
+    """Upload and parse E-Trade Gain/Loss Expanded report."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files["file"]
+
+    portfolio_data = request.form.get("portfolio")
+    if portfolio_data:
+        portfolio = json.loads(portfolio_data)
+        calendar_year = portfolio.get("calendar_year", datetime.now().year)
+    else:
+        calendar_year = request.form.get("calendar_year", datetime.now().year)
+        
+    temp_portfolio = {"calendar_year": int(calendar_year), "stocks": []}
+
+    try:
+        file_bytes = file.read()
+        result = process_sell_details_file(file_bytes, file.filename, temp_portfolio)
+        return jsonify({
+            "success": True,
+            "transactions": result.get("transactions", []),
+            "skipped_count": result.get("skipped_count", 0),
+            "calendar_year": int(calendar_year)
+        })
+    except Exception as e:
+        logger.exception("Sell details upload error")
+        return jsonify({"success": False, "error": str(e)}), 500

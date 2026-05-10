@@ -2,7 +2,7 @@ import requests
 import json
 import os
 
-BASE_URL = "http://127.0.0.1:5000/api"
+BASE_URL = "http://127.0.0.1:5001/api"
 
 def test_qcom_vwra():
     print("Testing QCOM and VWRA flow...")
@@ -121,15 +121,21 @@ def test_qcom_vwra():
     # In original, 24 bought, 10 sold. Carry forward logic keeps the original lot but remaining qty is 14 during calculation
     print(f"Imported QCOM lots: {len(qcom_imported['lots'])}")
 
-    # 6. Test Excel Export
-    print("Testing Excel export...")
-    res = requests.post(f"{BASE_URL}/export-excel", json={"rows": rows, "calendar_year": 2023})
+    # 6. Test CSV Export
+    print("Testing CSV export...")
+    res = requests.post(f"{BASE_URL}/export-csv", json={"rows": rows, "calendar_year": 2023})
     assert res.status_code == 200
     assert len(res.content) > 0
-    export_path = os.path.join(os.path.dirname(__file__), "test_export.xlsx")
+    export_path = os.path.join(os.path.dirname(__file__), "test_export.csv")
     with open(export_path, "wb") as f:
         f.write(res.content)
-    print(f"Excel exported to {export_path}")
+    print(f"CSV exported to {export_path}")
+
+    # 7. Cleanup: Delete the "Default" user created during testing
+    print("Cleaning up test data (deleting 'Default' user)...")
+    res = requests.delete(f"{BASE_URL}/users/Default")
+    assert res.status_code == 200
+    print("Cleanup successful.")
 
 if __name__ == "__main__":
     try:

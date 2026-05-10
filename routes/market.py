@@ -1,0 +1,144 @@
+import logging
+from datetime import date as dt_date
+from flask import Blueprint, jsonify, request
+from core.sbi_rates import (
+    get_sbi_tt_rate, get_monthly_rates, save_manual_rate,
+    refresh_cache, lock_year_rates, unlock_year_rates, 
+    is_year_locked, get_locked_years
+)
+from core.stock_data import (
+    get_company_info, get_price_on_date, get_dividends,
+    has_dividends, get_yearly_max_price, get_live_price
+)
+
+logger = logging.getLogger(__name__)
+market_bp = Blueprint("market", __name__)
+
+@market_bp.route("/api/lookup-stock", methods=["POST"])
+def api_lookup_stock():
+    """Fetch company info by ticker symbol."""
+    data = request.get_json()
+    ticker = data.get("ticker", "").strip()
+    if not ticker:
+        return jsonify({"error": "Ticker is required"}), 400
+    info = get_company_info(ticker)
+    return jsonify(info)
+
+@market_bp.route("/api/sbi-rate", methods=["GET"])
+def api_sbi_rate():
+    """Get SBI TT rate for a specific date (USD only)."""
+    date_str = request.args.get("date")
+    if not date_str:
+        return jsonify({"error": "date parameter is required"}), 400
+    try:
+        d = dt_date.fromisoformat(date_str)
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+    result = get_sbi_tt_rate(d)
+    return jsonify(result)
+
+@market_bp.route("/api/stock-price", methods=["GET"])
+def api_stock_price():
+    """Get stock price on a specific date."""
+    ticker = request.args.get("ticker", "")
+    date_str = request.args.get("date", "")
+    if not ticker or not date_str:
+        return jsonify({"error": "ticker and date parameters required"}), 400
+    price = get_price_on_date(ticker, date_str)
+    return jsonify({"ticker": ticker, "date": date_str, "price": price})
+
+@market_bp.route("/api/dividends", methods=["GET"])
+def api_dividends():
+    """Get dividend data for a ticker and year."""
+    ticker = request.args.get("ticker", "")
+    year = request.args.get("year", "")
+    if not ticker or not year:
+        return jsonify({"error": "ticker and year parameters required"}), 400
+    divs = get_dividends(ticker, int(year))
+    has_divs = has_dividends(ticker)
+    return jsonify({"ticker": ticker, "year": int(year), "dividends": divs, "has_dividends": has_divs})
+
+@market_bp.route("/api/yearly-max-price", methods=["GET"])
+def api_yearly_max_price():
+    """Get max price for a ticker in a calendar year."""
+    ticker = request.args.get("ticker", "")
+    year = request.args.get("year", "")
+    if not ticker or not year:
+        return jsonify({"error": "ticker and year parameters required"}), 400
+    result = get_yearly_max_price(ticker, int(year))
+    return jsonify(result)
+
+@market_bp.route("/api/live-price", methods=["GET"])
+def api_live_price():
+    """Get the current live market price for a ticker (intraday, not dividend-adjusted)."""
+    ticker = request.args.get("ticker", "").strip()
+    if not ticker:
+        return jsonify({"error": "ticker parameter required"}), 400
+    result = get_live_price(ticker)
+    return jsonify(result)
+
+@market_bp.route("/api/monthly-rates", methods=["GET"])
+def api_monthly_rates():
+    """Get SBI TT rates for each month of a given year (USD only)."""
+    year = request.args.get("year")
+    if not year:
+        return jsonify({"error": "year parameter required"}), 400
+    year_int = int(year)
+    rates = get_monthly_rates(year_int)
+    locked = is_year_locked(year_int)
+    return jsonify({
+        "success": True,
+        "year": year_int,
+        "currency": "USD",
+        "rates": rates,
+        "locked": locked,
+    })
+
+@market_bp.route("/api/save-manual-rate", methods=["POST"])
+def api_save_manual_rate():
+    """Save a manually entered SBI TT rate (USD only)."""
+    data = request.get_json()
+    rate_date = data.get("rate_date")
+    rate = data.get("rate")
+    if not rate_date or rate is None:
+        return jsonify({"error": "rate_date and rate are required"}), 400
+    try:
+        save_manual_rate(rate_date, float(rate))
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@market_bp.route("/api/fetch-sbi-rates", methods=["POST"])
+def api_fetch_sbi_rates():
+    """Force download and cache SBI rates."""
+    try:
+        updated = refresh_cache()
+        return jsonify({"success": True, "updated": updated})
+    except Exception as e:
+        logger.exception("Failed to fetch SBI rates")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@market_bp.route("/api/lock-rates", methods=["POST"])
+def api_lock_rates():
+    """Lock rates for a given year."""
+    data = request.get_json()
+    year = data.get("year")
+    if not year:
+        return jsonify({"error": "year required"}), 400
+    lock_year_rates(int(year))
+    return jsonify({"success": True})
+
+@market_bp.route("/api/unlock-rates", methods=["POST"])
+def api_unlock_rates():
+    """Unlock rates for a given year."""
+    data = request.get_json()
+    year = data.get("year")
+    if not year:
+        return jsonify({"error": "year required"}), 400
+    unlock_year_rates(int(year))
+    return jsonify({"success": True})
+
+@market_bp.route("/api/locked-years", methods=["GET"])
+def api_locked_years():
+    """Get list of locked years."""
+    return jsonify({"locked_years": get_locked_years()})
