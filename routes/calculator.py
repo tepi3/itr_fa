@@ -20,6 +20,7 @@ def api_consolidated_tax_summary():
     data = request.get_json()
     fy_start_year = data.get("fy_start_year")
     username = data.get("username", "Default")
+    current_portfolio = data.get("current_portfolio")
 
     if not fy_start_year:
         return jsonify({"error": "fy_start_year required"}), 400
@@ -29,16 +30,51 @@ def api_consolidated_tax_summary():
     user_dir, _ = get_user_dir(username)
 
     def load_cy_summary(year):
-        path = user_dir / f"portfolio_CY{year}.json"
-        if not path.exists():
-            return None
-        try:
-            with open(path, "r") as f:
-                portfolio = json.load(f)
+        portfolio = None
+        if current_portfolio and current_portfolio.get("calendar_year") == year:
+            portfolio = current_portfolio
+        else:
+            path = user_dir / f"portfolio_CY{year}.json"
+            if path.exists():
+                try:
+                    with open(path, "r") as f:
+                        portfolio = json.load(f)
+                except Exception as e:
+                    logger.error(f"Error loading CY{year} for consolidated: {e}")
+                    return None
+        
+        if portfolio:
+            from core.stock_data import get_dividends
+            from core.calculator import _parse_date
+            # Ensure dividends for the requested year are present
+            for stock in portfolio.get("stocks", []):
+                if stock.get("skip_dividends"):
+                    continue
+                ticker = stock.get("yahoo_ticker") or stock.get("ticker")
+                if not ticker:
+                    continue
+                
+                divs = stock.get("dividends", [])
+                has_year_divs = False
+                for d in divs:
+                    ex_str = d.get("ex_date")
+                    if ex_str and _parse_date(ex_str).year == year:
+                        has_year_divs = True
+                        break
+                
+                if not has_year_divs:
+                    fetched = get_dividends(ticker, year)
+                    if fetched:
+                        if "dividends" not in stock:
+                            stock["dividends"] = []
+                        for fd in fetched:
+                            stock["dividends"].append({
+                                "ex_date": fd["ex_date"],
+                                "amount": fd["amount"],
+                                "is_manual": False
+                            })
             return calculate_tax_year_summary(portfolio)
-        except Exception as e:
-            logger.error(f"Error loading CY{year} for consolidated: {e}")
-            return None
+        return None
 
     # Load both years
     cy_start_res = load_cy_summary(fyStartYear)

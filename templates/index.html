@@ -91,7 +91,7 @@
 
     <!-- Tab Navigation -->
     <nav id="tabNav" class="hidden tab-nav">
-        <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">📋 FA Report (A3)</button>
+        <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">📋 FA Report</button>
         <button id="tabSellHelper" class="tab-btn" onclick="switchTab('sellHelper')">🧮 Sell Simulator</button>
         <button id="tabTaxStatement" class="tab-btn" onclick="switchTab('taxStatement')">📊 Tax Statement</button>
     </nav>
@@ -197,9 +197,17 @@
                 </table>
             </div>
 
-            <!-- Per-Stock Summary -->
-            <div id="stockSummarySection" style="margin-top: 30px;">
-                <h3 style="margin-bottom: 12px;">📊 Per-Stock Dividend Summary</h3>
+            </div>
+            </div>
+        </section>
+
+        <!-- Per-Stock Dividend Summary -->
+        <section id="stockSummarySection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('stockSummaryContent')">
+                <h2>📊 Per-Stock Dividend Summary</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div id="stockSummaryContent" class="collapsible-content">
                 <table id="stockSummaryTable">
                     <thead>
                         <tr>
@@ -209,8 +217,6 @@
                     </thead>
                     <tbody id="stockSummaryTableBody"></tbody>
                 </table>
-            </div>
-            </div>
             </div>
         </section>
 
@@ -404,13 +410,15 @@
         <!-- Quick Jump Nav (fixed, above FAB) -->
         <nav id="quickJumpNav" class="quick-jump-nav hidden">
             <div class="qj-title">Jump to</div>
+            <button class="qj-btn" data-target="portfolioDashboard">📊 Dashboard</button>
             <button class="qj-btn" data-target="addStockSection">➕ Add Stock</button>
             <button class="qj-btn" data-target="stockCards">📦 Stocks</button>
-            <button class="qj-btn" data-target="resultsSection">📊 Report</button>
+            <button class="qj-btn" data-target="resultsSection">📝 Report</button>
             <button class="qj-btn" data-target="stockSummarySection">💰 Dividends</button>
-            <button class="qj-btn" data-target="assetPieChartSection">🧩 Assets</button>
-            <button class="qj-btn" data-target="taxYearSection">📈 Tax Year</button>
-            <button class="qj-btn" data-target="sbiRatesSection">💱 SBI Rates</button>
+            <button class="qj-btn" data-target="taxYearSection">📈 Tax Summary</button>
+            <button class="qj-btn" data-target="assetPieChartSection">🥧 Assets Chart</button>
+            <button class="qj-btn" data-target="monthlyRatesSection">💱 Monthly Rates</button>
+            <button class="qj-btn" data-target="sbiRatesSection">📉 Used Rates</button>
         </nav>
 
         <!-- Floating Generate FA Report Button -->

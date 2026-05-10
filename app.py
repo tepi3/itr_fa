@@ -46,7 +46,7 @@ def open_browser():
 
 if __name__ == "__main__":
     print(f"\n{'='*60}")
-    print(f"  FA Desk — Foreign Assets ITR Helper")
+    print(f"  FA Desk — Foreign Assets Tracker and ITR Helper")
     print(f"  Open: http://{FLASK_HOST}:{FLASK_PORT}")
     print(f"{'='*60}\n")
 

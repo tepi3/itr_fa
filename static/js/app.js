@@ -2072,16 +2072,18 @@ function generateId() {
 
 function updateCalcButtonVisibility() {
     const hasStocks = state.portfolio.stocks.length > 0;
+    const tabA3 = document.getElementById("tabA3");
+    const isA3 = tabA3 ? tabA3.classList.contains("active") : false;
 
-    // FAB + Quick Jump Nav: visible when stocks exist
+    // FAB + Quick Jump Nav: visible when stocks exist AND in A3 tab
     const fab = document.getElementById("calcFab");
     const qjNav = document.getElementById("quickJumpNav");
-    if (fab) fab.classList.toggle("hidden", !hasStocks);
-    if (qjNav) qjNav.classList.toggle("hidden", !hasStocks);
+    if (fab) fab.classList.toggle("hidden", !hasStocks || !isA3);
+    if (qjNav) qjNav.classList.toggle("hidden", !hasStocks || !isA3);
 
-    // Filter bar: visible when ≥ 3 stocks
+    // Filter bar: visible when ≥ 3 stocks AND in A3 tab
     const filterBar = document.getElementById("stockFilterBar");
-    if (filterBar) filterBar.classList.toggle("hidden", state.portfolio.stocks.length < 3);
+    if (filterBar) filterBar.classList.toggle("hidden", state.portfolio.stocks.length < 3 || !isA3);
 
     // Dashboard
     updateDashboard();
@@ -2579,7 +2581,7 @@ function renderTaxYearSummary(taxYears) {
 function switchTab(tab) {
     const a3Els = [
         "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
-        "resultsSection", "sbiRatesSection", "taxYearSection",
+        "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
         "monthlyRatesSection", "assetPieChartSection",
     ];
     const isA3 = tab === "a3";
@@ -2626,7 +2628,10 @@ function initQuickJump() {
             const targetId = btn.dataset.target;
             const el = document.getElementById(targetId);
             if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "start" });
+                const header = document.getElementById("appHeader");
+                const headerHeight = header ? header.offsetHeight : 0;
+                const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 20;
+                window.scrollTo({ top, behavior: "smooth" });
             }
         });
     });
@@ -3158,7 +3163,9 @@ async function fetchConsolidatedTaxSummary() {
     showLoading(`Generating consolidated statement for TY ${fyStart}-${String(fyStart + 1).slice(-2)}…`);
     try {
         const result = await apiPost("/api/consolidated-tax-summary", {
-            fy_start_year: fyStart, username: state.username,
+            fy_start_year: fyStart, 
+            username: state.username,
+            current_portfolio: state.portfolio
         });
         hideLoading();
         if (!result.success) return showToast(result.error || "Failed", "error");
@@ -3932,3 +3939,4 @@ function addYearChangeGuard() {
         }
     }, true); // capturing phase = runs first
 }
+
