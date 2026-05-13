@@ -3532,34 +3532,32 @@ async function renderAssetPieChart(rows) {
 // ===== Tutorial System =====
 const tutorialStepsA3 = [
     { selector: "#uploadDocsBtn", title: "Upload Documents", desc: "Auto-import your portfolio by uploading exported CSV files from brokers like E-Trade or Interactive Brokers." },
-    { selector: "#importPrevBtn", title: "Import Previous Year", desc: "Carry forward your entire portfolio from the previous calendar year with a single click." },
-    { selector: "#clearYearBtn", title: "Clear Year Data", desc: "Wipe all current data for the selected calendar year. This cannot be undone." },
     { selector: "#openFileBtn", title: "Open File", desc: "Load a previously downloaded portfolio JSON file from your computer." },
+    { selector: "#importPrevBtn", title: "Import Previous Year", desc: "Carry forward your entire portfolio from the previous calendar year with a single click." },
     { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., QCOM, NVDA, VWRA) and click Lookup to add it to your portfolio. Tickers for non-US exchanges are auto-resolved." },
     { selector: ".add-lot-btn", title: "Acquisition Lots", desc: "Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the 📈 Fetch button to auto-fill the closing price." },
     { selector: ".add-sell-btn", title: "Sell Transactions", desc: "Record any sell transactions against a specific lot. The tool uses FIFO matching and tracks partial sells." },
     { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Click to re-fetch dividend data from Yahoo Finance for the current calendar year. Dividends are also auto-fetched when adding a stock." },
     { selector: "#fetchAllDividendsBtn", title: "Fetch All Dividends", desc: "Batch-fetch dividend data for all stocks at once. Useful when starting a new year or refreshing data." },
-    { selector: "#calcFab", title: "Generate FA Report", desc: "Click the floating button to compute all 12 columns of Schedule FA Section A3, including initial value, peak value, closing balance, dividends, and sale proceeds — all in ₹ using SBI TT rates." },
     { selector: "#fetchRatesBtn", title: "SBI TT Rates", desc: "Downloads SBI TT Buying rates from the cloud. These rates are used to convert USD values to ₹ for ITR filing." },
     { selector: "#viewRatesBtn", title: "Monthly Rates Manager", desc: "View, edit, and lock SBI TT rates per month. Locked years are preserved during rate refreshes." },
+    { selector: "#calcFab", title: "Generate FA Report", desc: "Click the floating button to compute all 12 columns of Schedule FA Section A3, including initial value, peak value, closing balance, dividends, and sale proceeds — all in ₹ using SBI TT rates." },
     { selector: "#undoBtn", title: "Undo / Redo", desc: "Made a mistake? Undo any portfolio change with ↩ Undo or Ctrl+Z. Redo with ↪ Redo or Ctrl+Shift+Z. Supports up to 50 levels." },
-    { selector: "#tabSellHelper", title: "Sell Simulator", desc: "Switch to the Sell Simulator tab to simulate hypothetical sells and preview their STCG/LTCG tax impact — without modifying your portfolio." },
-    { selector: "#tabTaxStatement", title: "Tax Statement", desc: "Switch to the Tax Statement tab to generate a consolidated report for a full Financial Year (Apr-Mar)." },
+    { selector: "#clearYearBtn", title: "Clear Year Data", desc: "Wipe all current data for the selected calendar year. This cannot be undone." },
     { selector: "#saveBtn", title: "Save & Load (Server)", desc: "Save your portfolio to the server. The pulsing dot indicates unsaved changes. Use Load to restore previously saved data." },
     { selector: "#saveAsBtn", title: "Save As", desc: "Download the portfolio JSON to any folder on your computer." },
 ];
 
 const tutorialStepsSell = [
-    { selector: "#shSimulateBtn", title: "Simulate Sells", desc: "Simulate selling shares from your existing lots. Calculates STCG, LTCG, and applies correct SBI TT rates for the dates provided." },
-    { selector: "#shResetBtn", title: "Reset Simulator", desc: "Clear all simulated sells and start over." },
-    { selector: "#shSimResults", title: "Simulation Results", desc: "View the estimated tax breakdown based on your simulated sells without affecting your real portfolio." }
+    { selector: "#shRefreshBtn", title: "Refresh Lots", desc: "Re-import the latest acquisition lots from your current portfolio." },
+    { selector: "#shAddRowBtn", title: "Add Simulated Sell", desc: "Add a hypothetical sell transaction. You can pick from your existing lots." },
+    { selector: "#shSimulateBtn", title: "Simulate Tax Impact", desc: "Calculate the estimated tax breakdown (STCG/LTCG) based on your simulated sells using ITR set-off rules." },
+    { selector: "#shResultsSection", title: "Simulation Results", desc: "View the tax breakdown and net impact without affecting your real portfolio." }
 ];
 
 const tutorialStepsTax = [
-    { selector: "#taxFySelect", title: "Select Financial Year", desc: "Choose the Financial Year (e.g., 2024-25) to generate the tax statement for." },
-    { selector: "#generateFYBtn", title: "Generate Tax Statement", desc: "Combines data from two calendar years to generate a complete view of Capital Gains and Dividends for the Indian Financial Year." },
-    { selector: "#fyExportBtn", title: "Export to CSV", desc: "Export the generated tax statement to a CSV file." }
+    { selector: "#fyYearSelect", title: "Select Tax Year", desc: "Choose the Indian Financial Year (e.g., 2024-25) to generate the tax statement for." },
+    { selector: "#generateFYBtn", title: "Generate Tax Statement", desc: "Combines data from two calendar years to generate a complete view of Capital Gains and Dividends for the Indian Financial Year." }
 ];
 
 let activeTutorialSteps = [];
