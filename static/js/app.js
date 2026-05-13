@@ -3672,6 +3672,16 @@ function updateDashboard() {
     document.getElementById("dashStockCount").textContent = stocks.length;
     document.getElementById("dashLotCount").textContent = stocks.reduce((sum, s) => sum + (s.lots ? s.lots.length : 0), 0);
 
+    // Dynamic injection of LT/ST breakdown if missing
+    const gainContainer = document.getElementById("dashUnrealizedGain")?.parentNode;
+    if (gainContainer && !document.getElementById("dashUnrealizedBreakdown")) {
+        const breakdownEl = document.createElement("div");
+        breakdownEl.id = "dashUnrealizedBreakdown";
+        breakdownEl.style.cssText = "font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; font-weight: 500;";
+        breakdownEl.innerHTML = '<span id="dashUnrealizedLTCG" title="Long Term Unrealized Gain/Loss">LT: \u2014</span><span id="dashUnrealizedSTCG" title="Short Term Unrealized Gain/Loss">ST: \u2014</span>';
+        gainContainer.appendChild(breakdownEl);
+    }
+
     // Assets + Dividends only available after calculation
     if (state.calculatedRows && state.calculatedRows.length > 0) {
         const totalAssets = state.calculatedRows.reduce((s, r) => s + (r.closing_balance || 0), 0);
@@ -3680,6 +3690,10 @@ function updateDashboard() {
         // Calculate Unrealized Gain/Loss
         // Unrealized G/L = Closing Balance - (Initial Cost of REMAINING shares)
         let totalUnrealizedGain = 0;
+        let ltcgUnrealized = 0;
+        let stcgUnrealized = 0;
+        const refDate = new Date(state.portfolio.calendar_year, 11, 31); // Dec 31 of calendar year
+
         state.calculatedRows.forEach(row => {
             const closing = row.closing_balance || 0;
             const details = row.calculation_details;
@@ -3688,7 +3702,18 @@ function updateDashboard() {
                 const buyPrice = details.initial.components?.buy_price || 0;
                 const remainingQty = details.closing.remaining_qty || 0;
                 const costBasisRemaining = buyPrice * remainingQty * initialRate;
-                totalUnrealizedGain += (closing - costBasisRemaining);
+                const gain = closing - costBasisRemaining;
+                totalUnrealizedGain += gain;
+
+                if (row.acquire_date_raw) {
+                    const acquireDate = new Date(row.acquire_date_raw);
+                    const holdingDays = (refDate - acquireDate) / (1000 * 60 * 60 * 24);
+                    if (holdingDays >= 730) {
+                        ltcgUnrealized += gain;
+                    } else {
+                        stcgUnrealized += gain;
+                    }
+                }
             }
         });
 
@@ -3698,11 +3723,29 @@ function updateDashboard() {
         const gainEl = document.getElementById("dashUnrealizedGain");
         gainEl.textContent = (totalUnrealizedGain >= 0 ? "+" : "") + "\u20b9" + Math.round(totalUnrealizedGain).toLocaleString("en-IN");
         gainEl.style.color = totalUnrealizedGain >= 0 ? "var(--success)" : "var(--danger)";
+
+        const ltcgEl = document.getElementById("dashUnrealizedLTCG");
+        const stcgEl = document.getElementById("dashUnrealizedSTCG");
+        if (ltcgEl && stcgEl) {
+            ltcgEl.textContent = "LT: " + (ltcgUnrealized >= 0 ? "+" : "") + "\u20b9" + Math.round(ltcgUnrealized).toLocaleString("en-IN");
+            ltcgEl.style.color = ltcgUnrealized >= 0 ? "var(--success)" : "var(--danger)";
+            
+            stcgEl.textContent = "ST: " + (stcgUnrealized >= 0 ? "+" : "") + "\u20b9" + Math.round(stcgUnrealized).toLocaleString("en-IN");
+            stcgEl.style.color = stcgUnrealized >= 0 ? "var(--success)" : "var(--danger)";
+        }
     } else {
         document.getElementById("dashTotalAssets").textContent = "\u2014";
         document.getElementById("dashTotalDividends").textContent = "\u2014";
         document.getElementById("dashUnrealizedGain").textContent = "\u2014";
         document.getElementById("dashUnrealizedGain").style.color = "";
+        const ltcgEl = document.getElementById("dashUnrealizedLTCG");
+        const stcgEl = document.getElementById("dashUnrealizedSTCG");
+        if (ltcgEl && stcgEl) {
+            ltcgEl.textContent = "LT: \u2014";
+            ltcgEl.style.color = "";
+            stcgEl.textContent = "ST: \u2014";
+            stcgEl.style.color = "";
+        }
     }
 }
 

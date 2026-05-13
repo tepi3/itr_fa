@@ -67,24 +67,47 @@
                 <select id="yearSelect"></select>
             </div>
             <div class="header-actions">
-                <button id="fetchRatesBtn" class="btn btn-outline" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
-                <button id="fetchAllDividendsBtn" class="btn btn-outline" title="Fetch dividends for all stocks in current year">💰 Fetch All Dividends</button>
-                <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
-                <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev Year</button>
-                <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
-                <button id="uploadDocsBtn" class="btn btn-outline" title="Upload broker files to import portfolio">📁 Upload Docs</button>
-                <button id="loadBtn" class="btn btn-outline" title="Load saved data from server">📂 Load</button>
-                <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
-                <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
-                <button id="redoBtn" class="btn btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪ Redo</button>
-                <button id="historyBtn" class="btn btn-outline" title="View action history">📜 History</button>
-                <button id="collapseAllBtn" class="btn btn-sm btn-outline" title="Collapse all stock cards">▶ Collapse All</button>
-                <button id="expandAllBtn" class="btn btn-sm btn-outline" title="Expand all stock cards">▼ Expand All</button>
-                <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
-                <button id="saveAsBtn" class="btn btn-primary" title="Save portfolio to your computer">💾 Save As</button>
-                <button id="themeToggleBtn" class="btn btn-sm btn-outline" title="Toggle dark/light theme">🌙</button>
-                <button id="helpBtn" class="btn btn-outline btn-help" title="Show feature tutorial">❓ Help</button>
-                <input type="file" id="openFileInput" accept=".json" style="display: none;">
+                <!-- Data & File Operations -->
+                <div class="btn-group">
+                    <button id="uploadDocsBtn" class="btn btn-outline" title="Upload broker files to import portfolio">📁 Upload Docs</button>
+                    <button id="loadBtn" class="btn btn-outline" title="Load saved data from server">📂 Load</button>
+                    <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
+                    <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
+                    <button id="saveAsBtn" class="btn btn-primary" title="Save portfolio to your computer">💾 Save As</button>
+                    <input type="file" id="openFileInput" accept=".json" style="display: none;">
+                </div>
+                <div class="action-separator"></div>
+
+                <!-- Market Data -->
+                <div class="btn-group">
+                    <button id="fetchRatesBtn" class="btn btn-outline" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
+                    <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
+                    <button id="fetchAllDividendsBtn" class="btn btn-outline" title="Fetch dividends for all stocks in current year">💰 Fetch All Dividends</button>
+                </div>
+                <div class="action-separator"></div>
+
+                <!-- Year Operations -->
+                <div class="btn-group">
+                    <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev</button>
+                    <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
+                </div>
+                <div class="action-separator"></div>
+
+                <!-- History -->
+                <div class="btn-group">
+                    <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
+                    <button id="redoBtn" class="btn btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪ Redo</button>
+                    <button id="historyBtn" class="btn btn-outline" title="View action history">📜 History</button>
+                </div>
+                <div class="action-separator"></div>
+
+                <!-- View & Misc -->
+                <div class="btn-group">
+                    <button id="collapseAllBtn" class="btn btn-sm btn-outline" title="Collapse all stock cards">▶ Collapse</button>
+                    <button id="expandAllBtn" class="btn btn-sm btn-outline" title="Expand all stock cards">▼ Expand</button>
+                    <button id="themeToggleBtn" class="btn btn-sm btn-outline" title="Toggle dark/light theme">🌙</button>
+                    <button id="helpBtn" class="btn btn-outline btn-help" title="Show feature tutorial">❓ Help</button>
+                </div>
             </div>
         </div>
     </header>
@@ -147,7 +170,15 @@
             <div class="dash-stat"><span class="dash-icon">📦</span><span class="dash-value" id="dashStockCount">0</span><span class="dash-label">Stocks</span></div>
             <div class="dash-stat"><span class="dash-icon">📋</span><span class="dash-value" id="dashLotCount">0</span><span class="dash-label">Lots</span></div>
             <div class="dash-stat"><span class="dash-icon">💰</span><span class="dash-value" id="dashTotalAssets">—</span><span class="dash-label">Total Assets (₹)</span></div>
-            <div class="dash-stat"><span class="dash-icon">📈</span><span class="dash-value" id="dashUnrealizedGain">—</span><span class="dash-label">Unrealized G/L (₹)</span></div>
+            <div class="dash-stat">
+                <span class="dash-icon">📈</span>
+                <span class="dash-value" id="dashUnrealizedGain">—</span>
+                <span class="dash-label">Unrealized G/L (₹)</span>
+                <div id="dashUnrealizedBreakdown" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; font-weight: 500;">
+                    <span id="dashUnrealizedLTCG" title="Long Term Unrealized Gain/Loss">LT: —</span>
+                    <span id="dashUnrealizedSTCG" title="Short Term Unrealized Gain/Loss">ST: —</span>
+                </div>
+            </div>
             <div class="dash-stat"><span class="dash-icon">💵</span><span class="dash-value" id="dashTotalDividends">—</span><span class="dash-label">Total Dividends (₹)</span></div>
         </div>
 
@@ -755,6 +786,6 @@
     <!-- ===== Global Tooltip ===== -->
     <div id="globalTooltip" class="global-tooltip hidden"></div>
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=3"></script>
 </body>
 </html>

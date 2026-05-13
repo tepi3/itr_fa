@@ -117,8 +117,21 @@ body {
 
 .header-actions {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+.btn-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.action-separator {
+    width: 1px;
+    height: 24px;
+    background-color: var(--border);
 }
 
 /* ===== Buttons ===== */
