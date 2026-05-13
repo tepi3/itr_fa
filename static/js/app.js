@@ -3862,7 +3862,6 @@ function toggleTheme() {
     const current = root.dataset.theme || "dark";
     const next = current === "dark" ? "light" : "dark";
     root.dataset.theme = next;
-    document.getElementById("themeToggleBtn").textContent = next === "dark" ? "\ud83c\udf19" : "\u2600\ufe0f";
     try { localStorage.setItem("fa_desk_theme", next); } catch(e) {}
 }
 
@@ -3871,8 +3870,6 @@ function restoreTheme() {
         const saved = localStorage.getItem("fa_desk_theme");
         if (saved) {
             document.documentElement.dataset.theme = saved;
-            const btn = document.getElementById("themeToggleBtn");
-            if (btn) btn.textContent = saved === "dark" ? "\ud83c\udf19" : "\u2600\ufe0f";
         }
     } catch(e) {}
 }

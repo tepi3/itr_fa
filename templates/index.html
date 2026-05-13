@@ -105,7 +105,10 @@
                 <div class="btn-group">
                     <button id="collapseAllBtn" class="btn btn-sm btn-outline" title="Collapse all stock cards">▶ Collapse</button>
                     <button id="expandAllBtn" class="btn btn-sm btn-outline" title="Expand all stock cards">▼ Expand</button>
-                    <button id="themeToggleBtn" class="btn btn-sm btn-outline" title="Toggle dark/light theme">🌙</button>
+                    <button id="themeToggleBtn" class="btn btn-sm btn-outline theme-toggle-btn" title="Toggle dark/light theme">
+                        <span class="theme-icon-sun">☀️</span>
+                        <span class="theme-icon-moon">🌙</span>
+                    </button>
                     <button id="helpBtn" class="btn btn-outline btn-help" title="Show feature tutorial">❓ Help</button>
                 </div>
             </div>
@@ -800,6 +803,6 @@
     <!-- ===== Global Tooltip ===== -->
     <div id="globalTooltip" class="global-tooltip hidden"></div>
 
-    <script src="/static/js/app.js?v=6"></script>
+    <script src="/static/js/app.js?v=7"></script>
 </body>
 </html>
