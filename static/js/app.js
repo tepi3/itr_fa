@@ -3530,7 +3530,11 @@ async function renderAssetPieChart(rows) {
 }
 
 // ===== Tutorial System =====
-const tutorialSteps = [
+const tutorialStepsA3 = [
+    { selector: "#uploadDocsBtn", title: "Upload Documents", desc: "Auto-import your portfolio by uploading exported CSV files from brokers like E-Trade or Interactive Brokers." },
+    { selector: "#importPrevBtn", title: "Import Previous Year", desc: "Carry forward your entire portfolio from the previous calendar year with a single click." },
+    { selector: "#clearYearBtn", title: "Clear Year Data", desc: "Wipe all current data for the selected calendar year. This cannot be undone." },
+    { selector: "#openFileBtn", title: "Open File", desc: "Load a previously downloaded portfolio JSON file from your computer." },
     { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., QCOM, NVDA, VWRA) and click Lookup to add it to your portfolio. Tickers for non-US exchanges are auto-resolved." },
     { selector: ".add-lot-btn", title: "Acquisition Lots", desc: "Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the 📈 Fetch button to auto-fill the closing price." },
     { selector: ".add-sell-btn", title: "Sell Transactions", desc: "Record any sell transactions against a specific lot. The tool uses FIFO matching and tracks partial sells." },
@@ -3540,12 +3544,25 @@ const tutorialSteps = [
     { selector: "#fetchRatesBtn", title: "SBI TT Rates", desc: "Downloads SBI TT Buying rates from the cloud. These rates are used to convert USD values to ₹ for ITR filing." },
     { selector: "#viewRatesBtn", title: "Monthly Rates Manager", desc: "View, edit, and lock SBI TT rates per month. Locked years are preserved during rate refreshes." },
     { selector: "#undoBtn", title: "Undo / Redo", desc: "Made a mistake? Undo any portfolio change with ↩ Undo or Ctrl+Z. Redo with ↪ Redo or Ctrl+Shift+Z. Supports up to 50 levels." },
-    { selector: "#generateFYBtn", title: "Consolidated Tax Statement", desc: "Generate a unified tax view for a complete Tax Year (Apr–Mar) by combining two calendar year reports. Includes LTCG/STCG netting with ITR §70/74 set-off." },
     { selector: "#tabSellHelper", title: "Sell Simulator", desc: "Switch to the Sell Simulator tab to simulate hypothetical sells and preview their STCG/LTCG tax impact — without modifying your portfolio." },
+    { selector: "#tabTaxStatement", title: "Tax Statement", desc: "Switch to the Tax Statement tab to generate a consolidated report for a full Financial Year (Apr-Mar)." },
     { selector: "#saveBtn", title: "Save & Load (Server)", desc: "Save your portfolio to the server. The pulsing dot indicates unsaved changes. Use Load to restore previously saved data." },
-    { selector: "#saveAsBtn", title: "Save As / Open...", desc: "Use Save As to download the portfolio JSON to any folder on your computer. Use Open... to load a portfolio from any folder." },
+    { selector: "#saveAsBtn", title: "Save As", desc: "Download the portfolio JSON to any folder on your computer." },
 ];
 
+const tutorialStepsSell = [
+    { selector: "#shSimulateBtn", title: "Simulate Sells", desc: "Simulate selling shares from your existing lots. Calculates STCG, LTCG, and applies correct SBI TT rates for the dates provided." },
+    { selector: "#shResetBtn", title: "Reset Simulator", desc: "Clear all simulated sells and start over." },
+    { selector: "#shSimResults", title: "Simulation Results", desc: "View the estimated tax breakdown based on your simulated sells without affecting your real portfolio." }
+];
+
+const tutorialStepsTax = [
+    { selector: "#taxFySelect", title: "Select Financial Year", desc: "Choose the Financial Year (e.g., 2024-25) to generate the tax statement for." },
+    { selector: "#generateFYBtn", title: "Generate Tax Statement", desc: "Combines data from two calendar years to generate a complete view of Capital Gains and Dividends for the Indian Financial Year." },
+    { selector: "#fyExportBtn", title: "Export to CSV", desc: "Export the generated tax statement to a CSV file." }
+];
+
+let activeTutorialSteps = [];
 let currentTutorialStep = -1;
 
 function initTutorial() {
@@ -3558,6 +3575,15 @@ function initTutorial() {
 function startTutorial() {
     currentTutorialStep = -1;
     document.getElementById("tutorialOverlay").classList.remove("hidden");
+    
+    if (document.getElementById("tabSellHelper").classList.contains("active")) {
+        activeTutorialSteps = tutorialStepsSell;
+    } else if (document.getElementById("tabTaxStatement").classList.contains("active")) {
+        activeTutorialSteps = tutorialStepsTax;
+    } else {
+        activeTutorialSteps = tutorialStepsA3;
+    }
+    
     nextTutorialStep();
 }
 
@@ -3570,7 +3596,7 @@ function endTutorial() {
 
 function nextTutorialStep() {
     currentTutorialStep++;
-    if (currentTutorialStep >= tutorialSteps.length) { endTutorial(); return; }
+    if (currentTutorialStep >= activeTutorialSteps.length) { endTutorial(); return; }
     showTutorialStep(currentTutorialStep);
 }
 
@@ -3581,14 +3607,14 @@ function prevTutorialStep() {
 }
 
 function showTutorialStep(index) {
-    const step = tutorialSteps[index];
+    const step = activeTutorialSteps[index];
     const target = document.querySelector(step.selector);
 
-    document.getElementById("tutorialStepCounter").textContent = `Step ${index + 1} of ${tutorialSteps.length}`;
+    document.getElementById("tutorialStepCounter").textContent = `Step ${index + 1} of ${activeTutorialSteps.length}`;
     document.getElementById("tutorialTitle").textContent = step.title;
     document.getElementById("tutorialDesc").textContent = step.desc;
     document.getElementById("tutorialPrevBtn").disabled = index === 0;
-    document.getElementById("tutorialNextBtn").textContent = index === tutorialSteps.length - 1 ? "Finish ✓" : "Next →";
+    document.getElementById("tutorialNextBtn").textContent = index === activeTutorialSteps.length - 1 ? "Finish ✓" : "Next →";
 
     // Remove old spotlight and dimmed class
     document.querySelectorAll(".tutorial-spotlight").forEach(el => el.remove());
