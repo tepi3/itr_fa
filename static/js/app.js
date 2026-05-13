@@ -3661,29 +3661,32 @@ function updateDashboard() {
     // Restore structure if skeletons are present
     if (dash.querySelector(".skeleton-stat-grid")) {
         dash.innerHTML = `
-            <div class="dash-stat"><span class="dash-icon">📦</span><span class="dash-value" id="dashStockCount">0</span><span class="dash-label">Stocks</span></div>
-            <div class="dash-stat"><span class="dash-icon">📋</span><span class="dash-value" id="dashLotCount">0</span><span class="dash-label">Lots</span></div>
+            <div class="dash-stat">
+                <span class="dash-icon">📦</span>
+                <span class="dash-value"><span id="dashStockCount">0</span><span style="font-size: 0.6em; color: var(--text-muted); margin: 0 4px;">/</span><span id="dashLotCount">0</span></span>
+                <span class="dash-label">Stocks / Lots</span>
+            </div>
             <div class="dash-stat">
                 <span class="dash-icon">💰</span>
                 <span class="dash-value" id="dashTotalAssets">—</span>
-                <span class="dash-label">Total Assets (₹)</span>
-                <div id="dashTotalAssetsUSD" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;">$—</div>
+                <div id="dashTotalAssetsUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
+                <span class="dash-label">Total Assets</span>
             </div>
             <div class="dash-stat">
                 <span class="dash-icon">📈</span>
                 <span class="dash-value" id="dashUnrealizedGain">—</span>
-                <span class="dash-label">Unrealized G/L (₹)</span>
-                <div id="dashUnrealizedUSD" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;">$—</div>
+                <div id="dashUnrealizedUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px;">$—</div>
                 <div id="dashUnrealizedBreakdown" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; font-weight: 500;">
                     <span id="dashUnrealizedLTCG" title="Long Term Unrealized Gain/Loss">LT: —</span>
                     <span id="dashUnrealizedSTCG" title="Short Term Unrealized Gain/Loss">ST: —</span>
                 </div>
+                <span class="dash-label">Unrealized G/L</span>
             </div>
             <div class="dash-stat">
                 <span class="dash-icon">💵</span>
                 <span class="dash-value" id="dashTotalDividends">—</span>
-                <span class="dash-label">Total Dividends (₹)</span>
-                <div id="dashTotalDividendsUSD" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;">$—</div>
+                <div id="dashTotalDividendsUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
+                <span class="dash-label">Total Dividends</span>
             </div>
         `;
     }
@@ -3696,34 +3699,34 @@ function updateDashboard() {
     if (assetsContainer && !document.getElementById("dashTotalAssetsUSD")) {
         const usdEl = document.createElement("div");
         usdEl.id = "dashTotalAssetsUSD";
-        usdEl.style.cssText = "font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;";
+        usdEl.style.cssText = "font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);";
         usdEl.textContent = "$—";
-        assetsContainer.appendChild(usdEl);
+        assetsContainer.insertBefore(usdEl, assetsContainer.querySelector(".dash-label"));
     }
     
     const divContainer = document.getElementById("dashTotalDividends")?.parentNode;
     if (divContainer && !document.getElementById("dashTotalDividendsUSD")) {
         const usdEl = document.createElement("div");
         usdEl.id = "dashTotalDividendsUSD";
-        usdEl.style.cssText = "font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;";
+        usdEl.style.cssText = "font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);";
         usdEl.textContent = "$—";
-        divContainer.appendChild(usdEl);
+        divContainer.insertBefore(usdEl, divContainer.querySelector(".dash-label"));
     }
 
     const gainContainer = document.getElementById("dashUnrealizedGain")?.parentNode;
     if (gainContainer && !document.getElementById("dashUnrealizedUSD")) {
         const usdEl = document.createElement("div");
         usdEl.id = "dashUnrealizedUSD";
-        usdEl.style.cssText = "font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;";
+        usdEl.style.cssText = "font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px;";
         usdEl.textContent = "$—";
-        gainContainer.insertBefore(usdEl, document.getElementById("dashUnrealizedBreakdown"));
+        gainContainer.insertBefore(usdEl, document.getElementById("dashUnrealizedBreakdown") || gainContainer.querySelector(".dash-label"));
     }
     if (gainContainer && !document.getElementById("dashUnrealizedBreakdown")) {
         const breakdownEl = document.createElement("div");
         breakdownEl.id = "dashUnrealizedBreakdown";
         breakdownEl.style.cssText = "font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; font-weight: 500;";
         breakdownEl.innerHTML = '<span id="dashUnrealizedLTCG" title="Long Term Unrealized Gain/Loss">LT: \u2014</span><span id="dashUnrealizedSTCG" title="Short Term Unrealized Gain/Loss">ST: \u2014</span>';
-        gainContainer.appendChild(breakdownEl);
+        gainContainer.insertBefore(breakdownEl, gainContainer.querySelector(".dash-label"));
     }
 
     // Assets + Dividends only available after calculation
