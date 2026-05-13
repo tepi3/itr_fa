@@ -3663,17 +3663,61 @@ function updateDashboard() {
         dash.innerHTML = `
             <div class="dash-stat"><span class="dash-icon">📦</span><span class="dash-value" id="dashStockCount">0</span><span class="dash-label">Stocks</span></div>
             <div class="dash-stat"><span class="dash-icon">📋</span><span class="dash-value" id="dashLotCount">0</span><span class="dash-label">Lots</span></div>
-            <div class="dash-stat"><span class="dash-icon">💰</span><span class="dash-value" id="dashTotalAssets">—</span><span class="dash-label">Total Assets (₹)</span></div>
-            <div class="dash-stat"><span class="dash-icon">📈</span><span class="dash-value" id="dashUnrealizedGain">—</span><span class="dash-label">Unrealized G/L (₹)</span></div>
-            <div class="dash-stat"><span class="dash-icon">💵</span><span class="dash-value" id="dashTotalDividends">—</span><span class="dash-label">Total Dividends (₹)</span></div>
+            <div class="dash-stat">
+                <span class="dash-icon">💰</span>
+                <span class="dash-value" id="dashTotalAssets">—</span>
+                <span class="dash-label">Total Assets (₹)</span>
+                <div id="dashTotalAssetsUSD" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;">$—</div>
+            </div>
+            <div class="dash-stat">
+                <span class="dash-icon">📈</span>
+                <span class="dash-value" id="dashUnrealizedGain">—</span>
+                <span class="dash-label">Unrealized G/L (₹)</span>
+                <div id="dashUnrealizedUSD" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;">$—</div>
+                <div id="dashUnrealizedBreakdown" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; font-weight: 500;">
+                    <span id="dashUnrealizedLTCG" title="Long Term Unrealized Gain/Loss">LT: —</span>
+                    <span id="dashUnrealizedSTCG" title="Short Term Unrealized Gain/Loss">ST: —</span>
+                </div>
+            </div>
+            <div class="dash-stat">
+                <span class="dash-icon">💵</span>
+                <span class="dash-value" id="dashTotalDividends">—</span>
+                <span class="dash-label">Total Dividends (₹)</span>
+                <div id="dashTotalDividendsUSD" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;">$—</div>
+            </div>
         `;
     }
 
     document.getElementById("dashStockCount").textContent = stocks.length;
     document.getElementById("dashLotCount").textContent = stocks.reduce((sum, s) => sum + (s.lots ? s.lots.length : 0), 0);
 
-    // Dynamic injection of LT/ST breakdown if missing
+    // Dynamic injection of missing elements
+    const assetsContainer = document.getElementById("dashTotalAssets")?.parentNode;
+    if (assetsContainer && !document.getElementById("dashTotalAssetsUSD")) {
+        const usdEl = document.createElement("div");
+        usdEl.id = "dashTotalAssetsUSD";
+        usdEl.style.cssText = "font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;";
+        usdEl.textContent = "$—";
+        assetsContainer.appendChild(usdEl);
+    }
+    
+    const divContainer = document.getElementById("dashTotalDividends")?.parentNode;
+    if (divContainer && !document.getElementById("dashTotalDividendsUSD")) {
+        const usdEl = document.createElement("div");
+        usdEl.id = "dashTotalDividendsUSD";
+        usdEl.style.cssText = "font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;";
+        usdEl.textContent = "$—";
+        divContainer.appendChild(usdEl);
+    }
+
     const gainContainer = document.getElementById("dashUnrealizedGain")?.parentNode;
+    if (gainContainer && !document.getElementById("dashUnrealizedUSD")) {
+        const usdEl = document.createElement("div");
+        usdEl.id = "dashUnrealizedUSD";
+        usdEl.style.cssText = "font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 500;";
+        usdEl.textContent = "$—";
+        gainContainer.insertBefore(usdEl, document.getElementById("dashUnrealizedBreakdown"));
+    }
     if (gainContainer && !document.getElementById("dashUnrealizedBreakdown")) {
         const breakdownEl = document.createElement("div");
         breakdownEl.id = "dashUnrealizedBreakdown";
@@ -3687,11 +3731,15 @@ function updateDashboard() {
         const totalAssets = state.calculatedRows.reduce((s, r) => s + (r.closing_balance || 0), 0);
         const totalDivs = state.calculatedRows.reduce((s, r) => s + (r.total_dividends || 0), 0);
         
-        // Calculate Unrealized Gain/Loss
-        // Unrealized G/L = Closing Balance - (Initial Cost of REMAINING shares)
+        // Calculate Unrealized Gain/Loss and USD variants
         let totalUnrealizedGain = 0;
         let ltcgUnrealized = 0;
         let stcgUnrealized = 0;
+        
+        let totalAssetsUSD = 0;
+        let totalUnrealizedGainUSD = 0;
+        let totalDivsUSD = 0;
+        
         const refDate = new Date(state.portfolio.calendar_year, 11, 31); // Dec 31 of calendar year
 
         state.calculatedRows.forEach(row => {
@@ -3704,6 +3752,14 @@ function updateDashboard() {
                 const costBasisRemaining = buyPrice * remainingQty * initialRate;
                 const gain = closing - costBasisRemaining;
                 totalUnrealizedGain += gain;
+                
+                // Calculate USD variants
+                const closePriceUSD = details.closing.components?.close_price_dec31 || 0;
+                const closingUSD = closePriceUSD * remainingQty;
+                totalAssetsUSD += closingUSD;
+                
+                const costBasisRemainingUSD = buyPrice * remainingQty;
+                totalUnrealizedGainUSD += (closingUSD - costBasisRemainingUSD);
 
                 if (row.acquire_date_raw) {
                     const acquireDate = new Date(row.acquire_date_raw);
@@ -3715,14 +3771,33 @@ function updateDashboard() {
                     }
                 }
             }
+            
+            if (details && details.dividends && details.dividends.dividend_entries) {
+                details.dividends.dividend_entries.forEach(entry => {
+                    const foreignAmount = entry.amount_foreign || 0;
+                    const qty = entry.qty || 0;
+                    totalDivsUSD += (foreignAmount * qty);
+                });
+            }
         });
 
         document.getElementById("dashTotalAssets").textContent = "\u20b9" + Math.round(totalAssets).toLocaleString("en-IN");
+        const assetsUSDEl = document.getElementById("dashTotalAssetsUSD");
+        if (assetsUSDEl) assetsUSDEl.textContent = "$" + Math.round(totalAssetsUSD).toLocaleString("en-US");
+        
         document.getElementById("dashTotalDividends").textContent = "\u20b9" + Math.round(totalDivs).toLocaleString("en-IN");
+        const divsUSDEl = document.getElementById("dashTotalDividendsUSD");
+        if (divsUSDEl) divsUSDEl.textContent = "$" + Math.round(totalDivsUSD).toLocaleString("en-US");
         
         const gainEl = document.getElementById("dashUnrealizedGain");
         gainEl.textContent = (totalUnrealizedGain >= 0 ? "+" : "") + "\u20b9" + Math.round(totalUnrealizedGain).toLocaleString("en-IN");
         gainEl.style.color = totalUnrealizedGain >= 0 ? "var(--success)" : "var(--danger)";
+        
+        const gainUSDEl = document.getElementById("dashUnrealizedUSD");
+        if (gainUSDEl) {
+            gainUSDEl.textContent = (totalUnrealizedGainUSD >= 0 ? "+" : "") + "$" + Math.round(totalUnrealizedGainUSD).toLocaleString("en-US");
+            gainUSDEl.style.color = totalUnrealizedGainUSD >= 0 ? "var(--success)" : "var(--danger)";
+        }
 
         const ltcgEl = document.getElementById("dashUnrealizedLTCG");
         const stcgEl = document.getElementById("dashUnrealizedSTCG");
@@ -3735,9 +3810,22 @@ function updateDashboard() {
         }
     } else {
         document.getElementById("dashTotalAssets").textContent = "\u2014";
+        const assetsUSDEl = document.getElementById("dashTotalAssetsUSD");
+        if (assetsUSDEl) assetsUSDEl.textContent = "$—";
+        
         document.getElementById("dashTotalDividends").textContent = "\u2014";
+        const divsUSDEl = document.getElementById("dashTotalDividendsUSD");
+        if (divsUSDEl) divsUSDEl.textContent = "$—";
+        
         document.getElementById("dashUnrealizedGain").textContent = "\u2014";
         document.getElementById("dashUnrealizedGain").style.color = "";
+        
+        const gainUSDEl = document.getElementById("dashUnrealizedUSD");
+        if (gainUSDEl) {
+            gainUSDEl.textContent = "$—";
+            gainUSDEl.style.color = "";
+        }
+        
         const ltcgEl = document.getElementById("dashUnrealizedLTCG");
         const stcgEl = document.getElementById("dashUnrealizedSTCG");
         if (ltcgEl && stcgEl) {
