@@ -3675,7 +3675,7 @@ function updateDashboard() {
             <div class="dash-stat">
                 <span class="dash-icon">📈</span>
                 <span class="dash-value" id="dashUnrealizedGain">—</span>
-                <div id="dashUnrealizedUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px;">$—</div>
+                <div id="dashUnrealizedUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
                 <div id="dashUnrealizedBreakdown" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; font-weight: 500;">
                     <span id="dashUnrealizedLTCG" title="Long Term Unrealized Gain/Loss">LT: —</span>
                     <span id="dashUnrealizedSTCG" title="Short Term Unrealized Gain/Loss">ST: —</span>
@@ -3717,7 +3717,7 @@ function updateDashboard() {
     if (gainContainer && !document.getElementById("dashUnrealizedUSD")) {
         const usdEl = document.createElement("div");
         usdEl.id = "dashUnrealizedUSD";
-        usdEl.style.cssText = "font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px;";
+        usdEl.style.cssText = "font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);";
         usdEl.textContent = "$—";
         gainContainer.insertBefore(usdEl, document.getElementById("dashUnrealizedBreakdown") || gainContainer.querySelector(".dash-label"));
     }
@@ -3826,7 +3826,7 @@ function updateDashboard() {
         const gainUSDEl = document.getElementById("dashUnrealizedUSD");
         if (gainUSDEl) {
             gainUSDEl.textContent = "$—";
-            gainUSDEl.style.color = "";
+            gainUSDEl.style.color = "var(--accent)";
         }
         
         const ltcgEl = document.getElementById("dashUnrealizedLTCG");
