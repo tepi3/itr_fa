@@ -2,11 +2,11 @@ name: Build and Release Portable Binaries
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "dev" ]
     tags:
       - 'v*'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
 
 jobs:
   build:
