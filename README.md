@@ -100,10 +100,13 @@ python3 app.py
 
 ## Files
 
-```
+```text
 itr_fa/
+├── .github/
+│   └── workflows/
+│       └── build.yml         # GitHub Actions CI/CD for portable binaries
 ├── app.py                    # Flask server & API routes (Port 5001)
-├── config.py                 # Configuration constants (USD, SBI URLs)
+├── config.py                 # Configuration constants & data path resolution
 ├── requirements.txt          # Python dependencies (Flask, yfinance, openpyxl)
 ├── core/
 │   ├── sbi_rates.py          # SBI TT rate fetch, cache, and locking
@@ -113,9 +116,6 @@ itr_fa/
 │   ├── etrade_parser.py      # E-Trade report parser (CSV/XLSX)
 │   ├── ibkr_parser.py        # IBKR report parser (CSV)
 │   └── sell_details_parser.py # G&L Expanded sell details parser (CSV/XLSX)
-├── data/                     # Runtime data (auto-created)
-│   ├── sbi_rates_cache.json  # Cached SBI rates & locked years
-│   └── portfolios/           # Saved user portfolios (JSON)
 ├── static/
 │   ├── css/style.css         # Modern dark-mode UI
 │   └── js/app.js             # Frontend logic & state management
@@ -125,7 +125,7 @@ itr_fa/
 
 ## Notes
 
-- **Local Only**: All data is stored locally on your machine in the `data/` folder. No cloud hosting or external accounts are used.
+- **Local Only**: All data is stored locally on your machine in the `~/.fa_desk_data` folder. No cloud hosting or external accounts are used.
 - **macOS Compatibility**: Port moved to 5001 to resolve 403 Forbidden errors caused by AirPlay Receiver on port 5000.
 - **Using Upload Etrade**: Current Holding will not contain sold stocks.
 - **License**: This tool is open-source and free for personal, non-commercial use.
