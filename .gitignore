@@ -20,3 +20,8 @@ test_export.xlsx
 # IDEs
 .vscode/
 .idea/
+
+# PyInstaller artifacts
+build/
+dist/
+*.spec

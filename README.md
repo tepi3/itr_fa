@@ -4,12 +4,23 @@ A local web tool to automate filling Section A3 (Foreign Equity & Debt Interest)
 
 ## Quick Start
 
-### One-liner to Clone, Install & Run
+### Option 1: Download the Portable App (Easiest)
+You can run FA Desk without installing Python by downloading the standalone executable:
+1. Go to the **Actions** tab on this GitHub repository.
+2. Click on the latest workflow run (e.g., "Build Portable Binaries").
+3. Scroll down to the **Artifacts** section and download `fa_desk-macOS` or `fa_desk-Windows`.
+4. Extract the zip file and run the `fa_desk` executable. The app will open in your browser automatically.
+   - *Note for Mac users:* You may need to right-click the file and select "Open" the first time to bypass Apple's unidentified developer warning.
+   - *Data storage:* Your saved portfolios will be safely stored in a `.fa_desk_data` folder in your user's home directory.
+
+### Option 2: Run via Python (For Developers)
+
+#### One-liner to Clone, Install & Run
 ```bash
 git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r requirements.txt && python3 app.py
 ```
 
-### Manual Setup
+#### Manual Setup
 ```bash
 # Clone the repository
 git clone https://github.com/tepi3/itr_fa.git

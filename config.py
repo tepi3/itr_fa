@@ -7,13 +7,17 @@ Licensed for personal, non-commercial use only.
 
 import os
 from pathlib import Path
+import sys
 
 # Base directory
-BASE_DIR = Path(__file__).parent
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys.executable).parent
+else:
+    BASE_DIR = Path(__file__).parent
 
-# Data directory for caches and saved portfolios
-DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
+# Data directory for caches and saved portfolios (store in user home for persistence)
+DATA_DIR = Path.home() / ".fa_desk_data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 PORTFOLIOS_DIR = DATA_DIR / "portfolios"
 PORTFOLIOS_DIR.mkdir(exist_ok=True)
@@ -44,4 +48,4 @@ COUNTRY_CODES = {
 # Default Flask settings
 FLASK_HOST = "127.0.0.1"
 FLASK_PORT = 5001
-FLASK_DEBUG = True
+FLASK_DEBUG = not getattr(sys, 'frozen', False)

@@ -19,11 +19,20 @@ from routes.market import market_bp
 from routes.calculator import calculator_bp
 from routes.parsers import parsers_bp
 
+import sys
+import os
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+# Handle PyInstaller paths for templates and static files
+if getattr(sys, 'frozen', False):
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    static_folder = os.path.join(sys._MEIPASS, 'static')
+    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+else:
+    app = Flask(__name__)
 
 # Register Blueprints
 app.register_blueprint(users_bp)
