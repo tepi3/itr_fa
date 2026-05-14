@@ -39,21 +39,20 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --name ${{ matrix.name }} --onefile --add-data "templates${{ matrix.sep }}templates" --add-data "static${{ matrix.sep }}static" app.py
+        # Added --windowed flag to generate a .app bundle on macOS
+        pyinstaller --name ${{ matrix.name }} --onefile --windowed --add-data "templates${{ matrix.sep }}templates" --add-data "static${{ matrix.sep }}static" app.py
 
-    # NEW STEP: Zip the Mac binary specifically to keep permissions alive
-    - name: Package macOS Binary
+    - name: Package macOS App Bundle
       if: matrix.os == 'macos-latest'
       run: |
         cd dist
-        chmod +x ${{ matrix.name }}
-        zip --junk-paths ${{ matrix.name }}.zip ${{ matrix.name }}
+        # Use ditto to safely zip the entire .app bundle directory
+        /usr/bin/ditto -c -k --keepParent "${{ matrix.name }}.app" "${{ matrix.name }}.zip"
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
-        # Updated path to include the .zip for Mac
         path: |
           dist/${{ matrix.name }}
           dist/${{ matrix.name }}.zip
