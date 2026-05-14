@@ -15,6 +15,31 @@ You can run FA Desk without installing Python by downloading the standalone exec
 
 ### Option 2: Run via Python (For Developers)
 
+## Installation
+
+###  macOS Installation
+
+Because this app is currently unsigned, macOS will block it upon first launch. Please follow one of these methods to run the app:
+
+#### Method 1: The "Open Anyway" (Recommended)
+1. Double-click the `fa_desk_macOS` app. When the warning appears, click **Done**.
+2. Open **System Settings > Privacy & Security**.
+3. Scroll down to the **Security** section.
+4. Look for the message: *"fa_desk_macOS" was blocked from use because it is not from an identified developer.*
+5. Click **Open Anyway**, enter your password, and click **Open** on the final dialog.
+
+#### Method 2: The Terminal Bypass
+1. Open **Terminal**.
+2. Run the following command:
+   ```bash
+   xattr -cr /path/to/fa_desk_macOS.app
+   ```
+   *(Tip: You can drag the app icon directly into the terminal window to auto-fill the path).*
+
+The app will now open normally with a double-click.
+
+### Option 2: Run via Python (For Developers)
+
 #### One-liner to Clone, Install & Run
 ```bash
 git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r requirements.txt && python3 app.py
