@@ -108,6 +108,12 @@ itr_fa/
 ├── app.py                    # Flask server & API routes (Port 5001)
 ├── config.py                 # Configuration constants & data path resolution
 ├── requirements.txt          # Python dependencies (Flask, yfinance, openpyxl)
+├── routes/                   # Flask Blueprints (API endpoints)
+│   ├── calculator.py
+│   ├── market.py
+│   ├── parsers.py
+│   ├── portfolio.py
+│   └── users.py
 ├── core/
 │   ├── sbi_rates.py          # SBI TT rate fetch, cache, and locking
 │   ├── stock_data.py         # Yahoo Finance wrapper
