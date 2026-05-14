@@ -64,4 +64,7 @@ jobs:
           files: |
             dist/fa_desk_macOS
             dist/fa_desk_Windows.exe
+            dist/fa_desk_Linux
+          generate_release_notes: true
+_Windows.exe
           generate_release_notes: true
