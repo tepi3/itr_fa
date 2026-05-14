@@ -49,6 +49,14 @@ def index():
     """Serve the main UI page."""
     return render_template("index.html")
 
+@app.route("/api/shutdown", methods=["POST"])
+def shutdown():
+    """Shut down the Flask server."""
+    logger.info("Shutdown requested. Exiting application.")
+    # Run shutdown in a background thread to allow response to return
+    Timer(0.5, lambda: os._exit(0)).start()
+    return {"success": True, "message": "Shutting down..."}
+
 def open_browser():
     """Open the browser after a short delay."""
     webbrowser.open(f"http://{FLASK_HOST}:{FLASK_PORT}")

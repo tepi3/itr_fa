@@ -244,6 +244,21 @@ function bindEvents() {
     document.getElementById("undoBtn").addEventListener("click", undo);
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
+    document.getElementById("quitAppBtn").addEventListener("click", async () => {
+        if (!confirm("Are you sure you want to quit the application? Any unsaved changes will be lost.\n\nThis will shut down the local background server.")) return;
+        try {
+            await fetch("/api/shutdown", { method: "POST" });
+        } catch (e) {
+            // Expected to fail sometimes as the server instantly dies
+        }
+        document.body.innerHTML = `
+            <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background-color:var(--bg-main);color:var(--text-main);font-family:'Inter', sans-serif;">
+                <h1 style="font-size:2rem;margin-bottom:16px;">🛑 FA Desk Shut Down</h1>
+                <p style="font-size:1.1rem;color:var(--text-muted);">The local server has been terminated successfully.</p>
+                <p style="font-size:1.1rem;color:var(--text-muted);margin-top:8px;">You can now safely close this browser tab.</p>
+            </div>`;
+        try { window.close(); } catch(e) {}
+    });
     document.getElementById("generateFYBtn").addEventListener("click", fetchConsolidatedTaxSummary);
 
     setupInteractions();
