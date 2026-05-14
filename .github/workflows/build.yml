@@ -41,11 +41,23 @@ jobs:
       run: |
         pyinstaller --name ${{ matrix.name }} --onefile --add-data "templates${{ matrix.sep }}templates" --add-data "static${{ matrix.sep }}static" app.py
 
+    # NEW STEP: Zip the Mac binary specifically to keep permissions alive
+    - name: Package macOS Binary
+      if: matrix.os == 'macos-latest'
+      run: |
+        cd dist
+        chmod +x ${{ matrix.name }}
+        zip --junk-paths ${{ matrix.name }}.zip ${{ matrix.name }}
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
-        path: dist/${{ matrix.name }}*
+        # Updated path to include the .zip for Mac
+        path: |
+          dist/${{ matrix.name }}
+          dist/${{ matrix.name }}.zip
+          dist/${{ matrix.name }}.exe
 
   release:
     needs: build
@@ -66,7 +78,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/fa_desk_macOS
+            dist/fa_desk_macOS.zip
             dist/fa_desk_Windows.exe
             dist/fa_desk_Linux
           generate_release_notes: true
