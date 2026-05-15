@@ -458,6 +458,48 @@ label {
     width: 95vw;
 }
 
+/* Shutdown Warning Banner */
+#shutdownWarning {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--danger);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+    font-weight: 600;
+    font-size: 0.95rem;
+    animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideDown {
+    from { top: -60px; opacity: 0; }
+    to { top: 20px; opacity: 1; }
+}
+
+#shutdownWarning .btn-stay {
+    background: white;
+    color: var(--danger);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+#shutdownWarning .btn-stay:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
 /* Badge variants */
 .badge-success {
     background: var(--success-light);

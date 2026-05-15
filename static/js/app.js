@@ -190,13 +190,63 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(autoSaveDraft, 30000);
 });
 
+let lastSuccessfulHeartbeat = Date.now();
+const SHUTDOWN_TIMEOUT_MS = 300000; // 5 minutes
+
 async function sendHeartbeat() {
     try {
-        await fetch("/api/heartbeat", { method: "POST" });
+        const resp = await fetch("/api/heartbeat", { method: "POST" });
+        if (resp.ok) {
+            lastSuccessfulHeartbeat = Date.now();
+            hideShutdownWarning();
+        }
     } catch (e) {
         console.warn("Heartbeat failed. Server might be down.");
     }
+    
+    checkInactivity();
 }
+
+function checkInactivity() {
+    const inactiveMs = Date.now() - lastSuccessfulHeartbeat;
+    const remainingMs = SHUTDOWN_TIMEOUT_MS - inactiveMs;
+    
+    // Show warning if less than 60 seconds remaining OR if server is unreachable
+    if (remainingMs < 60000) {
+        const secondsLeft = Math.max(0, Math.floor(remainingMs / 1000));
+        showShutdownWarning(secondsLeft);
+    } else {
+        hideShutdownWarning();
+    }
+}
+
+function showShutdownWarning(seconds) {
+    let warningEl = document.getElementById("shutdownWarning");
+    if (!warningEl) {
+        warningEl = document.createElement("div");
+        warningEl.id = "shutdownWarning";
+        document.body.appendChild(warningEl);
+    }
+    
+    warningEl.innerHTML = `
+        <span>🛑 Server auto-shutdown in <strong>${seconds}s</strong> due to inactivity</span>
+        <button class="btn-stay" onclick="stayAlive()">Stay Connected</button>
+    `;
+    warningEl.classList.remove("hidden");
+}
+
+function hideShutdownWarning() {
+    const warningEl = document.getElementById("shutdownWarning");
+    if (warningEl) warningEl.remove();
+}
+
+function stayAlive() {
+    sendHeartbeat();
+    showToast("Connection refreshed", "success", 2000);
+}
+
+// Global scope for onclick
+window.stayAlive = stayAlive;
 
 function initYearSelectors() {
     const mainSelect = document.getElementById("yearSelect");
