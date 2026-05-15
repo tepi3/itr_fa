@@ -83,6 +83,9 @@ python3 app.py
 
 ### Tax Computation
 - **Schedule FA A3 Calculator** — Computes all 12 portal columns: Initial Value, Peak Value, Closing Balance, Dividends, and Sale Proceeds — all converted to ₹.
+- **Validate A3 (Audit Trail)** — Provides a complete mathematical breakdown (`Quantity × Price × Rate`) for every calculated cell in Section A3.
+  - **Click to Validate**: Click any calculated value in the A3 report table to instantly jump to its detailed breakdown in the validation section.
+  - **Override Tracking**: Clearly flags cells where a manual override has been applied, while still showing the original calculated math.
 - **ITR Tax Year Summary** — Capital gains (LTCG/STCG) and dividends mapped to Indian tax years with advance-tax quarterly buckets.
 - **ITR §70/74 Set-Off** — Automatic capital gains netting: STCL vs STCG, residual STCL vs LTCG, LTCL vs LTCG, with carry-forward tracking.
 - **Consolidated Tax Statement** — Generate a unified tax view for any complete Tax Year (Apr–Mar) by combining two calendar year reports. If a year's report is missing, that portion is treated as zero.

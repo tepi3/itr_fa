@@ -165,6 +165,13 @@ function clearCalculatedSections() {
     // Hide and clear SBI rates used section
     document.getElementById("sbiRatesSection").classList.add("hidden");
     document.getElementById("sbiRatesTableBody").innerHTML = "";
+    
+    // Hide and clear Validate A3 section
+    const valA3Section = document.getElementById("validateA3Section");
+    if (valA3Section) {
+        valA3Section.classList.add("hidden");
+        document.getElementById("validateA3TableBody").innerHTML = "";
+    }
     // Hide and clear tax year summary section
     document.getElementById("taxYearSection").classList.add("hidden");
     document.getElementById("taxYearBlocks").innerHTML = "";
@@ -1724,12 +1731,19 @@ function renderResultsTable(rows) {
             const val = field.val != null ? Math.round(field.val) : 0;
             const textVal = val > 0 ? formatINR(val) : "0";
             
-            td.innerHTML = `<span>${textVal}</span><span class="edit-icon">✏️</span>`;
+            td.innerHTML = `<span class="val-link" title="Click to view calculation breakdown">${textVal}</span><span class="edit-icon" title="Click to manually override value">✏️</span>`;
             
             td.dataset.lotId = row.lot_id;
             td.dataset.field = field.key;
             td.dataset.originalValue = field.val;
 
+            // Click on the value span → jump to validation
+            td.querySelector(".val-link").addEventListener("click", (e) => {
+                e.stopPropagation();
+                jumpToValidation(row.lot_id, field.key);
+            });
+
+            // Click on the cell (anywhere else) → edit
             td.addEventListener("click", () => enableCellEdit(td, row, field.key));
             tr.appendChild(td);
         });
@@ -1738,6 +1752,110 @@ function renderResultsTable(rows) {
     });
 
     flushSubtotal(); // Flush last stock
+
+    document.getElementById("resultsSection").classList.remove("hidden");
+    document.getElementById("resultsContent").classList.remove("collapsed");
+
+    // Also render validation table
+    renderValidationTable(rows);
+}
+
+// ===== Render Validation Table =====
+function renderValidationTable(rows) {
+    const tbody = document.getElementById("validateA3TableBody");
+    const section = document.getElementById("validateA3Section");
+    if (!tbody || !section) return;
+
+    tbody.innerHTML = "";
+    section.classList.remove("hidden");
+
+    rows.forEach(row => {
+        const details = row.calculation_details || {};
+        const lotId = row.lot_id;
+        const ticker = row.ticker;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${row.sl_no}</td><td><strong>${ticker}</strong></td>`;
+
+        const cols = [
+            { key: "initial_value", detail: details.initial },
+            { key: "peak_value", detail: details.peak },
+            { key: "closing_balance", detail: details.closing },
+            { key: "total_dividends", detail: details.dividends },
+            { key: "sale_proceeds", detail: details.sales }
+        ];
+
+        cols.forEach(col => {
+            const td = document.createElement("td");
+            td.id = `val-${lotId}-${col.key}`;
+            td.className = "val-cell";
+            
+            let breakdown = "—";
+            let finalVal = row[col.key];
+
+            if (col.key === "initial_value" && col.detail?.components) {
+                const c = col.detail.components;
+                breakdown = `<div class="b-math">(${c.quantity}×$${c.buy_price.toFixed(2)})×₹${c.ttbr.toFixed(4)}</div>`;
+            } else if (col.key === "peak_value" && col.detail?.components) {
+                const c = col.detail.components;
+                breakdown = `<div class="b-math" style="font-size:0.65rem;opacity:0.7;">Peak: ${col.detail.peak_date}</div>
+                             <div class="b-math">(${c.qty_on_peak_date}×$${c.peak_price.toFixed(2)})×₹${c.ttbr.toFixed(4)}</div>`;
+            } else if (col.key === "closing_balance" && col.detail?.components) {
+                const c = col.detail.components;
+                breakdown = `<div class="b-math">(${c.remaining_qty}×$${c.close_price_dec31.toFixed(2)})×₹${c.ttbr.toFixed(4)}</div>`;
+            } else if (col.key === "total_dividends" && col.detail?.dividend_entries?.length > 0) {
+                breakdown = col.detail.dividend_entries.map(de => 
+                    `<div class="b-item">${de.ex_date}: (${de.qty}×$${de.amount_foreign.toFixed(4)})×₹${de.ttbr.toFixed(4)}</div>`
+                ).join("");
+            } else if (col.key === "sale_proceeds" && col.detail?.sale_entries?.length > 0) {
+                breakdown = col.detail.sale_entries.map(se => 
+                    `<div class="b-item">${se.sell_date}: (${se.quantity}×$${se.sell_price.toFixed(2)})×₹${se.ttbr.toFixed(4)}</div>`
+                ).join("");
+            }
+
+            const isOverridden = row.is_overridden && row.is_overridden[col.key];
+            let displayVal = isOverridden 
+                ? (state.portfolio.overrides[lotId] || {})[col.key] 
+                : row[col.key];
+
+            td.innerHTML = `<div class="b-container">${breakdown}</div><div class="b-total">₹${formatINR(displayVal)}</div>`;
+            
+            if (isOverridden) {
+                const badge = document.createElement("div");
+                badge.className = "override-badge";
+                badge.textContent = "Manual Override";
+                td.appendChild(badge);
+            }
+
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+    });
+}
+
+function jumpToValidation(lotId, fieldKey) {
+    const section = document.getElementById("validateA3Section");
+    if (section.classList.contains("hidden")) return;
+    
+    // Ensure content is expanded
+    const content = document.getElementById("validateA3Content");
+    if (content.classList.contains("collapsed")) {
+        toggleSection('validateA3Content');
+    }
+
+    const targetId = `val-${lotId}-${fieldKey}`;
+    const el = document.getElementById(targetId);
+    if (el) {
+        // Highlight cell
+        el.classList.add("highlight-pulse");
+        setTimeout(() => el.classList.remove("highlight-pulse"), 2000);
+        
+        const header = document.getElementById("appHeader");
+        const headerHeight = header ? header.offsetHeight : 0;
+        const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
+        window.scrollTo({ top, behavior: "smooth" });
+    }
 }
 
 function enableCellEdit(td, row, fieldKey) {
@@ -1779,7 +1897,35 @@ function enableCellEdit(td, row, fieldKey) {
             td.classList.remove("overridden");
         }
 
-        td.innerHTML = `${formatINR(row[fieldKey])}<span class="edit-icon">✏️</span>`;
+        const displayVal = formatINR(row[fieldKey]);
+        td.innerHTML = `<span class="val-link" title="Click to view calculation breakdown">${displayVal}</span><span class="edit-icon" title="Click to manually override value">✏️</span>`;
+        
+        // Re-bind jump listener
+        td.querySelector(".val-link").addEventListener("click", (e) => {
+            e.stopPropagation();
+            jumpToValidation(row.lot_id, fieldKey);
+        });
+
+        // Sync with Validate A3 table
+        const valCell = document.getElementById(`val-${row.lot_id}-${fieldKey}`);
+        if (valCell) {
+            const bTotal = valCell.querySelector(".b-total");
+            if (bTotal) {
+                bTotal.innerHTML = `₹${displayVal}`;
+                // Add override badge to validation if not present
+                if (row.is_overridden[fieldKey]) {
+                    if (!valCell.querySelector(".override-badge")) {
+                        const badge = document.createElement("div");
+                        badge.className = "override-badge";
+                        badge.textContent = "Manual Override";
+                        valCell.appendChild(badge);
+                    }
+                } else {
+                    const badge = valCell.querySelector(".override-badge");
+                    if (badge) badge.remove();
+                }
+            }
+        }
     };
 
     input.addEventListener("blur", save);
