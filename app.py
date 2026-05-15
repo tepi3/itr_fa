@@ -44,7 +44,7 @@ else:
     app = Flask(__name__)
 
 # Global state for heartbeat
-last_heartbeat = time.time()
+last_heartbeat = time.time() + 120 # 2 minute grace period for startup
 shutdown_flag = False
 
 @app.route("/api/heartbeat", methods=["POST"])
@@ -86,9 +86,9 @@ def monitor_heartbeat():
     global shutdown_flag
     while not shutdown_flag:
         time.sleep(10)
-        # If no heartbeat for 300 seconds (5 minutes), shutdown
-        if time.time() - last_heartbeat > 300:
-            logger.info("No heartbeat detected for 300s. Auto-shutting down.")
+        # If no heartbeat for 45 seconds, shutdown
+        if time.time() - last_heartbeat > 45:
+            logger.info("No heartbeat detected for 45s. Auto-shutting down.")
             os._exit(0)
 
 def run_tray_icon():
