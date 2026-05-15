@@ -3641,21 +3641,17 @@ async function renderAssetPieChart(rows) {
 
 // ===== Tutorial System =====
 const tutorialStepsA3 = [
-    { selector: "#uploadDocsBtn", title: "Upload Documents", desc: "Auto-import your portfolio by uploading exported CSV files from brokers like E-Trade or Interactive Brokers." },
-    { selector: "#openFileBtn", title: "Open File", desc: "Load a previously downloaded portfolio JSON file from your computer." },
-    { selector: "#importPrevBtn", title: "Import Previous Year", desc: "Carry forward your entire portfolio from the previous calendar year with a single click." },
+    { selector: "#portfolioMenu", title: "Portfolio Menu", desc: "This menu contains all file and data operations. Hover over it to access Upload, Load, Open, and Save As options." },
+    { selector: "#toolsMenu", title: "Tools Menu", desc: "Access market data tools here, including SBI TT Rates download and the Batch Dividend Fetcher." },
+    { selector: "#manageMenu", title: "Manage Menu", desc: "Year-level operations like importing from the previous year or clearing the current session's data." },
+    { selector: "#viewMenu", title: "View Menu", desc: "Customize your display by collapsing/expanding all stock cards, or view your session's Action History." },
+    { selector: "#saveBtn", title: "Quick Save", desc: "Save your current work to the server. The pulsing blue dot indicates unsaved changes." },
+    { selector: "#undoBtn", title: "Undo / Redo", desc: "Mistakes are easy to fix! Use ↩ to undo any action (or Ctrl+Z) and ↪ to redo. We track up to 50 actions." },
     { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., QCOM, NVDA, VWRA) and click Lookup to add it to your portfolio. Tickers for non-US exchanges are auto-resolved." },
     { selector: ".add-lot-btn", title: "Acquisition Lots", desc: "Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the 📈 Fetch button to auto-fill the closing price." },
     { selector: ".add-sell-btn", title: "Sell Transactions", desc: "Record any sell transactions against a specific lot. The tool uses FIFO matching and tracks partial sells." },
     { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Click to re-fetch dividend data from Yahoo Finance for the current calendar year. Dividends are also auto-fetched when adding a stock." },
-    { selector: "#fetchAllDividendsBtn", title: "Fetch All Dividends", desc: "Batch-fetch dividend data for all stocks at once. Useful when starting a new year or refreshing data." },
-    { selector: "#fetchRatesBtn", title: "SBI TT Rates", desc: "Downloads SBI TT Buying rates from the cloud. These rates are used to convert USD values to ₹ for ITR filing." },
-    { selector: "#viewRatesBtn", title: "Monthly Rates Manager", desc: "View, edit, and lock SBI TT rates per month. Locked years are preserved during rate refreshes." },
     { selector: "#calcFab", title: "Generate FA Report", desc: "Click the floating button to compute all 12 columns of Schedule FA Section A3, including initial value, peak value, closing balance, dividends, and sale proceeds — all in ₹ using SBI TT rates." },
-    { selector: "#undoBtn", title: "Undo / Redo", desc: "Made a mistake? Undo any portfolio change with ↩ Undo or Ctrl+Z. Redo with ↪ Redo or Ctrl+Shift+Z. Supports up to 50 levels." },
-    { selector: "#clearYearBtn", title: "Clear Year Data", desc: "Wipe all current data for the selected calendar year. This cannot be undone." },
-    { selector: "#saveBtn", title: "Save & Load (Server)", desc: "Save your portfolio to the server. The pulsing dot indicates unsaved changes. Use Load to restore previously saved data." },
-    { selector: "#saveAsBtn", title: "Save As", desc: "Download the portfolio JSON to any folder on your computer." },
 ];
 
 const tutorialStepsSell = [
