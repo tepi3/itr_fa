@@ -122,6 +122,66 @@ body {
     align-items: center;
 }
 
+/* Dropdown Menu Styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: var(--bg-secondary);
+    min-width: 220px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    z-index: 1000;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    padding: 8px 0;
+    flex-direction: column;
+}
+
+/* Bridge the gap between button and menu to prevent flicker */
+.dropdown-content::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 0;
+    width: 100%;
+    height: 10px;
+}
+
+.dropdown:hover .dropdown-content {
+    display: flex;
+}
+
+.dropdown-content .btn {
+    text-align: left;
+    border: none;
+    border-radius: 0;
+    padding: 10px 16px;
+    width: 100%;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-content .btn:hover {
+    background-color: var(--accent-light);
+    color: var(--accent);
+}
+
+.dropdown-toggle::after {
+    content: " ▾";
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
 .btn-group {
     display: flex;
     gap: 8px;

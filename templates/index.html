@@ -67,51 +67,68 @@
                 <select id="yearSelect"></select>
             </div>
             <div class="header-actions">
-                <!-- Data & File Operations -->
-                <div class="btn-group">
-                    <button id="uploadDocsBtn" class="btn btn-outline" title="Upload broker files to import portfolio">📁 Upload Docs</button>
-                    <button id="loadBtn" class="btn btn-outline" title="Load saved data from server">📂 Load</button>
-                    <button id="openFileBtn" class="btn btn-outline" title="Open portfolio JSON file">📂 Open...</button>
-                    <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
-                    <button id="saveAsBtn" class="btn btn-primary" title="Save portfolio to your computer">💾 Save As</button>
-                    <input type="file" id="openFileInput" accept=".json" style="display: none;">
+                <!-- Save (Primary) -->
+                <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
+
+                <!-- Portfolio Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline dropdown-toggle">📁 Portfolio</button>
+                    <div class="dropdown-content">
+                        <button id="uploadDocsBtn" class="btn" title="Upload broker files to import portfolio">📄 Upload Broker Docs</button>
+                        <button id="loadBtn" class="btn" title="Load saved data from server">📂 Load Portfolio</button>
+                        <button id="openFileBtn" class="btn" title="Open portfolio JSON file from disk">📑 Open from File...</button>
+                        <button id="saveAsBtn" class="btn" title="Save portfolio to your computer">💾 Save to Disk (As)</button>
+                    </div>
                 </div>
+
+                <!-- Tools Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline dropdown-toggle">⚙️ Tools</button>
+                    <div class="dropdown-content">
+                        <button id="fetchRatesBtn" class="btn" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
+                        <button id="viewRatesBtn" class="btn" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
+                        <button id="fetchAllDividendsBtn" class="btn" title="Fetch dividends for all stocks in current year">💰 Fetch All Dividends</button>
+                    </div>
+                </div>
+
+                <!-- Manage Year Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline dropdown-toggle">🗓️ Manage</button>
+                    <div class="dropdown-content">
+                        <button id="importPrevBtn" class="btn" title="Import previous year data">📥 Import Prev Year</button>
+                        <button id="clearYearBtn" class="btn" title="Clear all data for current year" style="color:var(--danger);">🗑️ Clear Current Year</button>
+                    </div>
+                </div>
+
+                <!-- View Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline dropdown-toggle">👁️ View</button>
+                    <div class="dropdown-content">
+                        <button id="collapseAllBtn" class="btn" title="Collapse all stock cards">▶ Collapse All</button>
+                        <button id="expandAllBtn" class="btn" title="Expand all stock cards">▼ Expand All</button>
+                        <button id="historyBtn" class="btn" title="View action history">📜 Action History</button>
+                    </div>
+                </div>
+
                 <div class="action-separator"></div>
 
-                <!-- Market Data -->
+                <!-- Undo/Redo (Quick Access) -->
                 <div class="btn-group">
-                    <button id="fetchRatesBtn" class="btn btn-outline" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
-                    <button id="viewRatesBtn" class="btn btn-outline" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
-                    <button id="fetchAllDividendsBtn" class="btn btn-outline" title="Fetch dividends for all stocks in current year">💰 Fetch All Dividends</button>
+                    <button id="undoBtn" class="btn btn-sm btn-outline" title="Undo (Ctrl+Z)" disabled>↩</button>
+                    <button id="redoBtn" class="btn btn-sm btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪</button>
                 </div>
-                <div class="action-separator"></div>
 
-                <!-- Year Operations -->
+                <!-- Misc -->
                 <div class="btn-group">
-                    <button id="importPrevBtn" class="btn btn-outline" title="Import previous year data">📥 Import Prev</button>
-                    <button id="clearYearBtn" class="btn btn-outline" title="Clear all data for current year" style="border-color:var(--danger); color:var(--danger);">🗑️ Clear Year</button>
-                </div>
-                <div class="action-separator"></div>
-
-                <!-- History -->
-                <div class="btn-group">
-                    <button id="undoBtn" class="btn btn-outline" title="Undo last action (Ctrl+Z)" disabled>↩ Undo</button>
-                    <button id="redoBtn" class="btn btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪ Redo</button>
-                    <button id="historyBtn" class="btn btn-outline" title="View action history">📜 History</button>
-                </div>
-                <div class="action-separator"></div>
-
-                <!-- View & Misc -->
-                <div class="btn-group">
-                    <button id="collapseAllBtn" class="btn btn-sm btn-outline" title="Collapse all stock cards">▶ Collapse</button>
-                    <button id="expandAllBtn" class="btn btn-sm btn-outline" title="Expand all stock cards">▼ Expand</button>
                     <button id="themeToggleBtn" class="btn btn-sm btn-outline theme-toggle-btn" title="Toggle dark/light theme">
                         <span class="theme-icon-sun">☀️</span>
                         <span class="theme-icon-moon">🌙</span>
                     </button>
-                    <button id="helpBtn" class="btn btn-outline btn-help" title="Show feature tutorial">❓ Help</button>
-                    <button id="quitAppBtn" class="btn btn-outline" style="border-color:var(--danger); color:var(--danger);" title="Shut down the backend application">🛑 Quit App</button>
+                    <button id="helpBtn" class="btn btn-sm btn-outline btn-help" title="Show tutorial">❓</button>
+                    <button id="quitAppBtn" class="btn btn-sm btn-outline" style="border-color:var(--danger); color:var(--danger);" title="Shut down backend">🛑</button>
                 </div>
+
+                <input type="file" id="openFileInput" accept=".json" style="display: none;">
             </div>
         </div>
     </header>
