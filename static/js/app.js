@@ -97,16 +97,19 @@ function toggleHistoryPanel() {
 function renderHistoryList() {
     const list = document.getElementById("historyList");
     list.innerHTML = "";
-    
+
     if (undoStack.length === 0) {
         list.innerHTML = '<p class="hint" style="text-align:center;padding:20px;">No actions recorded yet</p>';
         return;
     }
-    
+
     // Show in reverse order (newest first)
-    [...undoStack].reverse().forEach((item) => {
+    [...undoStack].reverse().forEach((item, revIdx) => {
+        const originalIdx = undoStack.length - 1 - revIdx;
         const el = document.createElement("div");
         el.className = "history-item";
+        el.title = "Click to revert to this state";
+        el.onclick = () => revertToHistoryItem(originalIdx);
         el.innerHTML = `
             <span class="history-label">${item.label}</span>
             <span class="history-time">${item.timestamp}</span>
@@ -115,6 +118,33 @@ function renderHistoryList() {
     });
 }
 
+function revertToHistoryItem(index) {
+    if (index < 0 || index >= undoStack.length) return;
+
+    const snapshot = undoStack[index];
+    if (!confirm(`Revert to state before "${snapshot.label}"?`)) return;
+
+    // Save current state to redo stack
+    redoStack.push({
+        portfolio: JSON.parse(JSON.stringify(state.portfolio)),
+        label: "Manual Revert",
+        timestamp: new Date().toLocaleTimeString()
+    });
+
+    // Any items in undoStack *after* the target index should also go to redoStack
+    while (undoStack.length > index + 1) {
+        redoStack.push(undoStack.pop());
+    }
+
+    // The item at index is the one we want to restore
+    const targetSnapshot = undoStack.pop();
+    state.portfolio = targetSnapshot.portfolio;
+
+    restorePortfolioUI();
+    updateUndoRedoButtons();
+    renderHistoryList();
+    showToast(`Reverted to: ${targetSnapshot.label}`, "success");
+}
 function markDirty() {
     state.isDirty = true;
     document.getElementById("unsavedDot").classList.remove("hidden");
@@ -651,7 +681,7 @@ async function lookupStock() {
         return showToast(`${ticker} is already added`, "warning");
     }
 
-    pushUndoSnapshot();
+    pushUndoSnapshot(`Add Stock (${ticker})`);
     showLoading(`Looking up ${ticker}...`);
     try {
         const info = await apiPost("/api/lookup-stock", { ticker });
@@ -919,7 +949,7 @@ function renderStockCard(stock) {
 
     // Remove stock
     card.querySelector(".remove-stock-btn").addEventListener("click", () => {
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Remove Stock (${stock.ticker})`);
         state.portfolio.stocks = state.portfolio.stocks.filter(s => s.id !== stock.id);
         card.remove();
         updateCalcButtonVisibility();
@@ -992,7 +1022,7 @@ function addLotRow(card, stock, lotData = null) {
     };
 
     if (!lotData) {
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Add Lot (${stock.ticker})`);
         stock.lots.push(lot);
     }
 
@@ -1057,7 +1087,7 @@ function renderLotRow(card, stock, lot) {
 
     // Remove
     tr.querySelector(".remove-lot-btn").addEventListener("click", () => {
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Remove Lot (${stock.ticker})`);
         stock.lots = stock.lots.filter(l => l.id !== lot.id);
         tr.remove();
         updateSellLotOptions(card, stock);
@@ -1084,7 +1114,7 @@ function addSellRow(card, stock, lotId = null, sellData = null) {
     };
 
     if (!sellData) {
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Add Sell (${stock.ticker})`);
         if (!targetLot.sells) targetLot.sells = [];
         targetLot.sells.push(sell);
     }
@@ -1149,7 +1179,7 @@ function renderSellRow(card, stock, lot, sell) {
 
     // Remove
     tr.querySelector(".remove-sell-btn").addEventListener("click", () => {
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Remove Sell (${stock.ticker})`);
         const parentLot = stock.lots.find(l => l.id === tr.dataset.lotId);
         if (parentLot) {
             parentLot.sells = (parentLot.sells || []).filter(s => s.id !== sell.id);
@@ -1186,7 +1216,7 @@ function addDividendRow(card, stock, divData = null) {
         amount: "",
     };
     if (!divData) {
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Add Dividend (${stock.ticker})`);
         if (!stock.dividends) stock.dividends = [];
         stock.dividends.push(div);
     }
@@ -1213,7 +1243,7 @@ function renderDividendRow(card, stock, div) {
     });
 
     tr.querySelector(".remove-div-btn").addEventListener("click", () => {
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Remove Dividend (${stock.ticker})`);
         stock.dividends = (stock.dividends || []).filter(d => d.id !== div.id);
         tr.remove();
     });
@@ -1430,7 +1460,7 @@ function showImportReview(transactions, label) {
                 if (state.portfolio.stocks.length > 0) {
                     await fetchRuntimeDataForAllStocks();
                 }
-                pushUndoSnapshot();
+                pushUndoSnapshot(`Import ${label}`);
             } else {
                 showToast("Merge error: " + result.error, "error");
             }
@@ -2101,7 +2131,7 @@ async function importPreviousYear() {
 
 function clearCurrentYear() {
     if (!confirm(`Are you sure you want to clear all data for CY${state.portfolio.calendar_year}? This will remove all stocks and overrides currently loaded on screen.`)) return;
-    pushUndoSnapshot();
+    pushUndoSnapshot("Clear Year Data");
     state.portfolio.stocks = [];
     state.portfolio.overrides = {};
     document.getElementById("stockCards").innerHTML = "";
@@ -3144,7 +3174,7 @@ async function fetchDividendsForStock(card, stock) {
     btn.textContent = "⏳ Fetching…";
     try {
         const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`);
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Fetch Dividends (${stock.ticker})`);
         stock.dividends = (data.dividends || []).map(d => ({
             id: generateId(), ex_date: d.ex_date, amount: d.amount,
         }));
@@ -3172,7 +3202,7 @@ async function fetchCompanyDetailsForStock(card, stock) {
             showToast(`Could not fetch details for ${ticker}: ${info.error || "Unknown error"}`, "error");
             return;
         }
-        pushUndoSnapshot();
+        pushUndoSnapshot(`Fetch Details (${stock.ticker})`);
         // Override company info fields
         stock.company_info.country_code = info.country_code || stock.company_info.country_code;
         stock.company_info.name = info.name || stock.company_info.name;
@@ -3199,7 +3229,7 @@ async function fetchCompanyDetailsForStock(card, stock) {
 
 async function fetchAllDividends() {
     if (state.portfolio.stocks.length === 0) return showToast("No stocks to fetch dividends for", "warning");
-    pushUndoSnapshot();
+    pushUndoSnapshot("Fetch All Dividends");
     showLoading("Fetching dividends for all stocks…");
     let total = 0;
     for (const stock of state.portfolio.stocks) {
@@ -4031,7 +4061,7 @@ function initDragAndDrop(card, stock) {
         const draggedId = e.dataTransfer.getData("text/plain");
         if (draggedId === stock.id) return;
 
-        pushUndoSnapshot();
+        pushUndoSnapshot("Reorder Stocks");
         const stocks = state.portfolio.stocks;
         const fromIdx = stocks.findIndex(s => s.id === draggedId);
         const toIdx = stocks.findIndex(s => s.id === stock.id);
@@ -4065,7 +4095,7 @@ function initCsvLotImport(card, stock) {
             const lines = text.trim().split("\n");
             if (lines.length < 2) { showToast("CSV has no data rows", "warning"); return; }
 
-            pushUndoSnapshot();
+            pushUndoSnapshot(`Import CSV Lots (${stock.ticker})`);
             const header = lines[0].toLowerCase();
             let imported = 0, skipped = 0;
 
