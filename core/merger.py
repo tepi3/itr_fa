@@ -84,8 +84,9 @@ def apply_transactions(portfolio: dict, transactions: list) -> dict:
                     stock["lots"].append(matching_lot)
                     stock["lots"].sort(key=lambda l: l["buy_date"])
                 else:
-                    # Increment parent lot's total quantity to include these sold shares
-                    matching_lot["quantity"] = float(matching_lot["quantity"]) + qty
+                    # Do not blindly increment parent lot's total quantity.
+                    # It causes inflation bugs for IBKR and during re-imports.
+                    pass
                 
                 # Add the specific sell record
                 if "sells" not in matching_lot: matching_lot["sells"] = []

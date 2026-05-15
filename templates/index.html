@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css?v=2">
+    <link rel="icon" type="image/x-icon" href="/static/icon.ico">
+    <link rel="apple-touch-icon" href="/static/icon.png">
 </head>
 <body>
     <!-- Toast Container -->
@@ -174,18 +176,6 @@
             </div>
         </section>
 
-        <!-- Add Stock Section -->
-        <section id="addStockSection" class="card">
-            <h2>Add Stock / ETF</h2>
-            <div class="add-stock-form">
-                <div class="input-group">
-                    <input type="text" id="tickerInput" placeholder="Enter ticker symbol (e.g., QCOM, VWRA)" autocomplete="off">
-                    <button id="lookupBtn" class="btn btn-primary">🔍 Lookup</button>
-                </div>
-                <p class="hint">Ticker will be auto-resolved for non-US exchanges (e.g., VWRA → VWRA.L)</p>
-            </div>
-        </section>
-
         <!-- Portfolio Dashboard -->
         <div id="portfolioDashboard" class="portfolio-dashboard hidden">
             <div class="dash-stat">
@@ -216,6 +206,18 @@
                 <span class="dash-label">Total Dividends</span>
             </div>
         </div>
+
+        <!-- Add Stock Section -->
+        <section id="addStockSection" class="card">
+            <h2>Add Stock / ETF</h2>
+            <div class="add-stock-form">
+                <div class="input-group">
+                    <input type="text" id="tickerInput" placeholder="Enter ticker symbol (e.g., QCOM, VWRA)" autocomplete="off">
+                    <button id="lookupBtn" class="btn btn-primary">🔍 Lookup</button>
+                </div>
+                <p class="hint">Ticker will be auto-resolved for non-US exchanges (e.g., VWRA → VWRA.L)</p>
+            </div>
+        </section>
 
         <!-- Stock Filter Bar -->
         <div id="stockFilterBar" class="stock-filter-bar hidden">
@@ -680,8 +682,8 @@
                 <div class="modal-file-label">
                     <span class="modal-file-icon">📈</span>
                     <div>
-                        <strong>Positions / Transactions File</strong>
-                        <p class="hint" style="margin:2px 0 0;">E-Trade positions or transactions export (CSV / XLSX). Populates stock lots with buy details.</p>
+                        <strong>Holdings</strong>
+                        <p class="hint" style="margin:2px 0 0;">Upload expanded doc from selecting holdings on etrade then selecting view by status and downloading expanded file.</p>
                     </div>
                 </div>
                 <label class="btn btn-outline btn-sm modal-file-pick" for="etradeFileInput">Choose File</label>
@@ -694,7 +696,7 @@
                     <span class="modal-file-icon">📉</span>
                     <div>
                         <strong>G&amp;L Expanded File <span style="font-weight:400;color:var(--text-muted);">(optional)</span></strong>
-                        <p class="hint" style="margin:2px 0 0;">E-Trade Gains &amp; Losses Expanded export (XLSX). Adds sell transactions on matched lots.</p>
+                        <p class="hint" style="margin:2px 0 0;">Go to my account then select gains and losses then select year and download expanded.</p>
                     </div>
                 </div>
                 <label class="btn btn-outline btn-sm modal-file-pick" for="sellDetailsFileInput">Choose File</label>
@@ -756,6 +758,7 @@
                         <thead>
                             <tr>
                                 <th style="width:40px;"><input type="checkbox" id="selectAllImportBtn" checked></th>
+                                <th>Status</th>
                                 <th>Type</th>
                                 <th>Date</th>
                                 <th>Symbol</th>

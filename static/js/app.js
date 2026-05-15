@@ -1355,27 +1355,53 @@ function showImportReview(transactions, label) {
     selectAllBtn.checked = true;
 
     if (!transactions || transactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted);">No new transactions found for this year.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);">No new transactions found for this year.</td></tr>';
         document.getElementById("confirmImportBtn").disabled = true;
     } else {
         document.getElementById("confirmImportBtn").disabled = false;
+        
+        let allDuplicates = true;
+
         transactions.forEach((tx, idx) => {
             const tr = document.createElement("tr");
+            
+            const isDuplicate = tx.import_status === "DUPLICATE";
+            if (!isDuplicate) allDuplicates = false;
+            
+            const isUpdate = tx.import_status === "UPDATE";
+            
+            if (isDuplicate) {
+                tr.style.opacity = "0.5";
+                tr.style.backgroundColor = "var(--bg-main)";
+            } else if (isUpdate) {
+                tr.style.backgroundColor = "rgba(245, 158, 11, 0.1)"; // subtle warning/amber
+            }
+            
+            let statusBadge = "";
+            if (tx.import_status === "NEW") statusBadge = `<span class="badge" style="background-color: var(--success); color: white;">NEW</span>`;
+            else if (tx.import_status === "UPDATE") statusBadge = `<span class="badge" style="background-color: var(--warning); color: white;" title="Original Qty: ${tx.original_qty}">DELTA</span>`;
+            else if (tx.import_status === "DUPLICATE") statusBadge = `<span class="badge" style="background-color: var(--text-muted); color: white;">DUP</span>`;
+
+            const qtyDisplay = isUpdate ? `+${tx.qty.toLocaleString()} <span style="font-size: 0.75rem; color: var(--text-muted);">(of ${tx.original_qty})</span>` : tx.qty.toLocaleString();
+
             tr.innerHTML = `
-                <td><input type="checkbox" class="tx-import-check" data-idx="${idx}" checked></td>
+                <td><input type="checkbox" class="tx-import-check" data-idx="${idx}" ${isDuplicate ? '' : 'checked'} ${isDuplicate ? 'disabled' : ''}></td>
+                <td>${statusBadge}</td>
                 <td><span class="badge ${tx.type === 'BUY' ? 'badge-success' : 'badge-danger'}">${tx.type}</span></td>
                 <td>${tx.date}</td>
                 <td><strong>${tx.symbol}</strong></td>
-                <td>${tx.qty.toLocaleString()}</td>
+                <td>${qtyDisplay}</td>
                 <td>$${tx.price.toFixed(2)}</td>
             `;
             tbody.appendChild(tr);
         });
+        
+        if (allDuplicates) selectAllBtn.checked = false;
     }
 
     // Select All logic
     selectAllBtn.onchange = () => {
-        const checks = document.querySelectorAll(".tx-import-check");
+        const checks = document.querySelectorAll(".tx-import-check:not([disabled])");
         checks.forEach(c => c.checked = selectAllBtn.checked);
     };
 
@@ -1391,6 +1417,21 @@ function showImportReview(transactions, label) {
         }
 
         const selectedTxs = selectedIndices.map(i => proposedTransactions[i]);
+        
+        // E-Trade Pre-processing: Holdings only give unsold shares. 
+        // We add the sold shares from the G&L report so the lot is created with the true total quantity.
+        const buys = selectedTxs.filter(t => t.type === 'BUY');
+        const sells = selectedTxs.filter(t => t.type === 'SELL' && t.buy_date);
+        
+        buys.forEach(buy => {
+            const linkedSells = sells.filter(s => 
+                s.symbol === buy.symbol && 
+                s.buy_date === buy.date && 
+                Math.abs(s.buy_price - buy.price) < 0.01
+            );
+            const totalSold = linkedSells.reduce((sum, s) => sum + s.qty, 0);
+            buy.qty += totalSold;
+        });
 
         showLoading("Merging selected transactions...");
         try {

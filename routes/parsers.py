@@ -7,6 +7,7 @@ from core.etrade_parser import process_etrade_file
 from core.ibkr_parser import process_ibkr_file
 from core.sell_details_parser import process_sell_details_file
 from core.stock_data import get_company_info
+from core.smart_import import group_and_deduplicate_transactions
 
 from core.merger import apply_transactions
 
@@ -102,15 +103,17 @@ def api_upload_etrade():
         calendar_year = portfolio.get("calendar_year", datetime.now().year)
     else:
         calendar_year = request.form.get("calendar_year", datetime.now().year)
+        portfolio = {"calendar_year": int(calendar_year), "stocks": []}
     
     temp_portfolio = {"calendar_year": int(calendar_year), "stocks": []}
 
     try:
         file_bytes = file.read()
         result = process_etrade_file(file_bytes, file.filename, temp_portfolio)
+        smart_txs = group_and_deduplicate_transactions(result.get("transactions", []), portfolio)
         return jsonify({
             "success": True, 
-            "transactions": result.get("transactions", []),
+            "transactions": smart_txs,
             "skipped_count": result.get("skipped_count", 0),
             "calendar_year": int(calendar_year)
         })
@@ -131,15 +134,17 @@ def api_upload_ibkr():
         calendar_year = portfolio.get("calendar_year", datetime.now().year)
     else:
         calendar_year = request.form.get("calendar_year", datetime.now().year)
+        portfolio = {"calendar_year": int(calendar_year), "stocks": []}
         
     temp_portfolio = {"calendar_year": int(calendar_year), "stocks": []}
 
     try:
         file_bytes = file.read()
         result = process_ibkr_file(file_bytes, file.filename, temp_portfolio)
+        smart_txs = group_and_deduplicate_transactions(result.get("transactions", []), portfolio)
         return jsonify({
             "success": True, 
-            "transactions": result.get("transactions", []),
+            "transactions": smart_txs,
             "skipped_count": result.get("skipped_count", 0),
             "calendar_year": int(calendar_year)
         })
@@ -160,15 +165,17 @@ def api_upload_sell_details():
         calendar_year = portfolio.get("calendar_year", datetime.now().year)
     else:
         calendar_year = request.form.get("calendar_year", datetime.now().year)
+        portfolio = {"calendar_year": int(calendar_year), "stocks": []}
         
     temp_portfolio = {"calendar_year": int(calendar_year), "stocks": []}
 
     try:
         file_bytes = file.read()
         result = process_sell_details_file(file_bytes, file.filename, temp_portfolio)
+        smart_txs = group_and_deduplicate_transactions(result.get("transactions", []), portfolio)
         return jsonify({
             "success": True,
-            "transactions": result.get("transactions", []),
+            "transactions": smart_txs,
             "skipped_count": result.get("skipped_count", 0),
             "calendar_year": int(calendar_year)
         })
