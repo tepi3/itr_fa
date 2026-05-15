@@ -182,9 +182,21 @@ document.addEventListener("DOMContentLoaded", () => {
     restoreTheme();
     addYearChangeGuard();
 
+    // Heartbeat to keep server alive (native desktop mode)
+    setInterval(sendHeartbeat, 15000);
+    sendHeartbeat(); // initial ping
+
     // Auto-save draft every 30 seconds
     setInterval(autoSaveDraft, 30000);
 });
+
+async function sendHeartbeat() {
+    try {
+        await fetch("/api/heartbeat", { method: "POST" });
+    } catch (e) {
+        console.warn("Heartbeat failed. Server might be down.");
+    }
+}
 
 function initYearSelectors() {
     const mainSelect = document.getElementById("yearSelect");
