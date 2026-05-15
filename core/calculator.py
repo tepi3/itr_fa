@@ -30,27 +30,31 @@ def _format_date_display(date_str: str) -> str:
     return d.strftime("%d/%m/%Y")
 
 
-def _get_rate_value(d: date, overrides: dict) -> tuple:
+def _get_rate_value(d: date, overrides: dict, use_event_date: bool = False) -> tuple:
     """Get SBI TT rate value and metadata (USD only)."""
-    result = get_sbi_tt_rate(d, overrides)
+    result = get_sbi_tt_rate(d, overrides, use_event_date=use_event_date)
     rate = result.get("rate")
     if rate is None or rate == 0:
         rate_date_str = result.get("rate_date")
-        month_name = date.fromisoformat(rate_date_str).strftime("%B %Y")
-        raise ValueError(f"SBI TT buying rate is missing or zero for {month_name} (needed for calculation). Please go to 'Monthly Rates' and update it.")
+        if use_event_date:
+            d_str = d.strftime("%d %B %Y")
+            raise ValueError(f"SBI TT buying rate is missing or zero for {d_str} (needed for calculation). Please go to 'Monthly Rates' and update it.")
+        else:
+            month_name = date.fromisoformat(rate_date_str).strftime("%B %Y")
+            raise ValueError(f"SBI TT buying rate is missing or zero for {month_name} (needed for calculation). Please go to 'Monthly Rates' and update it.")
     return rate, result.get("rate_date"), result.get("source")
 
 
 def calculate_initial_value(lot: dict, sbi_overrides: dict) -> dict:
     """
     Calculate column 8: Initial value of the investment (₹).
-    = buy_price × quantity × TTBR(last_wd_prev_month_of_buy_date)
+    = buy_price × quantity × TTBR(date_of_buy_event)
     """
     buy_date = _parse_date(lot["buy_date"])
     buy_price = float(lot["buy_price"])
     quantity = float(lot["quantity"])
 
-    rate, rate_date, source = _get_rate_value(buy_date, sbi_overrides)
+    rate, rate_date, source = _get_rate_value(buy_date, sbi_overrides, use_event_date=True)
 
     if rate is None:
         return {
@@ -82,7 +86,7 @@ def calculate_peak_value(
 ) -> dict:
     """
     Calculate column 9: Peak value of investment during the period (₹).
-    = max(daily_close × qty_held × TTBR) across all trading days in the CY.
+    = max(daily_close × qty_held × TTBR(date_of_event)) across all trading days in the CY.
     """
     buy_date = _parse_date(lot["buy_date"])
     initial_qty = float(lot["quantity"])
@@ -113,8 +117,8 @@ def calculate_peak_value(
     # Sort sells by date
     sorted_sells = sorted(sells_in_cy, key=lambda s: s["sell_date"])
 
-    # Cache monthly TTBR as (rate, rate_date) to avoid repeated lookups
-    monthly_ttbr_cache = {}
+    # Cache daily TTBR as (rate, rate_date) to avoid repeated lookups
+    daily_ttbr_cache = {}
 
     peak_value = 0
     peak_date = None
@@ -144,13 +148,18 @@ def calculate_peak_value(
 
         close_price = price_entry["close"]
 
-        # Get TTBR for this month (cached as tuple)
-        month_key = f"{trading_date.year}-{trading_date.month:02d}"
-        if month_key not in monthly_ttbr_cache:
-            rate, rate_date_str, _ = _get_rate_value(trading_date, sbi_overrides)
-            monthly_ttbr_cache[month_key] = (rate, rate_date_str)
+        # Get TTBR for this day (cached as tuple)
+        date_key = trading_date.isoformat()
+        if date_key not in daily_ttbr_cache:
+            try:
+                rate, rate_date_str, _ = _get_rate_value(trading_date, sbi_overrides, use_event_date=True)
+                daily_ttbr_cache[date_key] = (rate, rate_date_str)
+            except ValueError:
+                # If rate not found for a specific day, skip it for peak calculation
+                # (usually shouldn't happen if historical data exists)
+                continue
 
-        ttbr, ttbr_rate_date = monthly_ttbr_cache[month_key]
+        ttbr, ttbr_rate_date = daily_ttbr_cache[date_key]
         if ttbr is None:
             continue
 
@@ -177,7 +186,6 @@ def calculate_peak_value(
         },
     }
 
-
 def calculate_closing_balance(
     lot: dict,
     yahoo_ticker: str,
@@ -186,8 +194,7 @@ def calculate_closing_balance(
 ) -> dict:
     """
     Calculate column 10: Closing balance (₹).
-    = close_price_dec31 × remaining_qty × TTBR(last_wd_prev_month_of_dec31)
-    0 if fully sold before Dec 31.
+    = dec31_close_price × remaining_qty × TTBR(last_working_day_of_year)
     """
     dec31 = date(calendar_year, 12, 31)
     today = date.today()
@@ -216,7 +223,7 @@ def calculate_closing_balance(
         return {"value": None, "error": "Could not fetch Dec 31 price"}
 
     # Get TTBR
-    rate, rate_date, _ = _get_rate_value(dec31, sbi_overrides)
+    rate, rate_date, _ = _get_rate_value(dec31, sbi_overrides, use_event_date=True)
     if rate is None:
         return {"value": None, "error": f"SBI rate not found for {rate_date}"}
 
@@ -242,7 +249,7 @@ def calculate_dividends(
 ) -> dict:
     """
     Calculate column 11: Total gross dividends (₹).
-    = Σ(div_per_share × qty_on_ex_date × TTBR(last_wd_prev_month_of_ex_date))
+    = Σ(div_per_share × qty_on_ex_date × TTBR(date_of_ex_date_event))
     """
     if skip_dividends:
         return {"value": 0, "dividend_entries": [], "skipped": True}
@@ -284,7 +291,7 @@ def calculate_dividends(
             continue
 
         # Get TTBR
-        rate, rate_date, _ = _get_rate_value(ex_date, sbi_overrides)
+        rate, rate_date, _ = _get_rate_value(ex_date, sbi_overrides, use_event_date=True)
         if rate is None:
             entries.append({
                 "ex_date": div["ex_date"],
@@ -319,17 +326,15 @@ def calculate_sale_proceeds(
 ) -> dict:
     """
     Calculate column 12: Total sale proceeds (₹).
-    = Σ(sell_price × sell_qty × TTBR(last_wd_prev_month_of_sell_date))
+    = Σ(sell_price × sell_qty × TTBR(date_of_sell_event))
     Only for sells within the calendar year.
-
-    Also computes per-sell P&L in both USD and INR for display.
     """
     total_proceeds_inr = 0
     sale_entries = []
 
     buy_price = float(lot.get("buy_price", 0))
     buy_date = _parse_date(lot["buy_date"])
-    buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides)
+    buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True)
 
     for sell in lot.get("sells", []):
         sell_date = _parse_date(sell["sell_date"])
@@ -340,7 +345,7 @@ def calculate_sale_proceeds(
         sell_qty = float(sell["quantity"])
         sell_id = sell.get("id")
 
-        rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides)
+        rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True)
         if rate is None:
             sale_entries.append({
                 "sell_id": sell_id,

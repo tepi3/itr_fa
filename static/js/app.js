@@ -1822,7 +1822,7 @@ function collectSbiRates(rows) {
 
         entries.forEach(entry => {
             if (!entry.data) return;
-            const rate = entry.data.rate || (entry.data.components && entry.data.components.ttbr);
+            const rate = entry.data.rate || entry.data.ttbr || (entry.data.components && entry.data.components.ttbr);
             const rateDate = entry.data.rate_date || (entry.data.components && entry.data.components.rate_date);
             if (!rate || !rateDate) return;
             const key = `${entry.label}_${rateDate}`;
@@ -1834,9 +1834,69 @@ function collectSbiRates(rows) {
             tr.innerHTML = `
                 <td>${entry.label}</td>
                 <td>${rateDate}</td>
-                <td>₹${rate}</td>
+                <td class="editable-rate" data-date="${rateDate}" title="Click to edit rate">
+                    <span class="rate-val">₹${rate}</span>
+                    <span class="edit-icon">✏️</span>
+                </td>
                 <td><span class="rate-status ${statusClass}">${src}</span></td>
             `;
+            
+            const rateCell = tr.querySelector(".editable-rate");
+            rateCell.addEventListener("click", () => {
+                const currentVal = rate;
+                const input = document.createElement("input");
+                input.type = "number";
+                input.step = "0.0001";
+                input.value = currentVal;
+                input.style.width = "80px";
+                
+                const originalContent = rateCell.innerHTML;
+                rateCell.innerHTML = "";
+                rateCell.appendChild(input);
+                input.focus();
+                
+                let finished = false;
+                const save = async () => {
+                    if (finished) return;
+                    finished = true;
+                    const newVal = parseFloat(input.value);
+                    if (!isNaN(newVal) && newVal !== currentVal) {
+                        try {
+                            const res = await fetch("/api/save-manual-rate", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ rate_date: rateDate, rate: newVal })
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                showToast(`Saved rate for ${rateDate}: ₹${newVal}`);
+                                // Trigger recalculation
+                                calculatePortfolio();
+                            } else {
+                                alert("Failed to save rate: " + data.error);
+                                rateCell.innerHTML = originalContent;
+                            }
+                        } catch (err) {
+                            alert("Error saving rate: " + err);
+                            rateCell.innerHTML = originalContent;
+                        }
+                    } else {
+                        rateCell.innerHTML = originalContent;
+                    }
+                };
+
+                input.addEventListener("blur", save);
+                input.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") input.blur();
+                });
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Escape") {
+                        finished = true;
+                        rateCell.innerHTML = originalContent;
+                    }
+                });
+            });
+            
             tbody.appendChild(tr);
         });
     });

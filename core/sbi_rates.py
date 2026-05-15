@@ -128,18 +128,22 @@ def get_last_working_day_prev_month(d: date) -> date:
     return last_of_prev
 
 
-def get_sbi_tt_rate(d: date, overrides: dict = None) -> dict:
+def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = False) -> dict:
     """
-    Get the SBI TT Buying Rate for the last working day of the month preceding date d.
+    Get the SBI TT Buying Rate for a given date.
 
     Args:
         d: The transaction/event date
         overrides: dict of manual overrides { "YYYY-MM-DD_USD": rate }
+        use_event_date: If True, use rate on date 'd'. If False, use last working day of prev month.
 
     Returns:
         dict with keys: rate, rate_date, source ("cache", "override", "not_found")
     """
-    rate_date = get_last_working_day_prev_month(d)
+    if use_event_date:
+        rate_date = d
+    else:
+        rate_date = get_last_working_day_prev_month(d)
 
     # Check manual overrides first
     override_key = f"{rate_date.isoformat()}_USD"

@@ -700,6 +700,37 @@ tr:hover td { background: var(--bg-hover); }
     color: var(--accent);
 }
 
+.editable-rate {
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+    padding-right: 20px !important;
+}
+
+.editable-rate:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.editable-rate .edit-icon {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    opacity: 0.3;
+}
+
+.editable-rate:hover .edit-icon {
+    opacity: 1;
+}
+
+.editable-rate input {
+    margin: 0;
+    padding: 2px 4px;
+    height: 24px;
+    font-size: 0.85rem;
+}
+
 #monthlyRatesSection .save-rate-btn {
     padding: 4px 10px;
     font-size: 0.75rem;

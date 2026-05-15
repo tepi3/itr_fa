@@ -68,7 +68,11 @@ python3 app.py
 - **Manual Override** — Click any calculated cell in the results table to manually adjust values if needed.
 
 ### SBI Rates & Currency
-- **USD-Only SBI TT rates** — Auto-fetches SBI TT Buying Rate of the last working day of the previous month for all conversions.
+- **Dual-Rate Logic** — Automatically applies the correct SBI TT Buying Rate based on context:
+  - **Schedule FA (A3)**: Uses the rate as of the **actual date of the event** (Buy, Peak, Closing, Dividend, or Sale) with a 10-day automatic walk-back for weekends and holidays.
+  - **Tax Calculation (CG/Dividends)**: Uses the rate on the **last working day of the preceding month** (as per Rule 115).
+- **Interactive Rate Overrides** — Click any rate in the "SBI TT Rates Used in Calculation" table at the bottom of the report to edit it inline. Edits are persisted globally to the cache.
+- **USD-Only SBI TT rates** — Auto-fetches from a community-maintained GitHub archive.
 - **Rate Locking** — Lock rates for a specific year to prevent automatic fetches from overwriting your manual edits.
 - **Historical SBI Rates** — View and edit SBI rates for any month going back to 2000.
 
