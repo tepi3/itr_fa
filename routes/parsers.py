@@ -56,12 +56,16 @@ def api_import_previous_year():
         for stock in source_portfolio.get("stocks", []):
             new_lots = []
             for lot in stock.get("lots", []):
-                # Calculate remaining qty
+                # Calculate remaining qty from all sells in previous year's data
                 sold_qty = sum(float(s["quantity"]) for s in lot.get("sells", []))
+                
                 if sold_qty < float(lot["quantity"]):
-                    # Carry forward the lot, but strip sells from previous years
-                    # The calculator handles qty_remaining by looking at all sells
-                    new_lots.append(lot)
+                    # Carry forward the lot with updated quantity
+                    # We strip previous sells to avoid confusion in the UI for the new year
+                    new_lot = lot.copy()
+                    new_lot["quantity"] = float(lot["quantity"]) - sold_qty
+                    new_lot["sells"] = []
+                    new_lots.append(new_lot)
             
             if new_lots:
                 new_stock = stock.copy()
