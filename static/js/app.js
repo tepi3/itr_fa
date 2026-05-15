@@ -1019,6 +1019,7 @@ function renderLotRow(card, stock, lot) {
     // Bind changes
     tr.querySelectorAll("input").forEach(input => {
         input.addEventListener("change", () => {
+            pushUndoSnapshot("Edit Lot");
             lot.buy_date = tr.querySelector(".lot-date").value;
             lot.quantity = parseFloat(tr.querySelector(".lot-qty").value) || 0;
             lot.buy_price = parseFloat(tr.querySelector(".lot-price").value) || 0;
@@ -1117,6 +1118,7 @@ function renderSellRow(card, stock, lot, sell) {
     // Bind changes
     tr.querySelectorAll("input").forEach(input => {
         input.addEventListener("change", () => {
+            pushUndoSnapshot(`Edit Sell (${stock.ticker})`);
             sell.sell_date = tr.querySelector(".sell-date").value;
             sell.quantity = parseFloat(tr.querySelector(".sell-qty").value) || 0;
             sell.sell_price = parseFloat(tr.querySelector(".sell-price").value) || 0;
@@ -1204,6 +1206,7 @@ function renderDividendRow(card, stock, div) {
 
     tr.querySelectorAll("input").forEach(input => {
         input.addEventListener("change", () => {
+            pushUndoSnapshot("Edit Dividend");
             div.ex_date = tr.querySelector(".div-date").value;
             div.amount = parseFloat(tr.querySelector(".div-amount").value) || 0;
         });
