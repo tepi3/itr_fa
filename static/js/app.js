@@ -1661,9 +1661,6 @@ function renderResultsTable(rows) {
         textCols.forEach((val, i) => {
             const td = document.createElement("td");
             td.textContent = val || "";
-            if (i === 2) { // Entity Name column
-                initTickerHover(td, row.ticker || val);
-            }
             tr.appendChild(td);
         });
 
