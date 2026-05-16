@@ -16,7 +16,10 @@ from urllib.error import URLError
 
 from flask import Flask, render_template, request, jsonify
 
-from config import FLASK_HOST, FLASK_PORT, FLASK_DEBUG, APP_VERSION, GITHUB_REPO
+from config import (
+    FLASK_HOST, FLASK_PORT, FLASK_DEBUG, APP_VERSION, GITHUB_REPO,
+    SETTINGS_FILE
+)
 from core.utils import init_user_storage
 from routes.users import users_bp
 from routes.portfolio import portfolio_bp
@@ -296,6 +299,29 @@ def show_splash_screen():
     return splash
 
 
+def load_settings():
+    """Load app settings from file."""
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def save_settings(settings):
+    """Save app settings to file."""
+    try:
+        # Merge with existing settings if any
+        current = load_settings()
+        current.update(settings)
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(current, f, indent=4)
+    except Exception as e:
+        logger.error(f"Failed to save settings: {e}")
+
+
 def run_tray_icon(on_open=None, on_quit=None):
     """Run a system tray icon. Callbacks override default behavior."""
     if not HAS_NATIVE:
@@ -381,6 +407,14 @@ if __name__ == "__main__":
         if not os.path.exists(icon_path):
             icon_path = None
 
+        # Load window settings
+        settings = load_settings().get("window", {})
+        win_w = settings.get("width", 1400)
+        win_h = settings.get("height", 900)
+        win_x = settings.get("x")
+        win_y = settings.get("y")
+        win_max = settings.get("maximized", True)
+
         def on_webview_closed():
             """Called when the user closes the native window."""
             global shutdown_flag
@@ -388,16 +422,43 @@ if __name__ == "__main__":
             logger.info("Native window closed. Shutting down.")
             os._exit(0)
 
-        # Create the native window (maximized, no extra chrome)
+        def save_window_state():
+            """Capture and save current window dimensions and position."""
+            if not webview_window:
+                return
+            try:
+                # pywebview might not support all these on all platforms, handle gracefully
+                state = {
+                    "width": webview_window.width,
+                    "height": webview_window.height,
+                    "x": webview_window.x,
+                    "y": webview_window.y,
+                    # Check if maximized (not all platforms support this property directly)
+                    "maximized": getattr(webview_window, 'maximized', win_max)
+                }
+                save_settings({"window": state})
+            except Exception as e:
+                logger.debug(f"Could not save window state: {e}")
+
+        # Create the native window
         webview_window = webview.create_window(
             title=f"FA Desk  v{APP_VERSION}",
             url=f"http://{FLASK_HOST}:{FLASK_PORT}",
-            width=1400,
-            height=900,
+            width=win_w,
+            height=win_h,
+            x=win_x,
+            y=win_y,
             min_size=(900, 600),
-            maximized=True,
         )
+
+        # Set maximized state if it was saved
+        if win_max:
+            # We delay maximization slightly to ensure window is created
+            Timer(0.5, webview_window.maximize).start()
+
         webview_window.events.closed += on_webview_closed
+        webview_window.events.resized += lambda w, h: save_window_state()
+        webview_window.events.moved += lambda x, y: save_window_state()
 
         # Optional tray icon that brings window to front
         def bring_to_front():

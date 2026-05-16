@@ -29,6 +29,9 @@ PORTFOLIOS_DIR.mkdir(exist_ok=True)
 # SBI rate cache
 SBI_CACHE_FILE = DATA_DIR / "sbi_rates_cache.json"
 
+# App settings (window size, position, etc.)
+SETTINGS_FILE = DATA_DIR / "settings.json"
+
 # SBI CSV URL from sahilgupta/sbi-fx-ratekeeper (USD only)
 SBI_CSV_URL = "https://raw.githubusercontent.com/sahilgupta/sbi-fx-ratekeeper/main/csv_files/SBI_REFERENCE_RATES_USD.csv"
 
