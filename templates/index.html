@@ -127,6 +127,7 @@
                         <span class="theme-icon-moon">🌙</span>
                     </button>
                     <button id="helpBtn" class="btn btn-sm btn-outline btn-help" title="Show tutorial">❓</button>
+                    <button id="aboutBtn" class="btn btn-sm btn-outline" title="About FA Desk">ℹ️</button>
                     <button id="quitAppBtn" class="btn btn-sm btn-outline" style="border-color:var(--danger); color:var(--danger);" title="Shut down backend">🛑</button>
                 </div>
 
@@ -850,6 +851,34 @@
     <!-- ===== Global Tooltip ===== -->
     <div id="globalTooltip" class="global-tooltip hidden"></div>
 
-    <script src="/static/js/app.js?v=9"></script>
+    <!-- ===== About Modal ===== -->
+    <div id="aboutModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeAboutModal()">
+        <div class="modal-box about-modal-box">
+            <div class="about-modal-content">
+                <div class="about-accent-bar"></div>
+                <div class="about-icon">🌐</div>
+                <h2 class="about-title">FA Desk</h2>
+                <p class="about-subtitle">Foreign Assets ITR Helper</p>
+                <p class="about-description">
+                    A local tool to automate filling Section A3 (Foreign Equity & Debt Interest) of Schedule FA in your Indian Income Tax Return.
+                    Import broker data, compute all 12 portal columns, and export ITR-ready CSV — all offline, all private.
+                </p>
+                <div class="about-version-badge" id="aboutVersionBadge">v—</div>
+                <div class="about-update-section">
+                    <button id="checkUpdateBtn" class="btn btn-sm btn-outline" onclick="checkForUpdate()">🔄 Check for Updates</button>
+                    <div id="updateResult" class="about-update-result hidden"></div>
+                </div>
+                <div class="about-divider"></div>
+                <div class="about-meta">
+                    <p>© 2026 Piyush Tewari (tepi3). All rights reserved.</p>
+                    <p>Open-source · Personal, non-commercial use only.</p>
+                </div>
+                <button class="btn btn-sm btn-outline about-close-btn" onclick="closeAboutModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END About Modal ===== -->
+
+    <script src="/static/js/app.js?v=10"></script>
 </body>
 </html>

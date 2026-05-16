@@ -293,6 +293,7 @@ function bindEvents() {
     document.getElementById("undoBtn").addEventListener("click", undo);
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
+    document.getElementById("aboutBtn").addEventListener("click", openAboutModal);
     document.getElementById("quitAppBtn").addEventListener("click", async () => {
         if (!confirm("Are you sure you want to quit the application? Any unsaved changes will be lost.\n\nThis will shut down the local background server.")) return;
         try {
@@ -1793,24 +1794,43 @@ function renderValidationTable(rows) {
             let breakdown = "—";
             let finalVal = row[col.key];
 
+            // Helper to wrap TTBR rate in a clickable cross-link span
+            const rateLink = (rateVal, rateDate) => {
+                if (!rateVal || !rateDate) return `₹${rateVal ? rateVal.toFixed(4) : '?'}`;
+                return `<span class="validate-crosslink" data-jump-rate="${rateDate}" title="Jump to SBI rate for ${rateDate}">₹${rateVal.toFixed(4)}</span>`;
+            };
+
+            // Helper to wrap lot math in a clickable cross-link span
+            const sectionLink = (text, sectionClass) => {
+                return `<span class="validate-crosslink" data-jump-stock="${ticker}" data-jump-section="${sectionClass}" title="Jump to ${sectionClass.replace('-section', '').replace('-', ' ')} in ${ticker}">${text}</span>`;
+            };
+
             if (col.key === "initial_value" && col.detail?.components) {
                 const c = col.detail.components;
-                breakdown = `<div class="b-math">(${c.quantity}×$${c.buy_price.toFixed(2)})×₹${c.ttbr.toFixed(4)}</div>`;
+                const rd = col.detail.rate_date || (c && c.rate_date);
+                const mathText = `(${c.quantity}×$${c.buy_price.toFixed(2)})`;
+                breakdown = `<div class="b-math">${sectionLink(mathText, 'lots-section')}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "peak_value" && col.detail?.components) {
                 const c = col.detail.components;
+                const rd = col.detail.rate_date || (c && c.rate_date);
+                const mathText = `(${c.qty_on_peak_date}×$${c.peak_price.toFixed(2)})`;
                 breakdown = `<div class="b-math" style="font-size:0.65rem;opacity:0.7;">Peak: ${col.detail.peak_date}</div>
-                             <div class="b-math">(${c.qty_on_peak_date}×$${c.peak_price.toFixed(2)})×₹${c.ttbr.toFixed(4)}</div>`;
+                             <div class="b-math">${mathText}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "closing_balance" && col.detail?.components) {
                 const c = col.detail.components;
-                breakdown = `<div class="b-math">(${c.remaining_qty}×$${c.close_price_dec31.toFixed(2)})×₹${c.ttbr.toFixed(4)}</div>`;
+                const rd = col.detail.rate_date || (c && c.rate_date);
+                const mathText = `(${c.remaining_qty}×$${c.close_price_dec31.toFixed(2)})`;
+                breakdown = `<div class="b-math">${mathText}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "total_dividends" && col.detail?.dividend_entries?.length > 0) {
-                breakdown = col.detail.dividend_entries.map(de => 
-                    `<div class="b-item">${de.ex_date}: (${de.qty}×$${de.amount_foreign.toFixed(4)})×₹${de.ttbr.toFixed(4)}</div>`
-                ).join("");
+                breakdown = col.detail.dividend_entries.map(de => {
+                    const mathText = `${de.ex_date}: (${de.qty}×$${de.amount_foreign.toFixed(4)})`;
+                    return `<div class="b-item">${sectionLink(mathText, 'dividends-section')}×${rateLink(de.ttbr, de.rate_date)}</div>`;
+                }).join("");
             } else if (col.key === "sale_proceeds" && col.detail?.sale_entries?.length > 0) {
-                breakdown = col.detail.sale_entries.map(se => 
-                    `<div class="b-item">${se.sell_date}: (${se.quantity}×$${se.sell_price.toFixed(2)})×₹${se.ttbr.toFixed(4)}</div>`
-                ).join("");
+                breakdown = col.detail.sale_entries.map(se => {
+                    const mathText = `${se.sell_date}: (${se.quantity}×$${se.sell_price.toFixed(2)})`;
+                    return `<div class="b-item">${sectionLink(mathText, 'sells-section')}×${rateLink(se.ttbr, se.rate_date)}</div>`;
+                }).join("");
             }
 
             const isOverridden = row.is_overridden && row.is_overridden[col.key];
@@ -1819,6 +1839,20 @@ function renderValidationTable(rows) {
                 : row[col.key];
 
             td.innerHTML = `<div class="b-container">${breakdown}</div><div class="b-total">₹${formatINR(displayVal)}</div>`;
+
+            // Wire cross-link click handlers
+            td.querySelectorAll(".validate-crosslink[data-jump-rate]").forEach(el => {
+                el.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    jumpToSbiRate(el.dataset.jumpRate);
+                });
+            });
+            td.querySelectorAll(".validate-crosslink[data-jump-stock]").forEach(el => {
+                el.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    jumpToStockSection(el.dataset.jumpStock, el.dataset.jumpSection);
+                });
+            });
             
             if (isOverridden) {
                 const badge = document.createElement("div");
@@ -1977,6 +2011,7 @@ function collectSbiRates(rows) {
             const src = entry.data.source || 'cache';
             const statusClass = src === 'override' ? 'override' : src === 'cache' ? 'cached' : 'missing';
             const tr = document.createElement("tr");
+            tr.dataset.rateDate = rateDate;
             tr.innerHTML = `
                 <td>${entry.label}</td>
                 <td>${rateDate}</td>
@@ -4395,3 +4430,135 @@ function addYearChangeGuard() {
     }, true); // capturing phase = runs first
 }
 
+// ===== About Modal =====
+async function openAboutModal() {
+    const modal = document.getElementById("aboutModal");
+    const badge = document.getElementById("aboutVersionBadge");
+    const resultEl = document.getElementById("updateResult");
+    
+    // Fetch current version
+    try {
+        const res = await fetch("/api/version");
+        const data = await res.json();
+        if (data.success) {
+            badge.textContent = `v${data.version}`;
+        }
+    } catch (e) {
+        badge.textContent = "v?";
+    }
+    
+    // Reset update result
+    resultEl.classList.add("hidden");
+    resultEl.className = "about-update-result hidden";
+    resultEl.innerHTML = "";
+    
+    modal.classList.remove("hidden");
+}
+
+function closeAboutModal() {
+    document.getElementById("aboutModal").classList.add("hidden");
+}
+
+async function checkForUpdate() {
+    const btn = document.getElementById("checkUpdateBtn");
+    const resultEl = document.getElementById("updateResult");
+    
+    btn.disabled = true;
+    btn.textContent = "⏳ Checking...";
+    resultEl.classList.add("hidden");
+    
+    try {
+        const res = await fetch("/api/check-update");
+        const data = await res.json();
+        
+        resultEl.classList.remove("hidden");
+        
+        if (!data.success) {
+            resultEl.className = "about-update-result update-error";
+            resultEl.textContent = `Could not check for updates: ${data.error}`;
+        } else if (data.update_available) {
+            resultEl.className = "about-update-result update-available";
+            resultEl.innerHTML = `New version <strong>v${data.latest_version}</strong> is available! <a href="${data.release_url}" target="_blank" rel="noopener">Download →</a>`;
+        } else {
+            resultEl.className = "about-update-result up-to-date";
+            resultEl.textContent = `✅ You're on the latest version (v${data.current_version})`;
+        }
+    } catch (e) {
+        resultEl.classList.remove("hidden");
+        resultEl.className = "about-update-result update-error";
+        resultEl.textContent = `Update check failed: ${e.message}`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "🔄 Check for Updates";
+    }
+}
+
+// ===== Validate A3 Cross-Link Jump Helpers =====
+function jumpToSbiRate(rateDate) {
+    const section = document.getElementById("sbiRatesSection");
+    if (!section || section.classList.contains("hidden")) return;
+    
+    // Ensure section content is expanded
+    const content = document.getElementById("sbiRatesContent");
+    if (content && content.classList.contains("collapsed")) {
+        toggleSection('sbiRatesContent');
+    }
+    
+    // Find the row with matching rate date
+    const rows = document.querySelectorAll("#sbiRatesTableBody tr[data-rate-date]");
+    let targetRow = null;
+    for (const row of rows) {
+        if (row.dataset.rateDate === rateDate) {
+            targetRow = row;
+            break;
+        }
+    }
+    
+    if (targetRow) {
+        // Scroll to it
+        const header = document.getElementById("appHeader");
+        const headerHeight = header ? header.offsetHeight : 0;
+        const top = targetRow.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
+        window.scrollTo({ top, behavior: "smooth" });
+        
+        // Highlight pulse
+        targetRow.classList.add("highlight-pulse");
+        setTimeout(() => targetRow.classList.remove("highlight-pulse"), 2000);
+    }
+}
+
+function jumpToStockSection(ticker, sectionClass) {
+    // Find the stock card with this ticker
+    const cards = document.querySelectorAll(".stock-card");
+    let targetCard = null;
+    for (const card of cards) {
+        const tickerEl = card.querySelector(".stock-ticker");
+        if (tickerEl && tickerEl.textContent.trim() === ticker) {
+            targetCard = card;
+            break;
+        }
+    }
+    
+    if (!targetCard) return;
+    
+    // Expand the card if collapsed
+    const body = targetCard.querySelector(".stock-card-body");
+    if (body && body.style.display === "none") {
+        const toggleBtn = targetCard.querySelector(".toggle-details-btn");
+        if (toggleBtn) toggleBtn.click();
+    }
+    
+    // Find the target section within the card
+    const targetSection = targetCard.querySelector(`.${sectionClass}`);
+    const scrollTarget = targetSection || targetCard;
+    
+    // Scroll to it
+    const header = document.getElementById("appHeader");
+    const headerHeight = header ? header.offsetHeight : 0;
+    const top = scrollTarget.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
+    window.scrollTo({ top, behavior: "smooth" });
+    
+    // Highlight pulse on the section
+    scrollTarget.classList.add("highlight-pulse");
+    setTimeout(() => scrollTarget.classList.remove("highlight-pulse"), 2000);
+}

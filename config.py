@@ -9,6 +9,10 @@ import os
 from pathlib import Path
 import sys
 
+# App version (must match the git tag for update checking)
+APP_VERSION = "1.0.1"
+GITHUB_REPO = "tepi3/itr_fa"
+
 # Base directory
 if getattr(sys, 'frozen', False):
     BASE_DIR = Path(sys.executable).parent
