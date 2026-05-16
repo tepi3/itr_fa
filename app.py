@@ -230,22 +230,26 @@ def show_splash_screen():
         canvas.create_rectangle(0, i * band_h, w, (i + 1) * band_h + 1,
                                  fill=color, outline=color)
 
-    canvas.create_rectangle(0, 0, w, 3, fill="#6366f1", outline="#6366f1")
-    canvas.create_text(w // 2, 65, text="🌐", font=("Arial", 40), fill="white")
-    canvas.create_text(w // 2, 120, text="FA Desk",
-                       font=("Helvetica Neue", 28, "bold"), fill="white")
-    canvas.create_text(w // 2, 152, text="Foreign Assets ITR Helper",
-                       font=("Helvetica Neue", 13), fill="#8b8fa3")
-    loading_text_id = canvas.create_text(w // 2, 200, text="Starting up…",
-                                          font=("Helvetica Neue", 11), fill="#6366f1")
+    canvas.create_rectangle(0, 0, w, 4, fill="#6366f1", outline="#6366f1")
+    
+    # Title & Subtitle
+    canvas.create_text(w // 2, 75, text="🌐", font=("Arial", 44), fill="white")
+    canvas.create_text(w // 2, 135, text="FA Desk",
+                       font=("Inter", 32, "bold"), fill="white")
+    canvas.create_text(w // 2, 172, text="Foreign Assets ITR Helper",
+                       font=("Inter", 14), fill="#94a3b8")
+    
+    loading_text_id = canvas.create_text(w // 2, 215, text="Initializing...",
+                                          font=("Inter", 11), fill="#6366f1")
 
-    bar_x, bar_y, bar_w, bar_h = 80, 225, w - 160, 4
+    bar_x, bar_y, bar_w, bar_h = 70, 235, w - 140, 6
     canvas.create_rectangle(bar_x, bar_y, bar_x + bar_w, bar_y + bar_h,
                              fill="#1e1e38", outline="#1e1e38")
     progress_bar = canvas.create_rectangle(bar_x, bar_y, bar_x, bar_y + bar_h,
                                             fill="#6366f1", outline="#6366f1")
-    canvas.create_text(w // 2, 260, text=f"v{APP_VERSION}",
-                       font=("Helvetica Neue", 10), fill="#4a4e69")
+    
+    canvas.create_text(w // 2, 265, text=f"Version {APP_VERSION}",
+                       font=("Inter", 10), fill="#475569")
 
     anim_state = {"progress": 10, "direction": 1, "flask_ready": False, "closed": False}
 
@@ -379,20 +383,15 @@ if __name__ == "__main__":
 
     # ── Standalone native window (compiled or dev with webview) ────
     if HAS_WEBVIEW and (is_frozen or not FLASK_DEBUG):
-
         # Show splash while Flask warms up
+        # On macOS, the splash mainloop MUST run on the main thread.
+        # It will block here until Flask is ready and the splash destroys itself.
         splash = show_splash_screen()
-
-        def splash_loop():
-            """Run the splash in a background thread; it closes itself when ready."""
-            if splash:
-                try:
-                    splash.mainloop()
-                except Exception:
-                    pass
-
-        splash_thread = Thread(target=splash_loop, daemon=True)
-        splash_thread.start()
+        if splash:
+            try:
+                splash.mainloop()
+            except Exception as e:
+                logger.error(f"Splash error: {e}")
 
         # Wait (blocking) until Flask is ready, then open native window
         if not wait_for_flask(timeout=20):
