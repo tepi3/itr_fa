@@ -89,6 +89,14 @@ def init_flask_app():
         last_heartbeat = time.time()
         return {"success": True}
 
+    @app.route("/api/focus", methods=["POST"])
+    def focus_window():
+        """Brings the native window to the front."""
+        if webview_window:
+            Timer(0.1, webview_window.show).start()
+            Timer(0.2, webview_window.restore).start()
+        return {"success": True}
+
     @app.route("/")
     def index():
         """Serve the main UI page."""
@@ -193,6 +201,13 @@ def check_single_instance(open_browser_if_found=True):
         result = sock.connect_ex((FLASK_HOST, FLASK_PORT))
         if result == 0:
             logger.info("Another instance detected via port check.")
+            # Try to signal the existing instance to focus
+            try:
+                import requests
+                requests.post(f"http://{FLASK_HOST}:{FLASK_PORT}/api/focus", timeout=1)
+            except Exception:
+                pass
+
             if open_browser_if_found:
                 webbrowser.open(f"http://{FLASK_HOST}:{FLASK_PORT}")
             return False
@@ -384,22 +399,44 @@ if __name__ == "__main__":
 
     # ── Standalone native window (compiled or dev with webview) ────
     if use_webview:
-        # 1. Create Splash Window IMMEDIATELY
+        # 1. Load settings for main window
+        settings = load_settings().get("window", {})
+        
+        # 2. Pre-create Main Window (HIDDEN)
+        # Create without URL initially to avoid 'Connection Refused' blank page
+        webview_window = webview.create_window(
+            title=f"FA Desk  v{APP_VERSION}",
+            url=None, # Load later when Flask is ready
+            width=settings.get("width", 1400),
+            height=settings.get("height", 900),
+            x=settings.get("x"),
+            y=settings.get("y"),
+            min_size=(900, 600),
+            hidden=True, # Start hidden to avoid white flash
+            background_color='#0f0f1a' # Match splash/app theme
+        )
+
+        # 3. Create Splash Window
         splash_window = webview.create_window(
             title="FA Desk - Starting",
             html=get_splash_html(),
             width=420,
             height=300,
             frameless=True,
-            on_top=True
+            on_top=True,
+            background_color='#0f0f1a' # Fix white box issue
         )
 
         def start_main_app():
             """Runs after webview loop starts; initializes Flask and switches to main window."""
-            # Start Flask in background thread (with delayed imports)
+            # Start Flask in background thread
             def run_server():
-                init_flask_app()
-                app.run(host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False)
+                try:
+                    init_flask_app()
+                    app.run(host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False)
+                except Exception as e:
+                    logger.error(f"Flask server error: {e}")
+                    os._exit(1)
 
             flask_thread = Thread(target=run_server, daemon=True)
             flask_thread.start()
@@ -411,51 +448,47 @@ if __name__ == "__main__":
                 except Exception:
                     pass
                 
-                time.sleep(0.5)
+                # Load URL in main window now that Flask is ready
+                webview_window.load_url(f"http://{FLASK_HOST}:{FLASK_PORT}")
+                
+                # Small delay to let user see "Ready!" and for URL to start loading
+                time.sleep(1.0)
 
-                # Create Main Window
-                settings = load_settings().get("window", {})
-                global webview_window
-                webview_window = webview.create_window(
-                    title=f"FA Desk  v{APP_VERSION}",
-                    url=f"http://{FLASK_HOST}:{FLASK_PORT}",
-                    width=settings.get("width", 1400),
-                    height=settings.get("height", 900),
-                    x=settings.get("x"),
-                    y=settings.get("y"),
-                    min_size=(900, 600),
-                )
+                # Show and focus Main Window
+                webview_window.show()
                 
                 if settings.get("maximized", True):
-                    Timer(0.5, webview_window.maximize).start()
+                    try:
+                        webview_window.maximize()
+                    except Exception: pass
 
-                # Event handlers
+                # Event handlers for main window
                 def on_closed():
                     os._exit(0)
                 
                 def save_state():
-                    if webview_window:
-                        try:
-                            s = {
-                                "width": webview_window.width, "height": webview_window.height,
-                                "x": webview_window.x, "y": webview_window.y,
-                                "maximized": getattr(webview_window, 'maximized', True)
-                            }
-                            save_settings({"window": s})
-                        except Exception: pass
+                    try:
+                        s = {
+                            "width": webview_window.width, "height": webview_window.height,
+                            "x": webview_window.x, "y": webview_window.y,
+                            "maximized": getattr(webview_window, 'maximized', True)
+                        }
+                        save_settings({"window": s})
+                    except Exception: pass
 
                 webview_window.events.closed += on_closed
                 webview_window.events.resized += lambda w, h: save_state()
                 webview_window.events.moved += lambda x, y: save_state()
 
-                # Close Splash
+                # Close Splash last to ensure smooth transition
                 splash_window.destroy()
             else:
                 logger.error("Flask did not start in time.")
+                splash_window.destroy()
                 os._exit(1)
 
         # Start Webview (Blocks here)
-        webview.start(start_main_app)
+        webview.start(start_main_app, debug=FLASK_DEBUG)
 
     else:
         # ── Dev / browser-only mode ────────────────────────────────
