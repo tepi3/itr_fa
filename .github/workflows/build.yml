@@ -58,7 +58,7 @@ jobs:
       run: |
         # Extract version without 'v' prefix
         VERSION=${GITHUB_REF_NAME#v}
-        python3 -c "import re; c=open('config.py').read(); c=re.sub(r'APP_VERSION = \".*\"', f'APP_VERSION = \"{VERSION}\"', c); open('config.py','w').write(c)"
+        python3 -c "import re; c=open('config.py').read(); c=re.sub(r'APP_VERSION = \".*\"', 'APP_VERSION = \"$VERSION\"', c); open('config.py','w').write(c)"
 
     - name: Build with PyInstaller
       run: >
