@@ -14,18 +14,17 @@ from threading import Timer, Thread, Event
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
-from flask import Flask, render_template, request, jsonify
-
-from config import (
-    FLASK_HOST, FLASK_PORT, FLASK_DEBUG, APP_VERSION, GITHUB_REPO,
-    SETTINGS_FILE
-)
-from core.utils import init_user_storage
-from routes.users import users_bp
-from routes.portfolio import portfolio_bp
-from routes.market import market_bp
-from routes.calculator import calculator_bp
-from routes.parsers import parsers_bp
+# Delayed imports for faster splash screen
+Flask = None
+render_template = None
+request = None
+jsonify = None
+init_user_storage = None
+users_bp = None
+portfolio_bp = None
+market_bp = None
+calculator_bp = None
+parsers_bp = None
 
 import sys
 import os
@@ -49,96 +48,102 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# Handle PyInstaller paths
-if getattr(sys, 'frozen', False):
-    template_folder = os.path.join(sys._MEIPASS, 'templates')
-    static_folder = os.path.join(sys._MEIPASS, 'static')
-    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
-else:
-    app = Flask(__name__)
-
-# Global state
-last_heartbeat = time.time() + 120  # 2 minute grace period for startup
-shutdown_flag = False
+app = None
 webview_window = None  # reference to native window (if using pywebview)
 
 
-@app.route("/api/heartbeat", methods=["POST"])
-def heartbeat():
-    global last_heartbeat
-    last_heartbeat = time.time()
-    return {"success": True}
+def init_flask_app():
+    """Initialize Flask and register blueprints only when needed."""
+    global app, Flask, render_template, request, jsonify, init_user_storage
+    global users_bp, portfolio_bp, market_bp, calculator_bp, parsers_bp
+    
+    from flask import Flask, render_template, request, jsonify
+    from core.utils import init_user_storage
+    from routes.users import users_bp
+    from routes.portfolio import portfolio_bp
+    from routes.market import market_bp
+    from routes.calculator import calculator_bp
+    from routes.parsers import parsers_bp
 
-
-# Register Blueprints
-app.register_blueprint(users_bp)
-app.register_blueprint(portfolio_bp)
-app.register_blueprint(market_bp)
-app.register_blueprint(calculator_bp)
-app.register_blueprint(parsers_bp)
-
-# Initialize storage
-init_user_storage()
-
-
-@app.route("/")
-def index():
-    """Serve the main UI page."""
-    return render_template("index.html")
-
-
-@app.route("/api/version")
-def get_version():
-    """Return the current app version."""
-    return {"success": True, "version": APP_VERSION}
-
-
-@app.route("/api/check-update")
-def check_update():
-    """Check GitHub for the latest release and compare with current version."""
-    try:
-        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-        req = Request(url, headers={"User-Agent": "FA-Desk-Update-Checker"})
-        with urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode())
-
-        latest_tag = data.get("tag_name", "").lstrip("v")
-        current = APP_VERSION.lstrip("v")
-
-        def parse_ver(v):
-            parts = v.split(".")
-            return tuple(int(p) for p in parts if p.isdigit())
-
-        is_newer = parse_ver(latest_tag) > parse_ver(current)
-
-        return {
-            "success": True,
-            "current_version": APP_VERSION,
-            "latest_version": latest_tag,
-            "update_available": is_newer,
-            "release_url": data.get("html_url", ""),
-            "release_name": data.get("name", ""),
-            "published_at": data.get("published_at", ""),
-        }
-    except Exception as e:
-        logger.error(f"Update check failed: {e}")
-        return {"success": False, "error": str(e)}
-
-
-@app.route("/api/shutdown", methods=["POST"])
-def shutdown():
-    """Shut down the Flask server."""
-    logger.info("Shutdown requested. Exiting application.")
-    global shutdown_flag
-    shutdown_flag = True
-
-    if webview_window:
-        # Close native window first (triggers on_closed → os._exit)
-        Timer(0.3, webview_window.destroy).start()
+    if getattr(sys, 'frozen', False):
+        template_folder = os.path.join(sys._MEIPASS, 'templates')
+        static_folder = os.path.join(sys._MEIPASS, 'static')
+        app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
     else:
-        Timer(0.5, lambda: os._exit(0)).start()
+        app = Flask(__name__)
 
-    return {"success": True, "message": "Shutting down..."}
+    # Register Blueprints
+    app.register_blueprint(users_bp)
+    app.register_blueprint(portfolio_bp)
+    app.register_blueprint(market_bp)
+    app.register_blueprint(calculator_bp)
+    app.register_blueprint(parsers_bp)
+
+    # Initialize storage
+    init_user_storage()
+
+    @app.route("/api/heartbeat", methods=["POST"])
+    def heartbeat():
+        global last_heartbeat
+        last_heartbeat = time.time()
+        return {"success": True}
+
+    @app.route("/")
+    def index():
+        """Serve the main UI page."""
+        return render_template("index.html")
+
+    @app.route("/api/version")
+    def get_version():
+        """Return the current app version."""
+        from config import APP_VERSION
+        return {"success": True, "version": APP_VERSION}
+
+    @app.route("/api/check-update")
+    def check_update():
+        """Check GitHub for the latest release and compare with current version."""
+        from config import APP_VERSION, GITHUB_REPO
+        try:
+            url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+            req = Request(url, headers={"User-Agent": "FA-Desk-Update-Checker"})
+            with urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+
+            latest_tag = data.get("tag_name", "").lstrip("v")
+            current = APP_VERSION.lstrip("v")
+
+            def parse_ver(v):
+                parts = v.split(".")
+                return tuple(int(p) for p in parts if p.isdigit())
+
+            is_newer = parse_ver(latest_tag) > parse_ver(current)
+
+            return {
+                "success": True,
+                "current_version": APP_VERSION,
+                "latest_version": latest_tag,
+                "update_available": is_newer,
+                "release_url": data.get("html_url", ""),
+                "release_name": data.get("name", ""),
+                "published_at": data.get("published_at", ""),
+            }
+        except Exception as e:
+            logger.error(f"Update check failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @app.route("/api/shutdown", methods=["POST"])
+    def shutdown():
+        """Shut down the Flask server."""
+        logger.info("Shutdown requested. Exiting application.")
+        global shutdown_flag
+        shutdown_flag = True
+
+        if webview_window:
+            Timer(0.3, webview_window.destroy).start()
+        else:
+            Timer(0.5, lambda: os._exit(0)).start()
+
+        return {"success": True, "message": "Shutting down..."}
 
 
 def open_browser():
@@ -237,21 +242,31 @@ def get_splash_html():
             const bar = document.getElementById('bar');
             const status = document.getElementById('status');
             
+            // Initial quick movement to show activity
+            setTimeout(() => {{
+                progress = 15;
+                bar.style.width = '15%';
+            }}, 100);
+
             function updateProgress() {{
-                if (progress < 85) {{
-                    progress += Math.random() * 5;
-                    bar.style.width = Math.min(progress, 85) + '%';
+                if (progress < 92) {{
+                    // Slow crawl while loading
+                    progress += Math.random() * 2;
+                    bar.style.width = Math.min(progress, 92) + '%';
+                    let delay = 150 + Math.random() * 200;
+                    setTimeout(updateProgress, delay);
                 }}
-                setTimeout(updateProgress, 200 + Math.random() * 300);
             }}
-            updateProgress();
+            setTimeout(updateProgress, 400);
 
             // Called from Python when Flask is ready
             function setReady() {{
-                bar.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                progress = 100;
+                bar.style.transition = 'width 0.6s cubic-bezier(0.22, 1, 0.36, 1)';
                 bar.style.width = '100%';
                 status.innerText = 'Ready!';
                 status.style.color = '#22c55e';
+                status.style.animation = 'none';
             }}
         </script>
     </body>
@@ -316,25 +331,18 @@ def run_tray_icon(on_open=None, on_quit=None):
 
 
 if __name__ == "__main__":
+    from config import FLASK_HOST, FLASK_PORT, FLASK_DEBUG, APP_VERSION, SETTINGS_FILE
+    
     is_frozen = getattr(sys, 'frozen', False)
     use_webview = HAS_WEBVIEW and (is_frozen or not FLASK_DEBUG)
 
     # ── Single-instance guard ──────────────────────────────────────
     if not check_single_instance(open_browser_if_found=not use_webview):
-        print("Another instance is already running.")
         sys.exit(0)
-
-    # ── Start Flask in background thread ──────────────────────────
-    flask_thread = Thread(
-        target=lambda: app.run(host=FLASK_HOST, port=FLASK_PORT,
-                               debug=False, use_reloader=False),
-        daemon=True,
-    )
-    flask_thread.start()
 
     # ── Standalone native window (compiled or dev with webview) ────
     if use_webview:
-        # 1. Create Splash Window
+        # 1. Create Splash Window IMMEDIATELY
         splash_window = webview.create_window(
             title="FA Desk - Starting",
             html=get_splash_html(),
@@ -345,7 +353,15 @@ if __name__ == "__main__":
         )
 
         def start_main_app():
-            """Runs after webview loop starts; polls Flask and switches to main window."""
+            """Runs after webview loop starts; initializes Flask and switches to main window."""
+            # Start Flask in background thread (with delayed imports)
+            def run_server():
+                init_flask_app()
+                app.run(host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False)
+
+            flask_thread = Thread(target=run_server, daemon=True)
+            flask_thread.start()
+
             if wait_for_flask(timeout=25):
                 # Notify splash to show 100%
                 try:
@@ -353,7 +369,7 @@ if __name__ == "__main__":
                 except Exception:
                     pass
                 
-                time.sleep(0.5) # Let user see "Ready!"
+                time.sleep(0.5)
 
                 # Create Main Window
                 settings = load_settings().get("window", {})
@@ -373,8 +389,6 @@ if __name__ == "__main__":
 
                 # Event handlers
                 def on_closed():
-                    global shutdown_flag
-                    shutdown_flag = True
                     os._exit(0)
                 
                 def save_state():
@@ -392,13 +406,6 @@ if __name__ == "__main__":
                 webview_window.events.resized += lambda w, h: save_state()
                 webview_window.events.moved += lambda x, y: save_state()
 
-                # Optional tray icon
-                if HAS_NATIVE and is_frozen:
-                    Thread(target=lambda: run_tray_icon(
-                        on_open=lambda: webview_window.show(),
-                        on_quit=lambda: os._exit(0),
-                    ), daemon=True).start()
-
                 # Close Splash
                 splash_window.destroy()
             else:
@@ -410,11 +417,20 @@ if __name__ == "__main__":
 
     else:
         # ── Dev / browser-only mode ────────────────────────────────
+        init_flask_app()
+        flask_thread = Thread(
+            target=lambda: app.run(host=FLASK_HOST, port=FLASK_PORT,
+                                   debug=False, use_reloader=False),
+            daemon=True,
+        )
+        flask_thread.start()
+        
         Thread(target=monitor_heartbeat, daemon=True).start()
         if not FLASK_DEBUG:
             Timer(1.5, open_browser).start()
         if HAS_NATIVE and not FLASK_DEBUG:
             run_tray_icon()
         else:
-            while not shutdown_flag:
-                time.sleep(1)
+            try:
+                while True: time.sleep(1)
+            except KeyboardInterrupt: os._exit(0)
