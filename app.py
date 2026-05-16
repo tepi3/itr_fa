@@ -146,7 +146,7 @@ def open_browser():
     webbrowser.open(f"http://{FLASK_HOST}:{FLASK_PORT}")
 
 
-def wait_for_flask(timeout=15):
+def wait_for_flask(timeout=25):
     """Block until Flask is accepting connections (or timeout)."""
     deadline = time.time() + timeout
     while time.time() < deadline:
@@ -157,7 +157,7 @@ def wait_for_flask(timeout=15):
             s.close()
             return True
         except Exception:
-            time.sleep(0.1)
+            time.sleep(0.2)
     return False
 
 
@@ -171,19 +171,18 @@ def monitor_heartbeat():
             os._exit(0)
 
 
-def check_single_instance():
+def check_single_instance(open_browser_if_found=True):
     """
     Check if another instance is already running.
-    If so, bring it to front and exit.
-    Returns True if this is the only instance.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.settimeout(1)
         result = sock.connect_ex((FLASK_HOST, FLASK_PORT))
         if result == 0:
-            logger.info("Another instance detected. Opening existing instance.")
-            webbrowser.open(f"http://{FLASK_HOST}:{FLASK_PORT}")
+            logger.info("Another instance detected.")
+            if open_browser_if_found:
+                webbrowser.open(f"http://{FLASK_HOST}:{FLASK_PORT}")
             return False
         return True
     except Exception:
@@ -192,115 +191,72 @@ def check_single_instance():
         sock.close()
 
 
-def show_splash_screen():
+def get_splash_html():
+    """Returns the HTML content for the webview-based splash screen."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{
+                margin: 0; padding: 0; overflow: hidden;
+                background: #0f0f1a; color: white;
+                font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                height: 100vh; width: 100vw;
+                border-top: 4px solid #6366f1; box-sizing: border-box;
+            }}
+            .icon {{ font-size: 52px; margin-bottom: 15px; }}
+            .title {{ font-size: 32px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }}
+            .subtitle {{ color: #94a3b8; font-size: 15px; margin: 8px 0 35px 0; }}
+            .loading-text {{ color: #6366f1; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }}
+            .progress-container {{ width: 280px; height: 6px; background: #1e1e38; border-radius: 10px; overflow: hidden; }}
+            .progress-bar {{ width: 0%; height: 100%; background: #6366f1; border-radius: 10px; transition: width 0.3s ease; }}
+            .version {{ position: absolute; bottom: 20px; color: #475569; font-size: 10px; font-weight: 500; }}
+            
+            @keyframes pulse {{
+                0% {{ opacity: 0.6; }}
+                50% {{ opacity: 1; }}
+                100% {{ opacity: 0.6; }}
+            }}
+            .loading-text {{ animation: pulse 1.5s infinite ease-in-out; }}
+        </style>
+    </head>
+    <body>
+        <div class="icon">🌐</div>
+        <h1 class="title">FA Desk</h1>
+        <p class="subtitle">Foreign Assets ITR Helper</p>
+        <div class="loading-text" id="status">Starting up...</div>
+        <div class="progress-container">
+            <div class="progress-bar" id="bar"></div>
+        </div>
+        <div class="version">Version {APP_VERSION}</div>
+
+        <script>
+            let progress = 0;
+            const bar = document.getElementById('bar');
+            const status = document.getElementById('status');
+            
+            function updateProgress() {{
+                if (progress < 85) {{
+                    progress += Math.random() * 5;
+                    bar.style.width = Math.min(progress, 85) + '%';
+                }}
+                setTimeout(updateProgress, 200 + Math.random() * 300);
+            }}
+            updateProgress();
+
+            // Called from Python when Flask is ready
+            function setReady() {{
+                bar.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                bar.style.width = '100%';
+                status.innerText = 'Ready!';
+                status.style.color = '#22c55e';
+            }}
+        </script>
+    </body>
+    </html>
     """
-    Show a tkinter splash screen while Flask starts.
-    Returns the splash Tk root (call .destroy() to close).
-    """
-    try:
-        import tkinter as tk
-    except ImportError:
-        return None
-
-    splash = tk.Tk()
-    splash.title("FA Desk")
-    splash.overrideredirect(True)
-
-    w, h = 420, 280
-    sw = splash.winfo_screenwidth()
-    sh = splash.winfo_screenheight()
-    x = (sw - w) // 2
-    y = (sh - h) // 2
-    splash.geometry(f"{w}x{h}+{x}+{y}")
-    splash.configure(bg="#0f0f1a")
-    splash.attributes("-topmost", True)
-
-    canvas = tk.Canvas(splash, width=w, height=h, bg="#0f0f1a",
-                       highlightthickness=0, bd=0)
-    canvas.pack(fill="both", expand=True)
-
-    # Gradient background
-    gradient_colors = [
-        "#0f0f1a", "#101120", "#111326", "#12152c", "#131732",
-        "#141938", "#151b3e", "#141938", "#131732", "#12152c",
-        "#111326", "#101120", "#0f0f1a"
-    ]
-    band_h = h // len(gradient_colors)
-    for i, color in enumerate(gradient_colors):
-        canvas.create_rectangle(0, i * band_h, w, (i + 1) * band_h + 1,
-                                 fill=color, outline=color)
-
-    canvas.create_rectangle(0, 0, w, 4, fill="#6366f1", outline="#6366f1")
-    
-    # Title & Subtitle
-    canvas.create_text(w // 2, 75, text="🌐", font=("Arial", 44), fill="white")
-    canvas.create_text(w // 2, 135, text="FA Desk",
-                       font=("Inter", 32, "bold"), fill="white")
-    canvas.create_text(w // 2, 172, text="Foreign Assets ITR Helper",
-                       font=("Inter", 14), fill="#94a3b8")
-    
-    loading_text_id = canvas.create_text(w // 2, 215, text="Initializing...",
-                                          font=("Inter", 11), fill="#6366f1")
-
-    bar_x, bar_y, bar_w, bar_h = 70, 235, w - 140, 6
-    canvas.create_rectangle(bar_x, bar_y, bar_x + bar_w, bar_y + bar_h,
-                             fill="#1e1e38", outline="#1e1e38")
-    progress_bar = canvas.create_rectangle(bar_x, bar_y, bar_x, bar_y + bar_h,
-                                            fill="#6366f1", outline="#6366f1")
-    
-    canvas.create_text(w // 2, 265, text=f"Version {APP_VERSION}",
-                       font=("Inter", 10), fill="#475569")
-
-    anim_state = {"progress": 10, "direction": 1, "flask_ready": False, "closed": False}
-
-    def close_splash():
-        if not anim_state["closed"]:
-            anim_state["closed"] = True
-            try:
-                splash.destroy()
-            except Exception:
-                pass
-
-    def animate():
-        if anim_state["closed"]:
-            return
-        if anim_state["flask_ready"]:
-            anim_state["progress"] = min(anim_state["progress"] + 8, 100)
-            fill_w = int(bar_w * anim_state["progress"] / 100)
-            canvas.coords(progress_bar, bar_x, bar_y, bar_x + fill_w, bar_y + bar_h)
-            canvas.itemconfig(loading_text_id, text="Ready!", fill="#22c55e")
-            if anim_state["progress"] >= 100:
-                splash.after(300, close_splash)
-                return
-        else:
-            anim_state["progress"] += anim_state["direction"] * 2
-            if anim_state["progress"] >= 80:
-                anim_state["direction"] = -1
-            elif anim_state["progress"] <= 10:
-                anim_state["direction"] = 1
-            fill_w = int(bar_w * anim_state["progress"] / 100)
-            canvas.coords(progress_bar, bar_x, bar_y, bar_x + fill_w, bar_y + bar_h)
-        splash.after(30, animate)
-
-    def poll_flask():
-        if anim_state["closed"]:
-            return
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(0.5)
-            s.connect((FLASK_HOST, FLASK_PORT))
-            s.close()
-            anim_state["flask_ready"] = True
-            return
-        except Exception:
-            pass
-        splash.after(200, poll_flask)
-
-    splash.after(50, animate)
-    splash.after(500, poll_flask)
-    splash.after(15000, close_splash)  # safety timeout
-
-    return splash
 
 
 def load_settings():
@@ -361,15 +317,10 @@ def run_tray_icon(on_open=None, on_quit=None):
 
 if __name__ == "__main__":
     is_frozen = getattr(sys, 'frozen', False)
-
-    print(f"\n{'='*60}")
-    print(f"  FA Desk — Foreign Assets Tracker and ITR Helper")
-    print(f"  Version: {APP_VERSION}")
-    print(f"  Open: http://{FLASK_HOST}:{FLASK_PORT}")
-    print(f"{'='*60}\n")
+    use_webview = HAS_WEBVIEW and (is_frozen or not FLASK_DEBUG)
 
     # ── Single-instance guard ──────────────────────────────────────
-    if not check_single_instance():
+    if not check_single_instance(open_browser_if_found=not use_webview):
         print("Another instance is already running.")
         sys.exit(0)
 
@@ -382,106 +333,86 @@ if __name__ == "__main__":
     flask_thread.start()
 
     # ── Standalone native window (compiled or dev with webview) ────
-    if HAS_WEBVIEW and (is_frozen or not FLASK_DEBUG):
-        # Show splash while Flask warms up
-        # On macOS, the splash mainloop MUST run on the main thread.
-        # It will block here until Flask is ready and the splash destroys itself.
-        splash = show_splash_screen()
-        if splash:
-            try:
-                splash.mainloop()
-            except Exception as e:
-                logger.error(f"Splash error: {e}")
-
-        # Wait (blocking) until Flask is ready, then open native window
-        if not wait_for_flask(timeout=20):
-            logger.error("Flask did not start in time. Aborting.")
-            os._exit(1)
-
-        # Icon path for the native window
-        icon_path = os.path.join(
-            app.static_folder if hasattr(app, 'static_folder') else 'static',
-            'icon.png'
-        )
-        if not os.path.exists(icon_path):
-            icon_path = None
-
-        # Load window settings
-        settings = load_settings().get("window", {})
-        win_w = settings.get("width", 1400)
-        win_h = settings.get("height", 900)
-        win_x = settings.get("x")
-        win_y = settings.get("y")
-        win_max = settings.get("maximized", True)
-
-        def on_webview_closed():
-            """Called when the user closes the native window."""
-            global shutdown_flag
-            shutdown_flag = True
-            logger.info("Native window closed. Shutting down.")
-            os._exit(0)
-
-        def save_window_state():
-            """Capture and save current window dimensions and position."""
-            if not webview_window:
-                return
-            try:
-                # pywebview might not support all these on all platforms, handle gracefully
-                state = {
-                    "width": webview_window.width,
-                    "height": webview_window.height,
-                    "x": webview_window.x,
-                    "y": webview_window.y,
-                    # Check if maximized (not all platforms support this property directly)
-                    "maximized": getattr(webview_window, 'maximized', win_max)
-                }
-                save_settings({"window": state})
-            except Exception as e:
-                logger.debug(f"Could not save window state: {e}")
-
-        # Create the native window
-        webview_window = webview.create_window(
-            title=f"FA Desk  v{APP_VERSION}",
-            url=f"http://{FLASK_HOST}:{FLASK_PORT}",
-            width=win_w,
-            height=win_h,
-            x=win_x,
-            y=win_y,
-            min_size=(900, 600),
+    if use_webview:
+        # 1. Create Splash Window
+        splash_window = webview.create_window(
+            title="FA Desk - Starting",
+            html=get_splash_html(),
+            width=420,
+            height=300,
+            frameless=True,
+            on_top=True
         )
 
-        # Set maximized state if it was saved
-        if win_max:
-            # We delay maximization slightly to ensure window is created
-            Timer(0.5, webview_window.maximize).start()
+        def start_main_app():
+            """Runs after webview loop starts; polls Flask and switches to main window."""
+            if wait_for_flask(timeout=25):
+                # Notify splash to show 100%
+                try:
+                    splash_window.evaluate_js("setReady()")
+                except Exception:
+                    pass
+                
+                time.sleep(0.5) # Let user see "Ready!"
 
-        webview_window.events.closed += on_webview_closed
-        webview_window.events.resized += lambda w, h: save_window_state()
-        webview_window.events.moved += lambda x, y: save_window_state()
+                # Create Main Window
+                settings = load_settings().get("window", {})
+                global webview_window
+                webview_window = webview.create_window(
+                    title=f"FA Desk  v{APP_VERSION}",
+                    url=f"http://{FLASK_HOST}:{FLASK_PORT}",
+                    width=settings.get("width", 1400),
+                    height=settings.get("height", 900),
+                    x=settings.get("x"),
+                    y=settings.get("y"),
+                    min_size=(900, 600),
+                )
+                
+                if settings.get("maximized", True):
+                    Timer(0.5, webview_window.maximize).start()
 
-        # Optional tray icon that brings window to front
-        def bring_to_front():
-            try:
-                webview_window.show()
-            except Exception:
-                pass
+                # Event handlers
+                def on_closed():
+                    global shutdown_flag
+                    shutdown_flag = True
+                    os._exit(0)
+                
+                def save_state():
+                    if webview_window:
+                        try:
+                            s = {
+                                "width": webview_window.width, "height": webview_window.height,
+                                "x": webview_window.x, "y": webview_window.y,
+                                "maximized": getattr(webview_window, 'maximized', True)
+                            }
+                            save_settings({"window": s})
+                        except Exception: pass
 
-        if HAS_NATIVE and is_frozen:
-            Thread(target=lambda: run_tray_icon(
-                on_open=bring_to_front,
-                on_quit=lambda: os._exit(0),
-            ), daemon=True).start()
+                webview_window.events.closed += on_closed
+                webview_window.events.resized += lambda w, h: save_state()
+                webview_window.events.moved += lambda x, y: save_state()
 
-        # Start webview event loop (blocks main thread until window closed)
-        webview.start()
+                # Optional tray icon
+                if HAS_NATIVE and is_frozen:
+                    Thread(target=lambda: run_tray_icon(
+                        on_open=lambda: webview_window.show(),
+                        on_quit=lambda: os._exit(0),
+                    ), daemon=True).start()
+
+                # Close Splash
+                splash_window.destroy()
+            else:
+                logger.error("Flask did not start in time.")
+                os._exit(1)
+
+        # Start Webview (Blocks here)
+        webview.start(start_main_app)
 
     else:
         # ── Dev / browser-only mode ────────────────────────────────
         Thread(target=monitor_heartbeat, daemon=True).start()
-
         if not FLASK_DEBUG:
             Timer(1.5, open_browser).start()
-
         if HAS_NATIVE and not FLASK_DEBUG:
             run_tray_icon()
         else:
