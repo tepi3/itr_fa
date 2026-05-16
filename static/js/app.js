@@ -4544,7 +4544,7 @@ function jumpToStockSection(ticker, sectionClass, targetId) {
     
     // Expand the card if collapsed
     const body = targetCard.querySelector(".stock-card-body");
-    if (body && body.style.display === "none") {
+    if (body && body.classList.contains("collapsed")) {
         const toggleBtn = targetCard.querySelector(".toggle-details-btn");
         if (toggleBtn) toggleBtn.click();
     }
@@ -4555,7 +4555,7 @@ function jumpToStockSection(ticker, sectionClass, targetId) {
     let highlightTarget = targetSection || targetCard;
 
     if (targetId) {
-        // Try to find specific row
+        // Try to find specific row by checking all ID types
         const row = targetCard.querySelector(`tr[data-lot-id="${targetId}"], tr[data-div-id="${targetId}"], tr[data-sell-id="${targetId}"]`);
         if (row) {
             scrollTarget = row;
