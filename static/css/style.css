@@ -258,29 +258,56 @@ body {
 .btn-primary {
     background: var(--accent);
     color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.btn-primary:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+.btn-primary:hover { 
+    background: var(--accent-hover); 
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4); 
+    transform: translateY(-2px);
+}
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
 .btn-outline {
     background: transparent;
     color: var(--text-secondary);
     border: 1px solid var(--border);
 }
-.btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.btn-outline:hover { 
+    border-color: var(--accent); 
+    color: var(--accent); 
+    background: var(--accent-light);
+    transform: translateY(-1px);
+}
+.btn-outline:active {
+    transform: translateY(0);
+}
 
 .btn-accent {
     background: linear-gradient(135deg, var(--accent), #8b5cf6);
     color: white;
     font-weight: 600;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
-.btn-accent:hover { box-shadow: 0 4px 20px rgba(99, 102, 241, 0.5); transform: translateY(-1px); }
+.btn-accent:hover { 
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5); 
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}
+.btn-accent:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
 
 .btn-danger {
     background: var(--danger-light);
     color: var(--danger);
     border: 1px solid transparent;
 }
-.btn-danger:hover { background: var(--danger); color: white; }
+.btn-danger:hover { background: var(--danger); color: white; transform: translateY(-1px); }
+.btn-danger:active { transform: translateY(0); }
 
 .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
 
@@ -493,9 +520,27 @@ label {
 }
 
 .stock-card-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                margin 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                border 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 1px solid transparent;
+}
+
+.stock-card-body.expanded {
+    grid-template-rows: 1fr;
     margin-top: 20px;
-    border-top: 1px solid var(--border);
     padding-top: 20px;
+    border-top-color: var(--border);
+}
+
+.stock-card-body > div {
+    min-height: 0;
 }
 
 .stock-card-body.collapsed { display: none; }
@@ -534,7 +579,13 @@ td {
     vertical-align: middle;
 }
 
-tr:hover td { background: var(--bg-hover); }
+tr {
+    transition: background-color 0.2s ease;
+}
+
+tr:hover td { 
+    background: var(--bg-hover) !important; 
+}
 
 .lots-table input, .sells-table input, .sells-table select {
     width: 100%;
@@ -795,10 +846,37 @@ tr:hover td { background: var(--bg-hover); }
     text-transform: uppercase;
 }
 
-@keyframes highlight-pulse {
-    0% { background-color: transparent; }
-    30% { background-color: var(--accent-light); }
-    100% { background-color: transparent; }
+/* ===== Animations ===== */
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stagger-in {
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--stagger-delay, 0s));
+}
+
+.collapsible-content {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.collapsible-content.collapsed {
+    display: grid;
+    grid-template-rows: 0fr;
+}
+
+.collapsible-content > div {
+    min-height: 0;
 }
 
 .highlight-pulse {

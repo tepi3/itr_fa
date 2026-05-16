@@ -290,6 +290,7 @@ function bindEvents() {
     document.getElementById("refreshMonthlyRatesBtn").addEventListener("click", loadMonthlyRates);
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
     document.getElementById("lockRatesBtn").addEventListener("click", toggleLockRates);
+    document.getElementById("clearSbiBtn").addEventListener("click", clearSbiOverrides);
     document.getElementById("undoBtn").addEventListener("click", undo);
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
@@ -345,26 +346,32 @@ function bindEvents() {
     // Collapse All / Expand All
     document.getElementById("collapseAllBtn").addEventListener("click", () => {
         document.querySelectorAll(".stock-card-body").forEach(body => {
-            body.classList.add("collapsed");
+            body.classList.remove("expanded");
             const btn = body.closest(".stock-card").querySelector(".toggle-details-btn");
             if (btn) btn.textContent = "▶ Details";
         });
         document.querySelectorAll(".collapsible-content").forEach(el => {
             el.classList.add("collapsed");
-            const icon = el.previousElementSibling.querySelector(".toggle-icon");
-            if (icon) icon.style.transform = "rotate(-90deg)";
+            const header = el.previousElementSibling;
+            if (header) {
+                const icon = header.querySelector(".toggle-icon");
+                if (icon) icon.style.transform = "rotate(-90deg)";
+            }
         });
     });
     document.getElementById("expandAllBtn").addEventListener("click", () => {
         document.querySelectorAll(".stock-card-body").forEach(body => {
-            body.classList.remove("collapsed");
+            body.classList.add("expanded");
             const btn = body.closest(".stock-card").querySelector(".toggle-details-btn");
             if (btn) btn.textContent = "▼ Details";
         });
         document.querySelectorAll(".collapsible-content").forEach(el => {
             el.classList.remove("collapsed");
-            const icon = el.previousElementSibling.querySelector(".toggle-icon");
-            if (icon) icon.style.transform = "";
+            const header = el.previousElementSibling;
+            if (header) {
+                const icon = header.querySelector(".toggle-icon");
+                if (icon) icon.style.transform = "";
+            }
         });
     });
 
@@ -622,9 +629,28 @@ function hideLoading() {
 // ===== Collapsible Sections =====
 function toggleSection(id) {
     const el = document.getElementById(id);
-    el.classList.toggle("collapsed");
+    const isCollapsed = el.classList.toggle("collapsed");
     const icon = el.previousElementSibling.querySelector(".toggle-icon");
-    if (icon) icon.style.transform = el.classList.contains("collapsed") ? "rotate(-90deg)" : "";
+    if (icon) icon.style.transform = isCollapsed ? "rotate(-90deg)" : "";
+}
+
+function clearSbiOverrides() {
+    if (!confirm("Are you sure you want to clear all manual SBI TT rate overrides? This will revert them to auto-fetched values.")) return;
+    
+    pushUndoSnapshot("Clear SBI Overrides");
+    state.portfolio.sbi_rate_overrides = {};
+    // Also clear calculated overrides as they likely depend on rates
+    state.portfolio.overrides = {}; 
+    
+    markDirty();
+    showToast("SBI TT overrides cleared", "success");
+    
+    // Refresh UI
+    if (state.calculatedRows.length > 0) {
+        calculateAll(); // Recalculate if report exists
+    } else {
+        restorePortfolioUI();
+    }
 }
 
 
@@ -898,11 +924,16 @@ function renderStockCard(stock) {
 
     card.querySelector(".skip-dividends-check").addEventListener("change", () => syncStockFromCard(card));
 
+    // Staggered Entrance Animation
+    const existingCards = document.querySelectorAll(".stock-card");
+    card.style.setProperty("--stagger-delay", `${existingCards.length * 0.08}s`);
+    card.classList.add("stagger-in");
+
     // Toggle details
     card.querySelector(".toggle-details-btn").addEventListener("click", (e) => {
         const body = card.querySelector(".stock-card-body");
-        body.classList.toggle("collapsed");
-        e.target.textContent = body.classList.contains("collapsed") ? "▶ Details" : "▼ Details";
+        const isExpanded = body.classList.toggle("expanded");
+        e.target.textContent = isExpanded ? "▼ Details" : "▶ Details";
     });
 
     // Remove stock

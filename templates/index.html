@@ -90,6 +90,7 @@
                         <button id="fetchRatesBtn" class="btn" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
                         <button id="viewRatesBtn" class="btn" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
                         <button id="fetchAllDividendsBtn" class="btn" title="Fetch dividends for all stocks in current year">💰 Fetch All Dividends</button>
+                        <button id="clearSbiBtn" class="btn" title="Clear all manual SBI TT rate overrides" style="color:var(--danger);">🗑️ Clear SBI TT Overrides</button>
                     </div>
                 </div>
 
@@ -152,28 +153,30 @@
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="monthlyRatesContent" class="collapsible-content">
-                <p class="hint" style="margin-bottom: 12px;">
-                    These are the rates used for conversions. For transactions in a given month, the rate from the
-                    <strong>last working day of the previous month</strong> is used. Edit any rate if the auto-fetched value is incorrect or missing.
-                </p>
-                <div class="rates-currency-select">
-                    <label for="ratesYearSelect">Year:</label>
-                    <select id="ratesYearSelect"></select>
-                    <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">↻ Load Rates</button>
-                    <button id="lockRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">🔒 Lock Year</button>
+                <div>
+                    <p class="hint" style="margin-bottom: 12px;">
+                        These are the rates used for conversions. For transactions in a given month, the rate from the
+                        <strong>last working day of the previous month</strong> is used. Edit any rate if the auto-fetched value is incorrect or missing.
+                    </p>
+                    <div class="rates-currency-select">
+                        <label for="ratesYearSelect">Year:</label>
+                        <select id="ratesYearSelect"></select>
+                        <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">↻ Load Rates</button>
+                        <button id="lockRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">🔒 Lock Year</button>
+                    </div>
+                    <table id="monthlyRatesTable">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Rate Date (Last WD Prev Month)</th>
+                                <th>TT Buy Rate (₹)</th>
+                                <th>Source</th>
+                                <th>Edit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyRatesTableBody"></tbody>
+                    </table>
                 </div>
-                <table id="monthlyRatesTable">
-                    <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th>Rate Date (Last WD Prev Month)</th>
-                            <th>TT Buy Rate (₹)</th>
-                            <th>Source</th>
-                            <th>Edit</th>
-                        </tr>
-                    </thead>
-                    <tbody id="monthlyRatesTableBody"></tbody>
-                </table>
             </div>
         </section>
 
@@ -239,32 +242,34 @@
                 </div>
             </div>
             <div id="resultsContent" class="collapsible-content">
-                <div class="table-wrapper">
-                <table id="a3Table">
-                    <thead>
-                        <tr>
-                            <th>Sl.<br>No.</th>
-                            <th>Country<br>Name and Code</th>
-                            <th>Name of<br>entity</th>
-                            <th>Address of<br>entity</th>
-                            <th>Zip<br>code</th>
-                            <th>Nature of<br>entity</th>
-                            <th>Date of<br>acquiring the<br>interest</th>
-                            <th>Initial value<br>of the<br>investment (₹)</th>
-                            <th>Peak value of<br>investment<br>during the period (₹)</th>
-                            <th>Closing<br>balance (₹)</th>
-                            <th>Total gross<br>amount paid/<br>credited (₹)</th>
-                            <th>Total gross<br>proceeds from<br>sale (₹)</th>
-                        </tr>
-                        <tr class="col-numbers">
-                            <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td>
-                            <td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td>
-                        </tr>
-                    </thead>
-                    <tbody id="a3TableBody">
-                    </tbody>
-                </table>
-            </div>
+                <div>
+                    <div class="table-wrapper">
+                        <table id="a3Table">
+                            <thead>
+                                <tr>
+                                    <th>Sl.<br>No.</th>
+                                    <th>Country<br>Name and Code</th>
+                                    <th>Name of<br>entity</th>
+                                    <th>Address of<br>entity</th>
+                                    <th>Zip<br>code</th>
+                                    <th>Nature of<br>entity</th>
+                                    <th>Date of<br>acquiring the<br>interest</th>
+                                    <th>Initial value<br>of the<br>investment (₹)</th>
+                                    <th>Peak value of<br>investment<br>during the period (₹)</th>
+                                    <th>Closing<br>balance (₹)</th>
+                                    <th>Total gross<br>amount paid/<br>credited (₹)</th>
+                                    <th>Total gross<br>proceeds from<br>sale (₹)</th>
+                                </tr>
+                                <tr class="col-numbers">
+                                    <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td>
+                                    <td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td>
+                                </tr>
+                            </thead>
+                            <tbody id="a3TableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -275,22 +280,24 @@
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="validateA3Content" class="collapsible-content">
-                <p class="hint" style="margin-bottom:12px;">Review the mathematical breakdown for each column to verify the final INR values.</p>
-                <div class="table-wrapper">
-                    <table id="validateA3Table" class="validate-table">
-                        <thead>
-                            <tr>
-                                <th>Sl. No.</th>
-                                <th>Ticker</th>
-                                <th>Col 8: Initial (₹)</th>
-                                <th>Col 9: Peak (₹)</th>
-                                <th>Col 10: Closing (₹)</th>
-                                <th>Col 11: Dividends (₹)</th>
-                                <th>Col 12: Sales (₹)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="validateA3TableBody"></tbody>
-                    </table>
+                <div>
+                    <p class="hint" style="margin-bottom:12px;">Review the mathematical breakdown for each column to verify the final INR values.</p>
+                    <div class="table-wrapper">
+                        <table id="validateA3Table" class="validate-table">
+                            <thead>
+                                <tr>
+                                    <th>Sl. No.</th>
+                                    <th>Ticker</th>
+                                    <th>Col 8: Initial (₹)</th>
+                                    <th>Col 9: Peak (₹)</th>
+                                    <th>Col 10: Closing (₹)</th>
+                                    <th>Col 11: Dividends (₹)</th>
+                                    <th>Col 12: Sales (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="validateA3TableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
@@ -302,15 +309,17 @@
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="stockSummaryContent" class="collapsible-content">
-                <table id="stockSummaryTable">
-                    <thead>
-                        <tr>
-                            <th>Entity Name</th>
-                            <th>Total Dividends Earned (₹)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="stockSummaryTableBody"></tbody>
-                </table>
+                <div>
+                    <table id="stockSummaryTable">
+                        <thead>
+                            <tr>
+                                <th>Entity Name</th>
+                                <th>Total Dividends Earned (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockSummaryTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -321,14 +330,16 @@
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="taxYearContent" class="collapsible-content">
-                <p class="hint" style="margin-bottom:14px;">
-                    Gains/losses and dividends mapped to Indian tax years and advance-tax quarterly buckets.
-                    <strong>LTCG/LTCL</strong> = held ≥ 2 years &nbsp;|&nbsp;
-                    <strong>STCG/STCL</strong> = held &lt; 2 years.
-                    Amounts in <strong>₹</strong>.
-                </p>
-                <div id="taxYearBlocks">
-                    <!-- Populated by JS -->
+                <div>
+                    <p class="hint" style="margin-bottom:14px;">
+                        Gains/losses and dividends mapped to Indian tax years and advance-tax quarterly buckets.
+                        <strong>LTCG/LTCL</strong> = held ≥ 2 years &nbsp;|&nbsp;
+                        <strong>STCG/STCL</strong> = held &lt; 2 years.
+                        Amounts in <strong>₹</strong>.
+                    </p>
+                    <div id="taxYearBlocks">
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
             </div>
         </section>
@@ -340,9 +351,11 @@
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="assetPieChartContent" class="collapsible-content">
-                <div class="pie-chart-container">
-                    <canvas id="assetPieChart" width="400" height="400"></canvas>
-                    <div id="assetPieChartLegend" class="pie-chart-legend"></div>
+                <div>
+                    <div class="pie-chart-container">
+                        <canvas id="assetPieChart" width="400" height="400"></canvas>
+                        <div id="assetPieChartLegend" class="pie-chart-legend"></div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -354,18 +367,20 @@
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="sbiRatesContent" class="collapsible-content">
-                <p class="hint" style="margin-bottom: 12px;">These are the specific SBI TT Buying rates applied to each calculation step.</p>
-                <table id="sbiRatesTable">
-                    <thead>
-                        <tr>
-                            <th>Calculation For</th>
-                            <th>Rate Date</th>
-                            <th>TT Buy Rate (₹)</th>
-                            <th>Source</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sbiRatesTableBody"></tbody>
-                </table>
+                <div>
+                    <p class="hint" style="margin-bottom: 12px;">These are the specific SBI TT Buying rates applied to each calculation step.</p>
+                    <table id="sbiRatesTable">
+                        <thead>
+                            <tr>
+                                <th>Calculation For</th>
+                                <th>Rate Date</th>
+                                <th>TT Buy Rate (₹)</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sbiRatesTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -408,23 +423,25 @@
                     <span class="toggle-icon">▼</span>
                 </div>
                 <div id="shLotsRefContent" class="collapsible-content" style="margin-top:12px;">
-                    <p class="hint" style="margin-bottom:10px;">These are the acquisition lots from your current portfolio — for reference while building simulated sells. <strong>Not editable here.</strong></p>
-                    <div style="overflow-x:auto;">
-                        <table class="sh-lots-ref-table" id="shLotsRefTable">
-                            <thead>
-                                <tr>
-                                    <th>Stock</th>
-                                    <th>Buy Date</th>
-                                    <th>Buy Price ($)</th>
-                                    <th>Total Qty</th>
-                                    <th>Already Sold</th>
-                                    <th>Available Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody id="shLotsRefBody">
-                                <tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-muted);font-size:0.85rem;">Switch to the Sell Simulator tab to load lots from your portfolio.</td></tr>
-                            </tbody>
-                        </table>
+                    <div>
+                        <p class="hint" style="margin-bottom:10px;">These are the acquisition lots from your current portfolio — for reference while building simulated sells. <strong>Not editable here.</strong></p>
+                        <div style="overflow-x:auto;">
+                            <table class="sh-lots-ref-table" id="shLotsRefTable">
+                                <thead>
+                                    <tr>
+                                        <th>Stock</th>
+                                        <th>Buy Date</th>
+                                        <th>Buy Price ($)</th>
+                                        <th>Total Qty</th>
+                                        <th>Already Sold</th>
+                                        <th>Available Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shLotsRefBody">
+                                    <tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-muted);font-size:0.85rem;">Switch to the Sell Simulator tab to load lots from your portfolio.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -563,111 +580,113 @@
             </div>
 
             <div class="stock-card-body">
-                <!-- Company Info -->
-                <div class="company-info-section">
-                    <div class="section-header">
-                        <h3>Company Information</h3>
-                        <button class="btn btn-sm btn-outline fetch-company-details-btn" title="Fetch company info from Yahoo Finance and override current values">🔄 Fetch Details</button>
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-field">
-                            <label>Country Code</label>
-                            <input type="text" class="company-country" placeholder="e.g., 2-UNITED STATES OF AMERICA">
+                <div>
+                    <!-- Company Info -->
+                    <div class="company-info-section">
+                        <div class="section-header">
+                            <h3>Company Information</h3>
+                            <button class="btn btn-sm btn-outline fetch-company-details-btn" title="Fetch company info from Yahoo Finance and override current values">🔄 Fetch Details</button>
                         </div>
-                        <div class="form-field">
-                            <label>Entity Name</label>
-                            <input type="text" class="company-name" placeholder="e.g., Qualcomm Incorporated (QCOM)">
-                        </div>
-                        <div class="form-field">
-                            <label>Address</label>
-                            <input type="text" class="company-address" placeholder="e.g., 5775 Morehouse Drive, San Diego, CA">
-                        </div>
-                        <div class="form-field">
-                            <label>Zip Code</label>
-                            <input type="text" class="company-zip" placeholder="e.g., 92121">
-                        </div>
-                        <div class="form-field">
-                            <label>Nature</label>
-                            <select class="company-nature">
-                                <option value="Company">Company</option>
-                                <option value="ETF">ETF</option>
-                                <option value="Trust">Trust</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="form-field">
-                            <label>
-                                <input type="checkbox" class="skip-dividends-check"> Skip Dividends
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lots Section -->
-                <div class="lots-section">
-                    <div class="section-header">
-                        <h3>Acquisition Lots</h3>
-                        <div style="display:flex; gap:6px;">
-                            <button class="btn btn-sm btn-outline import-lots-csv-btn" title="Import lots from CSV file">📂 Import CSV</button>
-                            <input type="file" class="import-lots-csv-input" accept=".csv" style="display:none;">
-                            <button class="btn btn-sm btn-primary add-lot-btn">+ Add Lot</button>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label>Country Code</label>
+                                <input type="text" class="company-country" placeholder="e.g., 2-UNITED STATES OF AMERICA">
+                            </div>
+                            <div class="form-field">
+                                <label>Entity Name</label>
+                                <input type="text" class="company-name" placeholder="e.g., Qualcomm Incorporated (QCOM)">
+                            </div>
+                            <div class="form-field">
+                                <label>Address</label>
+                                <input type="text" class="company-address" placeholder="e.g., 5775 Morehouse Drive, San Diego, CA">
+                            </div>
+                            <div class="form-field">
+                                <label>Zip Code</label>
+                                <input type="text" class="company-zip" placeholder="e.g., 92121">
+                            </div>
+                            <div class="form-field">
+                                <label>Nature</label>
+                                <select class="company-nature">
+                                    <option value="Company">Company</option>
+                                    <option value="ETF">ETF</option>
+                                    <option value="Trust">Trust</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>
+                                    <input type="checkbox" class="skip-dividends-check"> Skip Dividends
+                                </label>
+                            </div>
                         </div>
                     </div>
-                    <table class="lots-table">
-                        <thead>
-                            <tr>
-                                <th>Buy Date</th>
-                                <th>Quantity</th>
-                                <th class="buy-price-header">Buy Price ($)</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="lots-tbody"></tbody>
-                    </table>
-                </div>
-
-                <!-- Sells Section -->
-                <div class="sells-section">
-                    <div class="section-header">
-                        <h3>Sell Transactions</h3>
-                        <button class="btn btn-sm btn-primary add-sell-btn">+ Add Sell</button>
-                    </div>
-                    <table class="sells-table">
-                        <thead>
-                            <tr>
-                                <th>Lot (Buy Date)</th>
-                                <th>Buy Price ($)</th>
-                                <th>Sell Date</th>
-                                <th>Quantity</th>
-                                <th class="sell-price-header">Sell Price ($)</th>
-                                <th>P&L</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="sells-tbody"></tbody>
-                    </table>
-                </div>
-
-                <!-- Dividends Section -->
-                <div class="dividends-section">
-                    <div class="section-header">
-                        <h3>Dividends (in Calendar Year)</h3>
-                        <div style="display:flex;gap:6px;">
-                            <button class="btn btn-sm btn-outline fetch-dividends-btn" title="Re-fetch dividends for this stock from Yahoo Finance">🔄 Fetch Dividends</button>
-                            <button class="btn btn-sm btn-primary add-div-btn">+ Add Dividend</button>
+    
+                    <!-- Lots Section -->
+                    <div class="lots-section">
+                        <div class="section-header">
+                            <h3>Acquisition Lots</h3>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn btn-sm btn-outline import-lots-csv-btn" title="Import lots from CSV file">📂 Import CSV</button>
+                                <input type="file" class="import-lots-csv-input" accept=".csv" style="display:none;">
+                                <button class="btn btn-sm btn-primary add-lot-btn">+ Add Lot</button>
+                            </div>
                         </div>
+                        <table class="lots-table">
+                            <thead>
+                                <tr>
+                                    <th>Buy Date</th>
+                                    <th>Quantity</th>
+                                    <th class="buy-price-header">Buy Price ($)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="lots-tbody"></tbody>
+                        </table>
                     </div>
-                    <p class="hint" style="margin-top:-5px; margin-bottom:8px;">Auto-fetched from Yahoo Finance. You can edit, delete, or add manually.</p>
-                    <table class="dividends-table">
-                        <thead>
-                            <tr>
-                                <th>Ex-Date</th>
-                                <th class="div-amount-header">Dividend Per Share ($)</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="dividends-tbody"></tbody>
-                    </table>
+    
+                    <!-- Sells Section -->
+                    <div class="sells-section">
+                        <div class="section-header">
+                            <h3>Sell Transactions</h3>
+                            <button class="btn btn-sm btn-primary add-sell-btn">+ Add Sell</button>
+                        </div>
+                        <table class="sells-table">
+                            <thead>
+                                <tr>
+                                    <th>Lot (Buy Date)</th>
+                                    <th>Buy Price ($)</th>
+                                    <th>Sell Date</th>
+                                    <th>Quantity</th>
+                                    <th class="sell-price-header">Sell Price ($)</th>
+                                    <th>P&amp;L</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="sells-tbody"></tbody>
+                        </table>
+                    </div>
+    
+                    <!-- Dividends Section -->
+                    <div class="dividends-section">
+                        <div class="section-header">
+                            <h3>Dividends (in Calendar Year)</h3>
+                            <div style="display:flex;gap:6px;">
+                                <button class="btn btn-sm btn-outline fetch-dividends-btn" title="Re-fetch dividends for this stock from Yahoo Finance">🔄 Fetch Dividends</button>
+                                <button class="btn btn-sm btn-primary add-div-btn">+ Add Dividend</button>
+                            </div>
+                        </div>
+                        <p class="hint" style="margin-top:-5px; margin-bottom:8px;">Auto-fetched from Yahoo Finance. You can edit, delete, or add manually.</p>
+                        <table class="dividends-table">
+                            <thead>
+                                <tr>
+                                    <th>Ex-Date</th>
+                                    <th class="div-amount-header">Dividend Per Share ($)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="dividends-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
