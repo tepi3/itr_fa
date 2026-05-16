@@ -1801,35 +1801,36 @@ function renderValidationTable(rows) {
             };
 
             // Helper to wrap lot math in a clickable cross-link span
-            const sectionLink = (text, sectionClass) => {
-                return `<span class="validate-crosslink" data-jump-stock="${ticker}" data-jump-section="${sectionClass}" title="Jump to ${sectionClass.replace('-section', '').replace('-', ' ')} in ${ticker}">${text}</span>`;
+            const sectionLink = (text, sectionClass, targetId) => {
+                let idAttr = targetId ? `data-jump-id="${targetId}"` : "";
+                return `<span class="validate-crosslink" data-jump-stock="${ticker}" data-jump-section="${sectionClass}" ${idAttr} title="Jump to specific row in ${ticker}">${text}</span>`;
             };
 
             if (col.key === "initial_value" && col.detail?.components) {
                 const c = col.detail.components;
                 const rd = col.detail.rate_date || (c && c.rate_date);
                 const mathText = `(${c.quantity}×$${c.buy_price.toFixed(2)})`;
-                breakdown = `<div class="b-math">${sectionLink(mathText, 'lots-section')}×${rateLink(c.ttbr, rd)}</div>`;
+                breakdown = `<div class="b-math">${sectionLink(mathText, 'lots-section', c.lot_id)}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "peak_value" && col.detail?.components) {
                 const c = col.detail.components;
                 const rd = col.detail.rate_date || (c && c.rate_date);
                 const mathText = `(${c.qty_on_peak_date}×$${c.peak_price.toFixed(2)})`;
                 breakdown = `<div class="b-math" style="font-size:0.65rem;opacity:0.7;">Peak: ${col.detail.peak_date}</div>
-                             <div class="b-math">${mathText}×${rateLink(c.ttbr, rd)}</div>`;
+                             <div class="b-math">${sectionLink(mathText, 'lots-section', c.lot_id)}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "closing_balance" && col.detail?.components) {
                 const c = col.detail.components;
                 const rd = col.detail.rate_date || (c && c.rate_date);
                 const mathText = `(${c.remaining_qty}×$${c.close_price_dec31.toFixed(2)})`;
-                breakdown = `<div class="b-math">${mathText}×${rateLink(c.ttbr, rd)}</div>`;
+                breakdown = `<div class="b-math">${sectionLink(mathText, 'lots-section', c.lot_id)}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "total_dividends" && col.detail?.dividend_entries?.length > 0) {
                 breakdown = col.detail.dividend_entries.map(de => {
                     const mathText = `${de.ex_date}: (${de.qty}×$${de.amount_foreign.toFixed(4)})`;
-                    return `<div class="b-item">${sectionLink(mathText, 'dividends-section')}×${rateLink(de.ttbr, de.rate_date)}</div>`;
+                    return `<div class="b-item">${sectionLink(mathText, 'dividends-section', de.div_id)}×${rateLink(de.ttbr, de.rate_date)}</div>`;
                 }).join("");
             } else if (col.key === "sale_proceeds" && col.detail?.sale_entries?.length > 0) {
                 breakdown = col.detail.sale_entries.map(se => {
                     const mathText = `${se.sell_date}: (${se.quantity}×$${se.sell_price.toFixed(2)})`;
-                    return `<div class="b-item">${sectionLink(mathText, 'sells-section')}×${rateLink(se.ttbr, se.rate_date)}</div>`;
+                    return `<div class="b-item">${sectionLink(mathText, 'sells-section', se.sell_id)}×${rateLink(se.ttbr, se.rate_date)}</div>`;
                 }).join("");
             }
 
@@ -1850,7 +1851,7 @@ function renderValidationTable(rows) {
             td.querySelectorAll(".validate-crosslink[data-jump-stock]").forEach(el => {
                 el.addEventListener("click", (e) => {
                     e.stopPropagation();
-                    jumpToStockSection(el.dataset.jumpStock, el.dataset.jumpSection);
+                    jumpToStockSection(el.dataset.jumpStock, el.dataset.jumpSection, el.dataset.jumpId);
                 });
             });
             
@@ -4527,7 +4528,7 @@ function jumpToSbiRate(rateDate) {
     }
 }
 
-function jumpToStockSection(ticker, sectionClass) {
+function jumpToStockSection(ticker, sectionClass, targetId) {
     // Find the stock card with this ticker
     const cards = document.querySelectorAll(".stock-card");
     let targetCard = null;
@@ -4550,7 +4551,17 @@ function jumpToStockSection(ticker, sectionClass) {
     
     // Find the target section within the card
     const targetSection = targetCard.querySelector(`.${sectionClass}`);
-    const scrollTarget = targetSection || targetCard;
+    let scrollTarget = targetSection || targetCard;
+    let highlightTarget = targetSection || targetCard;
+
+    if (targetId) {
+        // Try to find specific row
+        const row = targetCard.querySelector(`tr[data-lot-id="${targetId}"], tr[data-div-id="${targetId}"], tr[data-sell-id="${targetId}"]`);
+        if (row) {
+            scrollTarget = row;
+            highlightTarget = row;
+        }
+    }
     
     // Scroll to it
     const header = document.getElementById("appHeader");
@@ -4558,7 +4569,7 @@ function jumpToStockSection(ticker, sectionClass) {
     const top = scrollTarget.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
     window.scrollTo({ top, behavior: "smooth" });
     
-    // Highlight pulse on the section
-    scrollTarget.classList.add("highlight-pulse");
-    setTimeout(() => scrollTarget.classList.remove("highlight-pulse"), 2000);
+    // Highlight pulse on the target
+    highlightTarget.classList.add("highlight-pulse");
+    setTimeout(() => highlightTarget.classList.remove("highlight-pulse"), 2000);
 }

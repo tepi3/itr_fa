@@ -73,6 +73,7 @@ def calculate_initial_value(lot: dict, sbi_overrides: dict) -> dict:
             "buy_price": buy_price,
             "quantity": quantity,
             "ttbr": rate,
+            "lot_id": lot.get("id"),
         },
     }
 
@@ -183,6 +184,7 @@ def calculate_peak_value(
             "qty_on_peak_date": peak_qty,
             "ttbr": peak_rate,
             "rate_date": peak_rate_date,
+            "lot_id": lot.get("id"),
         },
     }
 
@@ -236,6 +238,7 @@ def calculate_closing_balance(
             "remaining_qty": qty,
             "ttbr": rate,
             "rate_date": rate_date,
+            "lot_id": lot.get("id"),
         },
     }
 
@@ -311,6 +314,7 @@ def calculate_dividends(
             "ttbr": rate,
             "rate_date": rate_date,
             "div_inr": round(div_inr),
+            "div_id": div.get("id"),
         })
 
     return {
