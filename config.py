@@ -10,7 +10,7 @@ from pathlib import Path
 import sys
 
 # App version (must match the git tag for update checking)
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.3"
 GITHUB_REPO = "tepi3/itr_fa"
 
 # Base directory

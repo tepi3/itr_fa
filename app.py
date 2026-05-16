@@ -282,10 +282,44 @@ def get_splash_html():
                 100% {{ opacity: 0.6; }}
             }}
             .loading-text {{ animation: pulse 1.5s infinite ease-in-out; }}
+            
+            .globe-container {{
+                position: relative;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin-bottom: 20px;
+                background: #1e1e38;
+                box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+            }}
+            .globe-content {{
+                display: flex;
+                font-size: 60px;
+                line-height: 60px;
+                white-space: nowrap;
+                animation: slide 3s linear infinite;
+                cursor: default;
+                user-select: none;
+            }}
+            .globe-overlay {{
+                position: absolute;
+                top: 0; left: 0; width: 100%; height: 100%;
+                background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 40%, rgba(0,0,0,0.4) 100%);
+                border-radius: 50%;
+                pointer-events: none;
+            }}
+            @keyframes slide {{
+                from {{ transform: translateX(0); }}
+                to {{ transform: translateX(-64px); }} /* Slightly more than width due to emoji spacing */
+            }}
         </style>
     </head>
     <body>
-        <div class="icon">🌐</div>
+        <div class="globe-container">
+            <div class="globe-content">🌐🌐</div>
+            <div class="globe-overlay"></div>
+        </div>
         <h1 class="title">FA Desk</h1>
         <p class="subtitle">Foreign Assets ITR Helper</p>
         <div class="loading-text" id="status">Starting up...</div>
