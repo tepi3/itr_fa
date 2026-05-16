@@ -12,8 +12,7 @@ import socket
 import json
 from threading import Timer, Thread, Event
 import fcntl  # For lock file on Unix/macOS
-from urllib.request import urlopen, Request
-from urllib.error import URLError
+# import requests (moved inside init_flask_app for startup speed)
 
 # Delayed imports for faster splash screen
 Flask = None
@@ -59,6 +58,7 @@ def init_flask_app():
     global users_bp, portfolio_bp, market_bp, calculator_bp, parsers_bp
     
     from flask import Flask, render_template, request, jsonify
+    import requests
     from core.utils import init_user_storage
     from routes.users import users_bp
     from routes.portfolio import portfolio_bp
@@ -106,9 +106,9 @@ def init_flask_app():
         from config import APP_VERSION, GITHUB_REPO
         try:
             url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-            req = Request(url, headers={"User-Agent": "FA-Desk-Update-Checker"})
-            with urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read().decode())
+            resp = requests.get(url, headers={"User-Agent": "FA-Desk-Update-Checker"}, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
 
             latest_tag = data.get("tag_name", "").lstrip("v")
             current = APP_VERSION.lstrip("v")
