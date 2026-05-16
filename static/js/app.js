@@ -1788,8 +1788,9 @@ function renderResultsTable(rows) {
     document.getElementById("resultsSection").classList.remove("hidden");
     document.getElementById("resultsContent").classList.remove("collapsed");
 
-    // Also render validation table
+    // Also render validation tables
     renderValidationTable(rows);
+    renderTaxValidationTable(rows);
 }
 
 // ===== Render Validation Table =====
@@ -1898,6 +1899,245 @@ function renderValidationTable(rows) {
 
         tbody.appendChild(tr);
     });
+}
+
+// ===== Render Tax Validation Table =====
+function renderTaxValidationTable(rows) {
+    const tbody = document.getElementById("validateTaxTableBody");
+    const section = document.getElementById("validateTaxSection");
+    if (!tbody || !section) return;
+
+    tbody.innerHTML = "";
+    section.classList.remove("hidden");
+
+    // Helper for cross-linking
+    const rateLink = (rateVal, rateDate) => {
+        if (!rateVal || !rateDate) return `₹${rateVal ? rateVal.toFixed(4) : '?'}`;
+        return `<span class="validate-crosslink" data-jump-rate="${rateDate}" title="Jump to SBI rate for ${rateDate}">₹${rateVal.toFixed(4)}</span>`;
+    };
+    const sectionLink = (ticker, text, sectionClass, targetId) => {
+        let idAttr = targetId ? `data-jump-id="${targetId}"` : "";
+        return `<span class="validate-crosslink" data-jump-stock="${ticker}" data-jump-section="${sectionClass}" ${idAttr} title="Jump to specific row in ${ticker}">${text}</span>`;
+    };
+
+    // Extract all events
+    const events = [];
+    rows.forEach(row => {
+        const ticker = row.ticker;
+        
+        // Sales
+        if (row.calculation_details?.sales?.sale_entries) {
+            row.calculation_details.sales.sale_entries.forEach(se => {
+                const sellDate = new Date(se.sell_date);
+                const tyLabel = sellDate.getMonth() < 3 
+                    ? `FY ${sellDate.getFullYear()-1}-${sellDate.getFullYear()}` 
+                    : `FY ${sellDate.getFullYear()}-${sellDate.getFullYear()+1}`;
+                events.push({
+                    ty: tyLabel,
+                    ticker,
+                    type: "SALE",
+                    date: se.sell_date,
+                    buy_cost: se.buy_cost_inr || 0,
+                    proceeds: se.proceeds_inr || 0,
+                    gain: se.profit_loss_inr || 0,
+                    details: se
+                });
+            });
+        }
+
+        // Dividends
+        if (row.calculation_details?.dividends?.dividend_entries) {
+            row.calculation_details.dividends.dividend_entries.forEach(de => {
+                const divDate = new Date(de.ex_date);
+                const tyLabel = divDate.getMonth() < 3 
+                    ? `FY ${divDate.getFullYear()-1}-${divDate.getFullYear()}` 
+                    : `FY ${divDate.getFullYear()}-${divDate.getFullYear()+1}`;
+                events.push({
+                    ty: tyLabel,
+                    ticker,
+                    type: "DIVIDEND",
+                    date: de.ex_date,
+                    buy_cost: 0,
+                    proceeds: de.div_inr || 0,
+                    gain: de.div_inr || 0,
+                    details: de
+                });
+            });
+        }
+    });
+
+    // Sort: Tax Year (desc) -> Ticker (asc) -> Category (asc) -> Quarter (asc) -> Date (asc)
+    const getQuarter = (dateStr) => {
+        const d = new Date(dateStr);
+        const m = d.getMonth();
+        const day = d.getDate();
+        if (m === 3 || m === 4 || (m === 5 && day <= 15)) return "q1";
+        if ((m === 5 && day >= 16) || m === 6 || m === 7 || (m === 8 && day <= 15)) return "q2";
+        if ((m === 8 && day >= 16) || m === 9 || m === 10 || (m === 11 && day <= 15)) return "q3";
+        if ((m === 11 && day >= 16) || m === 0 || m === 1 || (m === 2 && day <= 15)) return "q4";
+        return "q5";
+    };
+
+    const getCategory = (e) => {
+        if (e.type === "DIVIDEND") return "dividends";
+        const isGain = e.gain >= 0;
+        const isLong = e.details.is_long_term;
+        return isGain ? (isLong ? "ltcg" : "stcg") : (isLong ? "ltcl" : "stcl");
+    };
+
+    events.forEach(e => {
+        e.qk = getQuarter(e.date);
+        e.category = getCategory(e);
+    });
+
+    events.sort((a, b) => {
+        if (b.ty !== a.ty) return b.ty.localeCompare(a.ty);
+        if (a.ticker !== b.ticker) return a.ticker.compareLocale ? a.ticker.localeCompare(b.ticker) : (a.ticker < b.ticker ? -1 : 1);
+        if (a.category !== b.category) return a.category.localeCompare(b.category);
+        if (a.qk !== b.qk) return a.qk.localeCompare(b.qk);
+        return a.date.localeCompare(b.date);
+    });
+
+    let lastGroupKey = null;
+    events.forEach((e, idx) => {
+        const tr = document.createElement("tr");
+        tr.id = `val-tax-${e.ticker}-${e.type}-${e.date}`;
+        
+        const groupKey = `${e.ty}-${e.ticker}-${e.category}-${e.qk}`;
+        if (groupKey !== lastGroupKey) {
+            tr.classList.add("group-start");
+            lastGroupKey = groupKey;
+        }
+        
+        // Mark group end for the previous row if this is a new group
+        if (idx > 0 && groupKey !== `${events[idx-1].ty}-${events[idx-1].ticker}-${events[idx-1].category}-${events[idx-1].qk}`) {
+            tbody.lastElementChild.classList.add("group-end");
+        }
+        if (idx === events.length - 1) {
+            tr.classList.add("group-end");
+        }
+
+        tr.dataset.ticker = e.ticker;
+        tr.dataset.ty = e.ty;
+        tr.dataset.quarter = e.qk;
+        tr.dataset.category = e.category;
+        tr.className += " tax-val-row";
+        if (e.type === "SALE") {
+            const se = e.details;
+            const buyMath = `(${se.quantity}×$${se.buy_price.toFixed(2)}) × ${rateLink(se.buy_ttbr, se.buy_rate_date)}`;
+            const sellMath = `(${se.quantity}×$${se.sell_price.toFixed(2)}) × ${rateLink(se.ttbr, se.rate_date)}`;
+            breakdown = `
+                <div class="b-container">
+                    <div class="b-math"><strong>Sell:</strong> ${sectionLink(e.ticker, e.date, 'sells-section', se.sell_id)}</div>
+                    <div class="b-math" style="margin-top:4px;">Proceeds: ${sellMath} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
+                    <div class="b-math">Buy Cost: ${buyMath} = <span style="font-weight:600">₹${formatINR(e.buy_cost)}</span></div>
+                </div>`;
+        } else {
+            const de = e.details;
+            const divMath = `(${de.qty}×$${de.amount_foreign.toFixed(4)}) × ${rateLink(de.ttbr, de.rate_date)}`;
+            breakdown = `
+                <div class="b-container">
+                    <div class="b-math"><strong>Div:</strong> ${sectionLink(e.ticker, e.date, 'dividends-section', de.div_id)}</div>
+                    <div class="b-math" style="margin-top:4px;">Amount: ${divMath} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
+                </div>`;
+        }
+
+        tr.innerHTML = `
+            <td><span class="ty-badge">${e.ty}</span></td>
+            <td><strong>${e.ticker}</strong></td>
+            <td>${breakdown}</td>
+            <td style="text-align:right">₹${formatINR(e.buy_cost)}</td>
+            <td style="text-align:right">₹${formatINR(e.proceeds)}</td>
+            <td style="text-align:right; font-weight:700; color: ${e.gain >= 0 ? 'var(--accent)' : 'var(--danger)'}">₹${formatINR(e.gain)}</td>
+        `;
+        
+        // Wire cross-link click handlers
+        tr.querySelectorAll(".validate-crosslink[data-jump-rate]").forEach(el => {
+            el.addEventListener("click", (e) => {
+                e.stopPropagation();
+                jumpToSbiRate(el.dataset.jumpRate);
+            });
+        });
+        tr.querySelectorAll(".validate-crosslink[data-jump-stock]").forEach(el => {
+            el.addEventListener("click", (e) => {
+                e.stopPropagation();
+                jumpToStockSection(el.dataset.jumpStock, el.dataset.jumpSection, el.dataset.jumpId);
+            });
+        });
+
+        tbody.appendChild(tr);
+    });
+}
+
+function jumpToTaxSummaryBreakdown(ticker, category, quarter, tyLabel) {
+    const section = document.getElementById("validateTaxSection");
+    if (section.classList.contains("hidden")) return;
+    
+    // Ensure content is expanded
+    const content = document.getElementById("validateTaxContent");
+    if (content.classList.contains("collapsed")) {
+        toggleSection('validateTaxContent');
+    }
+
+    // Find all matching rows
+    const allRows = document.querySelectorAll(".tax-val-row");
+    let firstMatch = null;
+    let matchCount = 0;
+
+    // tyLabel is like "Apr 2024 – Mar 2025"
+    // row.dataset.ty is like "FY 2024-2025"
+    const tyMatch = tyLabel.match(/(\d{4}) – Mar (\d{4})/);
+    const tyFilter = tyMatch ? `FY ${tyMatch[1]}-${tyMatch[2]}` : null;
+
+    allRows.forEach(row => {
+        const isTickerMatch = !ticker || row.dataset.ticker === ticker;
+        const isCatMatch = row.dataset.category === category;
+        const isQkMatch = quarter === "total" || row.dataset.quarter === quarter;
+        const isTyMatch = !tyFilter || row.dataset.ty === tyFilter;
+
+        if (isTickerMatch && isCatMatch && isQkMatch && isTyMatch) {
+            row.classList.add("highlight-pulse");
+            // Highlight background only, leave permanent borders as they are
+            setTimeout(() => row.classList.remove("highlight-pulse"), 5000);
+            
+            if (!firstMatch) firstMatch = row;
+            matchCount++;
+        }
+    });
+
+    if (firstMatch) {
+        const header = document.getElementById("appHeader");
+        const headerHeight = header ? header.offsetHeight : 0;
+        const top = firstMatch.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
+        window.scrollTo({ top, behavior: "smooth" });
+        showToast(`Found ${matchCount} transactions for ${category.toUpperCase()} ${quarter !== 'total' ? quarter.toUpperCase() : 'Total'}`, "info");
+    } else {
+        showToast(`No detailed breakdown found in this CY for ${ticker || 'Total'} ${category.toUpperCase()}`, "warning");
+    }
+}
+
+function jumpToTaxValidation(ticker, type, eventDate) {
+    const section = document.getElementById("validateTaxSection");
+    if (section.classList.contains("hidden")) return;
+    
+    // Ensure content is expanded
+    const content = document.getElementById("validateTaxContent");
+    if (content.classList.contains("collapsed")) {
+        toggleSection('validateTaxContent');
+    }
+
+    const targetId = `val-tax-${ticker}-${type}-${eventDate}`;
+    const el = document.getElementById(targetId);
+    if (el) {
+        // Highlight row
+        el.classList.add("highlight-pulse");
+        setTimeout(() => el.classList.remove("highlight-pulse"), 2000);
+        
+        const header = document.getElementById("appHeader");
+        const headerHeight = header ? header.offsetHeight : 0;
+        const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
+        window.scrollTo({ top, behavior: "smooth" });
+    }
 }
 
 function jumpToValidation(lotId, fieldKey) {
@@ -2753,7 +2993,7 @@ function renderTaxYearSummary(taxYears) {
                 "font-weight:700;color:var(--text-main);font-size:0.88rem;",
                 "border-top:" + (sIdx > 0 ? "2px solid var(--border)" : "none") + ";"
             ].join("");
-            sHeaderTd.innerHTML = "<span style=\"opacity:0.4;margin-right:6px;\">◆</span>" + ticker;
+            sHeaderTd.innerHTML = `<span style="opacity:0.4;margin-right:6px;">◆</span>${ticker} <span class="validate-crosslink" style="font-size:0.75rem;margin-left:8px;" title="Jump to ${ticker} calculation breakdown" onclick="scrollToSection('validateTaxSection')">🔍</span>`;
             sHeaderRow.appendChild(sHeaderTd);
             tbody.appendChild(sHeaderRow);
 
@@ -2768,12 +3008,12 @@ function renderTaxYearSummary(taxYears) {
 
                 const labelTd = document.createElement("td");
                 labelTd.style.cssText = "padding:5px 10px 5px 26px;white-space:nowrap;";
-                labelTd.innerHTML = "<span style=\"" +
+                labelTd.innerHTML = `<span class="validate-crosslink" style="` +
                     "display:inline-block;padding:2px 7px;border-radius:4px;" +
                     "font-size:0.71rem;font-weight:700;letter-spacing:0.04em;" +
                     "background:" + meta.color + "22;color:" + meta.color + ";" +
                     "border:1px solid " + meta.color + "44;" +
-                    "\" title=\"" + meta.title + "\">" + meta.label + "</span>";
+                    `" title="Click to view breakdown for ${meta.label}" onclick="scrollToSection('validateTaxSection')">${meta.label}</span>`;
                 tr.appendChild(labelTd);
 
                 quarters.concat(["total"]).forEach(qk => {
@@ -2784,7 +3024,11 @@ function renderTaxYearSummary(taxYears) {
                         "color:" + (val > 0 ? meta.color : "var(--text-muted)") + ";",
                         "font-variant-numeric:tabular-nums;"
                     ].join("");
-                    td.textContent = val > 0 ? formatINR(val) : "—";
+                    if (val > 0) {
+                        td.innerHTML = `<span class="val-link" title="Click to view breakdown for ${ticker} ${meta.label}" onclick="jumpToTaxSummaryBreakdown('${ticker}', '${cat}', '${qk}', '${ty.label}')">${formatINR(val)}</span>`;
+                    } else {
+                        td.textContent = "—";
+                    }
                     if (qk === "total") {
                         td.style.fontWeight = "700";
                         td.style.borderLeft = "1px solid var(--border)";
@@ -2826,7 +3070,11 @@ function renderTaxYearSummary(taxYears) {
                     "color:" + (val > 0 ? meta.color : "var(--text-muted)") + ";",
                     "font-variant-numeric:tabular-nums;"
                 ].join("");
-                td.textContent = val > 0 ? formatINR(val) : "—";
+                if (val > 0) {
+                    td.innerHTML = `<span class="val-link" title="Click to view all ${meta.label} breakdowns" onclick="jumpToTaxSummaryBreakdown('', '${cat}', '${qk}', '${ty.label}')">${formatINR(val)}</span>`;
+                } else {
+                    td.textContent = "—";
+                }
                 if (qk === "total") {
                     td.style.borderLeft = "1px solid var(--border)";
                     td.style.background = meta.color + "11";
