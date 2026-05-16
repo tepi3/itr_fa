@@ -11,6 +11,7 @@ import time
 import socket
 import json
 from threading import Timer, Thread, Event
+import fcntl  # For lock file on Unix/macOS
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
@@ -176,24 +177,65 @@ def monitor_heartbeat():
             os._exit(0)
 
 
+_lock_file_handle = None
+
 def check_single_instance(open_browser_if_found=True):
     """
-    Check if another instance is already running.
+    Check if another instance is already running using both a port check and a lock file.
     """
+    global _lock_file_handle
+    from config import DATA_DIR, FLASK_HOST, FLASK_PORT
+    
+    # 1. First, check if the Flask port is already taken
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        sock.settimeout(1)
+        sock.settimeout(0.5)
         result = sock.connect_ex((FLASK_HOST, FLASK_PORT))
         if result == 0:
-            logger.info("Another instance detected.")
+            logger.info("Another instance detected via port check.")
             if open_browser_if_found:
                 webbrowser.open(f"http://{FLASK_HOST}:{FLASK_PORT}")
             return False
-        return True
     except Exception:
-        return True
+        pass
     finally:
         sock.close()
+
+    # 2. Second, use a lock file in the data directory (cross-platform exclusive lock)
+    lock_path = os.path.join(DATA_DIR, "app.lock")
+    try:
+        # Create file if not exists
+        if not os.path.exists(lock_path):
+            with open(lock_path, 'w') as f:
+                f.write(str(os.getpid()))
+        
+        # Open and try to lock
+        _lock_file_handle = open(lock_path, 'r+')
+        if sys.platform != 'win32':
+            # Unix/macOS lock
+            try:
+                fcntl.flock(_lock_file_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except (IOError, OSError):
+                logger.info("Another instance detected via lock file.")
+                return False
+        else:
+            # Windows lock (using msvcrt which is built-in)
+            import msvcrt
+            try:
+                msvcrt.locking(_lock_file_handle.fileno(), msvcrt.LK_NBLCK, 1)
+            except (IOError, OSError):
+                logger.info("Another instance detected via Windows lock file.")
+                return False
+                
+        # Write current PID to lock file
+        _lock_file_handle.seek(0)
+        _lock_file_handle.write(str(os.getpid()))
+        _lock_file_handle.truncate()
+        _lock_file_handle.flush()
+        return True
+    except Exception as e:
+        logger.debug(f"Lock file check failed (ignoring): {e}")
+        return True
 
 
 def get_splash_html():
