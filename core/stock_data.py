@@ -10,7 +10,15 @@ Provides: company info, historical prices, dividend data.
 import logging
 from datetime import date
 
-import yfinance as yf
+# yfinance is lazy-loaded inside functions to speed up app startup
+yf = None
+
+def _get_yf():
+    global yf
+    if yf is None:
+        import yfinance as yf_mod
+        yf = yf_mod
+    return yf
 
 from config import COUNTRY_CODES
 
@@ -44,7 +52,7 @@ def get_company_info(ticker: str) -> dict:
     logger.info(f"Fetching company info for {yahoo_ticker}")
 
     try:
-        t = yf.Ticker(yahoo_ticker)
+        t = _get_yf().Ticker(yahoo_ticker)
         info = t.info
 
         # Determine nature
@@ -111,7 +119,7 @@ def get_historical_prices(ticker: str, start_date: str, end_date: str) -> list:
     logger.info(f"Fetching prices for {yahoo_ticker} from {start_date} to {end_date}")
 
     try:
-        t = yf.Ticker(yahoo_ticker)
+        t = _get_yf().Ticker(yahoo_ticker)
         hist = t.history(start=start_date, end=end_date, auto_adjust=False)
         
         logger.info(f"Prices for {yahoo_ticker}: found {len(hist)} rows")
@@ -140,7 +148,7 @@ def get_dividends(ticker: str, year: int) -> list:
     logger.info(f"Fetching dividends for {yahoo_ticker} in {year}")
 
     try:
-        t = yf.Ticker(yahoo_ticker)
+        t = _get_yf().Ticker(yahoo_ticker)
         divs = t.dividends
 
         if divs.empty:
@@ -173,7 +181,7 @@ def get_yearly_max_price(ticker: str, year: int) -> dict:
     logger.info(f"Fetching yearly max price for {yahoo_ticker} in {year}")
 
     try:
-        t = yf.Ticker(yahoo_ticker)
+        t = _get_yf().Ticker(yahoo_ticker)
         hist = t.history(start=f"{year}-01-01", end=f"{year + 1}-01-01", auto_adjust=False)
 
         if hist.empty:
@@ -195,7 +203,7 @@ def get_price_on_date(ticker: str, target_date: str) -> float:
     """
     yahoo_ticker = resolve_yahoo_ticker(ticker)
     try:
-        t = yf.Ticker(yahoo_ticker)
+        t = _get_yf().Ticker(yahoo_ticker)
         # Fetch a small window around the target date
         d = date.fromisoformat(target_date)
         start = (d - __import__("datetime").timedelta(days=10)).isoformat()
@@ -220,7 +228,7 @@ def has_dividends(ticker: str) -> bool:
     """Check if a ticker pays dividends (has any historical dividend data)."""
     yahoo_ticker = resolve_yahoo_ticker(ticker)
     try:
-        t = yf.Ticker(yahoo_ticker)
+        t = _get_yf().Ticker(yahoo_ticker)
         return not t.dividends.empty
     except:
         return False
@@ -244,7 +252,7 @@ def get_live_price(ticker: str) -> dict:
     yahoo_ticker = resolve_yahoo_ticker(ticker)
     logger.info(f"Fetching live price for {yahoo_ticker}")
     try:
-        t = yf.Ticker(yahoo_ticker)
+        t = _get_yf().Ticker(yahoo_ticker)
         fi = t.fast_info
         price = fi.last_price
         currency = getattr(fi, "currency", "USD") or "USD"

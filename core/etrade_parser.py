@@ -2,7 +2,16 @@ import io
 import csv
 import logging
 from datetime import datetime
-import openpyxl
+
+# openpyxl is lazy-loaded to speed up app startup
+openpyxl = None
+
+def _get_openpyxl():
+    global openpyxl
+    if openpyxl is None:
+        import openpyxl as oxl
+        openpyxl = oxl
+    return openpyxl
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +53,7 @@ def process_etrade_file(file_bytes: bytes, filename: str, portfolio: dict) -> di
         reader = csv.reader(io.StringIO(content))
         rows = list(reader)
     elif filename.endswith('.xlsx'):
-        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+        wb = _get_openpyxl().load_workbook(io.BytesIO(file_bytes), data_only=True)
         ws = wb.active
         for r in ws.iter_rows(values_only=True):
             rows.append(list(r))

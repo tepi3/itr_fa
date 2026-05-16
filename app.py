@@ -397,6 +397,19 @@ if __name__ == "__main__":
     if not check_single_instance(open_browser_if_found=not use_webview):
         sys.exit(0)
 
+    # ── Start Flask server thread EARLY (even before splash) ──────
+    # This allows imports to happen in the background while GUI initializes
+    def run_server():
+        try:
+            init_flask_app()
+            app.run(host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False)
+        except Exception as e:
+            logger.error(f"Flask server error: {e}")
+            os._exit(1)
+
+    flask_thread = Thread(target=run_server, daemon=True)
+    flask_thread.start()
+
     # ── Standalone native window (compiled or dev with webview) ────
     if use_webview:
         # 1. Load settings for main window
@@ -428,19 +441,7 @@ if __name__ == "__main__":
         )
 
         def start_main_app():
-            """Runs after webview loop starts; initializes Flask and switches to main window."""
-            # Start Flask in background thread
-            def run_server():
-                try:
-                    init_flask_app()
-                    app.run(host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False)
-                except Exception as e:
-                    logger.error(f"Flask server error: {e}")
-                    os._exit(1)
-
-            flask_thread = Thread(target=run_server, daemon=True)
-            flask_thread.start()
-
+            """Runs after webview loop starts; switches to main window when Flask is ready."""
             if wait_for_flask(timeout=25):
                 # Notify splash to show 100%
                 try:
