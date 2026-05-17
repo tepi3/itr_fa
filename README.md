@@ -34,6 +34,17 @@ Because this app is currently unsigned, macOS will block it upon first launch. P
 
 The app will now open normally with a double-click.
 
+### ✨ Onboarding Demo Profile (No Setup Required!)
+
+If you want to quickly test the application's capabilities without importing or manually typing transaction data:
+1. Launch the app (either standalone or via Python).
+2. On the welcome/user selection screen, click the **✨ Try with Demo Profile (CY2025)** button.
+3. This will instantly initialize a profile named `DemoUser` and load a highly realistic pre-configured portfolio featuring:
+   - **Apple Inc. (AAPL)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
+   - **Tesla, Inc. (TSLA)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
+   - **NVIDIA Corporation (NVDA)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
+4. You can immediately click **⚡ Calculate A3 Values** to watch the progressive loader run, test validation audit details, view consolidated reports, simulate sells, and export formatted CSV sheets!
+
 ### Option 2: Run via Python (For Developers)
 
 #### One-liner to Clone, Install & Run
