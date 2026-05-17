@@ -37,7 +37,7 @@ def api_consolidated_tax_summary():
             path = user_dir / f"portfolio_CY{year}.json"
             if path.exists():
                 try:
-                    with open(path, "r") as f:
+                    with open(path, "r", encoding="utf-8") as f:
                         portfolio = json.load(f)
                 except Exception as e:
                     logger.error(f"Error loading CY{year} for consolidated: {e}")

@@ -37,7 +37,7 @@ def api_save():
         stock.pop("yearly_max_price", None)
         stock.pop("yearly_max_price_date", None)
 
-    with open(filepath, "w") as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         json.dump(portfolio, f, indent=2)
 
     return jsonify({"success": True, "filename": filename, "path": str(filepath)})
@@ -59,7 +59,7 @@ def api_load():
         return jsonify({"error": f"No saved portfolio for CY{year}", "found": False}), 404
 
     try:
-        with open(filepath, "r") as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         
         # Validate data with Pydantic

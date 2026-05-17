@@ -195,7 +195,7 @@ def api_setup_demo():
     }
     
     filepath = user_dir / "portfolio_CY2025.json"
-    with open(filepath, "w") as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         json.dump(dummy_portfolio, f, indent=2)
         
     return jsonify({"success": True, "username": safe_name})

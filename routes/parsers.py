@@ -49,7 +49,7 @@ def api_import_previous_year():
         return jsonify({"error": f"Source portfolio CY{source_year} not found"}), 404
 
     try:
-        with open(source_file, "r") as f:
+        with open(source_file, "r", encoding="utf-8") as f:
             source_portfolio = json.load(f)
         
         # Logic to carry forward unsold lots

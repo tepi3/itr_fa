@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def _load_cache() -> dict:
     """Load cached SBI rates from disk."""
     if SBI_CACHE_FILE.exists():
-        with open(SBI_CACHE_FILE, "r") as f:
+        with open(SBI_CACHE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
@@ -35,7 +35,7 @@ def _load_cache() -> dict:
 def _save_cache(cache: dict):
     """Save SBI rates cache to disk."""
     SBI_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(SBI_CACHE_FILE, "w") as f:
+    with open(SBI_CACHE_FILE, "w", encoding="utf-8") as f:
         json.dump(cache, f, indent=2, sort_keys=True)
 
 
