@@ -874,7 +874,7 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
             buy_price = float(lot["buy_price"])
 
             # Get buy TTBR once for this lot
-            buy_rate, _, _ = _get_rate_value(buy_date, sbi_overrides)
+            buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides)
             if buy_rate is None:
                 logger.warning(f"No TTBR for buy date {buy_date} on {ticker}, skipping gains")
                 buy_rate_inr_per_share = None
@@ -902,7 +902,7 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 _is_long_term = holding_days >= 730  # ≥ 2 years
 
                 # TTBR at sell date
-                sell_rate, _, _ = _get_rate_value(sell_date, sbi_overrides)
+                sell_rate, sell_rate_date, _ = _get_rate_value(sell_date, sbi_overrides)
                 if sell_rate is None:
                     logger.warning(f"No TTBR for sell date {sell_date} on {ticker}, skipping")
                     continue
@@ -920,11 +920,13 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 qkey = _get_quarter_key(sell_date, ty_key)
 
                 detail = {
+                    "lot_id": lot.get("id"),
                     "sell_id": sell.get("id"),
                     "date": sell_date.isoformat(),
                     "qty": sell_qty,
                     "sell_price": sell_price,
                     "sell_ttbr": sell_rate,
+                    "sell_rate_date": sell_rate_date,
                     "buy_price": buy_price,
                     "buy_ttbr": buy_rate,
                     "buy_rate_date": buy_rate_date,
@@ -976,13 +978,14 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 qkey = _get_quarter_key(pay_date, ty_key)
 
                 # Rate for Tax Summary (Rule 115: Last working day of prev month)
-                rate, rate_date, _ = _get_rate_value(pay_date, sbi_overrides, use_event_date=False)
+                rate, rate_date, source = _get_rate_value(pay_date, sbi_overrides, use_event_date=False)
                 if rate is None:
                     continue
 
                 div_inr = amount * qty * rate
 
                 detail = {
+                    "lot_id": lot.get("id"),
                     "div_id": div.get("id"),
                     "date": pay_date.isoformat(),
                     "payment_date": pay_date.isoformat(),
@@ -991,6 +994,7 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                     "amount_foreign": amount,
                     "ttbr": rate,
                     "rate_date": rate_date,
+                    "source": source,
                     "value_inr": div_inr,
                     "rule": "Rule 115 (Prev Month)"
                 }

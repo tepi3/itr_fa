@@ -344,6 +344,9 @@ function clearCalculatedSections() {
     // Clear per-stock summary and pie chart
     const summaryBody = document.getElementById("stockSummaryTableBody");
     if (summaryBody) summaryBody.innerHTML = "";
+    const summarySection = document.getElementById("stockSummarySection");
+    if (summarySection) summarySection.classList.add("hidden");
+    
     const pieCanvas = document.getElementById("assetPieChart");
     if (pieCanvas) {
         const ctx = pieCanvas.getContext("2d");
@@ -1550,6 +1553,7 @@ async function calculateAll() {
         return showToast("Add at least one lot with a date and quantity", "warning");
     }
 
+    clearCalculatedSections();
     renderDashboardSkeletons();
     state.portfolio.stocks.forEach(s => setCardLoading(s.id, true));
     
@@ -1571,7 +1575,8 @@ async function calculateAll() {
         
         // Populate Per-Stock Dividend Summary
         const summaryTbody = document.getElementById("stockSummaryTableBody");
-        if (summaryTbody) {
+        const summarySection = document.getElementById("stockSummarySection");
+        if (summaryTbody && summarySection) {
             summaryTbody.innerHTML = "";
             const stockTotals = {};
 
@@ -1581,14 +1586,21 @@ async function calculateAll() {
                 stockTotals[entity] += row.total_dividends || 0;
             });
 
-            Object.entries(stockTotals).forEach(([entity, total]) => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td><strong>${entity}</strong></td>
-                    <td style="color:var(--success); font-weight:600;">₹${total}</td>
-                `;
-                summaryTbody.appendChild(tr);
-            });
+            const hasDividends = Object.values(stockTotals).some(t => t > 0);
+            if (hasDividends) {
+                summarySection.classList.remove("hidden");
+                Object.entries(stockTotals).forEach(([entity, total]) => {
+                    if (total === 0) return;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><strong>${entity}</strong></td>
+                        <td style="color:var(--success); font-weight:600;">₹${formatINR(total)}</td>
+                    `;
+                    summaryTbody.appendChild(tr);
+                });
+            } else {
+                summarySection.classList.add("hidden");
+            }
         }
 
         collectSbiRates(result.rows);
@@ -2223,8 +2235,7 @@ function renderTaxValidationTable(taxYears) {
     if (!tbody || !section) return;
 
     tbody.innerHTML = "";
-    section.classList.remove("hidden");
-
+    
     // Helper to wrap lot math in a clickable cross-link span
     const sectionLink = (ticker, text, sectionClass, targetId) => {
         let idAttr = targetId ? `data-jump-id="${targetId}"` : "";
@@ -2265,6 +2276,12 @@ function renderTaxValidationTable(taxYears) {
         });
     });
 
+    if (events.length === 0) {
+        section.classList.add("hidden");
+        return;
+    }
+    section.classList.remove("hidden");
+
     // Sort: Tax Year (desc) -> Ticker (asc) -> Category (asc) -> Quarter (asc) -> Date (asc)
     const categoryOrder = { "ltcg": 1, "ltcl": 2, "stcg": 3, "stcl": 4, "dividends": 5 };
     events.sort((a, b) => {
@@ -2303,23 +2320,29 @@ function renderTaxValidationTable(taxYears) {
         let breakdown = "";
         if (e.type === "SALE") {
             const se = e.details;
-            const sellMath = `(${se.qty}×$${se.sell_price.toFixed(2)}) × ${rateLink(se.sell_ttbr, se.date)}`;
-            const buyMath = `(${se.qty}×$${se.buy_price.toFixed(2)}) × ${rateLink(se.buy_ttbr, se.buy_rate_date)}`;
+            const sellPricePart = sectionLink(e.ticker, `(${se.qty}×$${se.sell_price.toFixed(2)})`, 'sells-section', se.sell_id);
+            const buyPricePart = sectionLink(e.ticker, `(${se.qty}×$${se.buy_price.toFixed(2)})`, 'lots-section', e.lot_id);
+            const sellRatePart = rateLink(se.sell_ttbr, se.sell_rate_date || se.date);
+            const buyRatePart = rateLink(se.buy_ttbr, se.buy_rate_date);
+
             breakdown = `
                 <div class="b-container">
                     <div class="b-math"><strong>Sell:</strong> ${sectionLink(e.ticker, e.date, 'sells-section', se.sell_id)}</div>
-                    <div class="b-math" style="margin-top:4px;">Proceeds: ${sectionLink(e.ticker, sellMath, 'sells-section', se.sell_id)} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
-                    <div class="b-math">Buy Cost: ${sectionLink(e.ticker, buyMath, 'lots-section', e.lot_id)} = <span style="font-weight:600">₹${formatINR(e.buy_cost)}</span></div>
+                    <div class="b-math" style="margin-top:4px;">Proceeds: ${sellPricePart} × ${sellRatePart} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
+                    <div class="b-math">Buy Cost: ${buyPricePart} × ${buyRatePart} = <span style="font-weight:600">₹${formatINR(e.buy_cost)}</span></div>
                 </div>`;
         } else {
             const de = e.details;
             const payLabel = de.payment_date ? `Paid: ${de.payment_date}` : `Ex: ${de.ex_date}`;
-            const divMath = `(${de.qty}×$${de.amount_foreign.toFixed(4)}) × ${rateLink(de.ttbr, de.rate_date)}`;
+            const divPricePart = sectionLink(e.ticker, `(${de.qty}×$${de.amount_foreign.toFixed(4)})`, 'dividends-section', de.div_id);
+            const divRatePart = rateLink(de.ttbr, de.rate_date);
+            const divLotPart = sectionLink(e.ticker, 'Lot', 'lots-section', e.lot_id);
+
             breakdown = `
                 <div class="b-container">
                     <div class="b-math"><strong>Div:</strong> ${sectionLink(e.ticker, payLabel, 'dividends-section', de.div_id)}</div>
                     <div class="b-math" style="font-size:0.65rem;opacity:0.7;">${de.rule || 'Rule 115 (Prev Month Rate)'}</div>
-                    <div class="b-math" style="margin-top:4px;">Amount: ${sectionLink(e.ticker, divMath, 'lots-section', e.lot_id)} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
+                    <div class="b-math" style="margin-top:4px;">Amount: ${divPricePart} × ${divRatePart} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span> (${divLotPart})</div>
                 </div>`;
         }
         tr.innerHTML = `
@@ -2528,111 +2551,139 @@ function enableCellEdit(td, row, fieldKey) {
 }
 
 // ===== SBI Rates Used in Calculation =====
-function collectSbiRates(rows) {
+function collectSbiRates(rows, taxYears = null) {
     const tbody = document.getElementById("sbiRatesTableBody");
+    if (!tbody) return;
     tbody.innerHTML = "";
     const seenRates = new Set();
+    const allEntries = [];
 
-    rows.forEach(row => {
-        const details = row.calculation_details || {};
-        const ticker = row.entity_name || '';
-        const entries = [
-            { label: `${ticker} — Buy (${row.acquire_date})`, data: details.initial },
-            { label: `${ticker} — Peak Value (${(details.peak && details.peak.peak_date) || '?'})`, data: details.peak },
-            { label: `${ticker} — Closing (Dec 31)`, data: details.closing },
-        ];
-        if (details.dividends && details.dividends.dividend_entries) {
-            details.dividends.dividend_entries.forEach(de => {
-                const payDate = de.payment_date || de.ex_date;
-                entries.push({ label: `${ticker} — Dividend (${payDate})`, data: de });
+    // 1. From A3 Rows (result.rows)
+    if (rows) {
+        rows.forEach(row => {
+            const details = row.calculation_details || {};
+            const ticker = row.ticker || row.entity_name || '';
+            const a3Cols = [
+                { label: `${ticker} — Buy (${row.acquire_date})`, data: details.initial },
+                { label: `${ticker} — Peak Value (${(details.peak && details.peak.peak_date) || '?'})`, data: details.peak },
+                { label: `${ticker} — Closing (Dec 31)`, data: details.closing },
+            ];
+            a3Cols.forEach(entry => {
+                if (!entry.data) return;
+                const rate = entry.data.rate || entry.data.ttbr || (entry.data.components && entry.data.components.ttbr);
+                const rateDate = entry.data.rate_date || (entry.data.components && entry.data.components.rate_date);
+                if (rate && rateDate) allEntries.push({ label: entry.label, rate, rateDate, source: entry.data.source });
             });
-        }
-        if (details.sales && details.sales.sale_entries) {
-            details.sales.sale_entries.forEach(se => {
-                entries.push({ label: `${ticker} — Sale (${se.sell_date})`, data: se });
-            });
-        }
+            if (details.dividends && details.dividends.dividend_entries) {
+                details.dividends.dividend_entries.forEach(de => {
+                    const payDate = de.payment_date || de.ex_date;
+                    allEntries.push({ label: `${ticker} — Dividend A3 (${payDate})`, rate: de.ttbr, rateDate: de.rate_date, source: de.source });
+                });
+            }
+            if (details.sales && details.sales.sale_entries) {
+                details.sales.sale_entries.forEach(se => {
+                    allEntries.push({ label: `${ticker} — Sale A3 (${se.sell_date})`, rate: se.ttbr, rateDate: se.rate_date, source: se.source });
+                });
+            }
+        });
+    }
 
-        entries.forEach(entry => {
-            if (!entry.data) return;
-            const rate = entry.data.rate || entry.data.ttbr || (entry.data.components && entry.data.components.ttbr);
-            const rateDate = entry.data.rate_date || (entry.data.components && entry.data.components.rate_date);
-            if (!rate || !rateDate) return;
-            const key = `${entry.label}_${rateDate}`;
-            if (seenRates.has(key)) return;
-            seenRates.add(key);
-            const src = entry.data.source || 'cache';
-            const statusClass = src === 'override' ? 'override' : src === 'cache' ? 'cached' : 'missing';
-            const tr = document.createElement("tr");
-            tr.dataset.rateDate = rateDate;
-            tr.innerHTML = `
-                <td>${entry.label}</td>
-                <td>${rateDate}</td>
-                <td class="editable-rate" data-date="${rateDate}" title="Click to edit rate">
-                    <span class="rate-val">₹${rate}</span>
-                    <span class="edit-icon">✏️</span>
-                </td>
-                <td><span class="rate-status ${statusClass}">${src}</span></td>
-            `;
-            
-            const rateCell = tr.querySelector(".editable-rate");
-            rateCell.addEventListener("click", () => {
-                const currentVal = rate;
-                const input = document.createElement("input");
-                input.type = "number";
-                input.step = "0.0001";
-                input.value = currentVal;
-                input.style.width = "80px";
-                
-                const originalContent = rateCell.innerHTML;
-                rateCell.innerHTML = "";
-                rateCell.appendChild(input);
-                input.focus();
-                
-                let finished = false;
-                const save = async () => {
-                    if (finished) return;
-                    finished = true;
-                    const newVal = parseFloat(input.value);
-                    if (!isNaN(newVal) && newVal !== currentVal) {
-                        try {
-                            const res = await fetch("/api/save-manual-rate", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ rate_date: rateDate, rate: newVal })
-                            });
-                            const data = await res.json();
-                            if (data.success) {
-                                showToast(`Saved rate for ${rateDate}: ₹${newVal}`);
-                                // Trigger recalculation
-                                calculatePortfolio();
+    // 2. From Tax Year Summary (taxYears)
+    if (taxYears) {
+        ["prev", "curr"].forEach(tyKey => {
+            const ty = taxYears[tyKey];
+            Object.keys(ty.stocks).forEach(ticker => {
+                const stockData = ty.stocks[ticker];
+                ["ltcg", "ltcl", "stcg", "stcl", "dividends"].forEach(cat => {
+                    Object.values(stockData[cat].details || {}).forEach(qDetails => {
+                        qDetails.forEach(d => {
+                            if (cat === "dividends") {
+                                allEntries.push({ label: `${ticker} — Dividend Tax (${d.date})`, rate: d.ttbr, rateDate: d.rate_date, source: d.source });
                             } else {
-                                alert("Failed to save rate: " + data.error);
-                                rateCell.innerHTML = originalContent;
+                                if (d.sell_ttbr && d.sell_rate_date) {
+                                    allEntries.push({ label: `${ticker} — Sale Tax (${d.date})`, rate: d.sell_ttbr, rateDate: d.sell_rate_date, source: d.source });
+                                }
+                                if (d.buy_ttbr && d.buy_rate_date) {
+                                    allEntries.push({ label: `${ticker} — Buy Tax (Lot ${d.buy_rate_date})`, rate: d.buy_ttbr, rateDate: d.buy_rate_date, source: d.source });
+                                }
                             }
-                        } catch (err) {
-                            alert("Error saving rate: " + err);
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    allEntries.forEach(entry => {
+        const { label, rate, rateDate, source } = entry;
+        if (!rate || !rateDate) return;
+        const key = `${label}_${rateDate}`;
+        if (seenRates.has(key)) return;
+        seenRates.add(key);
+
+        const src = source || 'cache';
+        const statusClass = src === 'override' ? 'override' : src === 'cache' ? 'cached' : 'missing';
+        
+        const tr = document.createElement("tr");
+        tr.dataset.rateDate = rateDate;
+        tr.innerHTML = `
+            <td>${label}</td>
+            <td>${rateDate}</td>
+            <td class="editable-rate" data-date="${rateDate}" title="Click to edit rate">
+                <span class="rate-val">₹${rate.toFixed(4)}</span>
+                <span class="edit-icon">✏️</span>
+            </td>
+            <td><span class="rate-status ${statusClass}">${src}</span></td>
+        `;
+
+        const rateCell = tr.querySelector(".editable-rate");
+        rateCell.addEventListener("click", () => {
+            const currentVal = rate;
+            const input = document.createElement("input");
+            input.type = "number";
+            input.step = "0.0001";
+            input.value = currentVal;
+            input.style.width = "80px";
+            
+            const originalContent = rateCell.innerHTML;
+            rateCell.innerHTML = "";
+            rateCell.appendChild(input);
+            input.focus();
+            
+            let finished = false;
+            const save = async () => {
+                if (finished) return;
+                finished = true;
+                const newVal = parseFloat(input.value);
+                if (!isNaN(newVal) && newVal !== currentVal) {
+                    try {
+                        const res = await fetch("/api/save-manual-rate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ rate_date: rateDate, rate: newVal })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            showToast(`Saved rate for ${rateDate}: ₹${newVal}`);
+                            calculateAll();
+                        } else {
+                            alert("Failed to save rate: " + data.error);
                             rateCell.innerHTML = originalContent;
                         }
-                    } else {
+                    } catch (err) {
+                        alert("Error saving rate: " + err);
                         rateCell.innerHTML = originalContent;
                     }
-                };
+                } else {
+                    rateCell.innerHTML = originalContent;
+                }
+            };
 
-                input.addEventListener("blur", save);
-                input.addEventListener("keypress", (e) => {
-                    if (e.key === "Enter") input.blur();
-                });
-                input.addEventListener("keydown", (e) => {
-                    if (e.key === "Escape") {
-                        finished = true;
-                        rateCell.innerHTML = originalContent;
-                    }
-                });
-            });
-            
-            tbody.appendChild(tr);
+            input.addEventListener("blur", save);
+            input.addEventListener("keypress", (e) => { if (e.key === "Enter") input.blur(); });
+            input.addEventListener("keydown", (e) => { if (e.key === "Escape") { finished = true; rateCell.innerHTML = originalContent; } });
         });
+        tbody.appendChild(tr);
     });
 }
 
@@ -3284,6 +3335,8 @@ async function fetchTaxYearSummary() {
         if (result.success && result.tax_years) {
             renderTaxYearSummary(result.tax_years);
             renderTaxValidationTable(result.tax_years);
+            // Refresh SBI rates to include those used in tax summary (e.g. Rule 115)
+            collectSbiRates(state.calculatedRows, result.tax_years);
             document.getElementById("taxYearSection").classList.remove("hidden");
         }
  else {

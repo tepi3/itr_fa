@@ -25,3 +25,6 @@ test_export.xlsx
 build/
 dist/
 *.spec
+
+# Local build notes
+LOCAL_BUILD_NOTES.md
