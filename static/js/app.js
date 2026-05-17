@@ -2184,7 +2184,8 @@ function renderValidationTable(rows) {
                 breakdown = col.detail.dividend_entries.map(de => {
                     const dateLabel = de.payment_date ? `Pay: ${de.payment_date} (Ex: ${de.ex_date})` : `Ex: ${de.ex_date}`;
                     const mathText = `(${de.qty}×$${de.amount_foreign.toFixed(4)})`;
-                    return `<div class="b-item" title="${dateLabel}">${sectionLink(mathText, 'dividends-section', de.div_id)}×${rateLink(de.ttbr, de.rate_date)}</div>`;
+                    const divLotPart = sectionLink('Lot', 'lots-section', de.lot_id);
+                    return `<div class="b-item" title="${dateLabel}">${sectionLink(mathText, 'dividends-section', de.div_id)}×${rateLink(de.ttbr, de.rate_date)} (${divLotPart})</div>`;
                 }).join("");
             } else if (col.key === "sale_proceeds" && col.detail?.sale_entries?.length > 0) {
                 breakdown = col.detail.sale_entries.map(se => {

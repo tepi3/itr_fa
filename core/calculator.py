@@ -299,7 +299,7 @@ def calculate_dividends(
             continue
 
         # Get TTBR (Use actual date of payment for A3)
-        rate, rate_date, _ = _get_rate_value(pay_date, sbi_overrides, use_event_date=True)
+        rate, rate_date, source = _get_rate_value(pay_date, sbi_overrides, use_event_date=True)
         if rate is None:
             entries.append({
                 "ex_date": div["ex_date"],
@@ -314,6 +314,7 @@ def calculate_dividends(
         total_div_inr += div_inr
 
         entries.append({
+            "lot_id": lot.get("id"),
             "div_id": div.get("id"),
             "ex_date": div["ex_date"],
             "payment_date": pay_date_str,
@@ -321,6 +322,7 @@ def calculate_dividends(
             "qty": qty,
             "rate_date": rate_date,
             "ttbr": rate,
+            "source": source,
             "value_inr": div_inr,
         })
 
