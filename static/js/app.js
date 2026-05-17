@@ -743,6 +743,35 @@ function showToast(message, type = "info", duration = 4000) {
 
 // ===== Loading Overlay =====
 let _loadingMsgInterval = null;
+let _progressInterval = null;
+
+function startSmoothProgress(text, estimatedSeconds = 8) {
+    if (_progressInterval) clearInterval(_progressInterval);
+    
+    let currentPercent = 0;
+    showLoading(text, currentPercent);
+    
+    const startTime = Date.now();
+    const duration = estimatedSeconds * 1000;
+    
+    _progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed >= duration) {
+            currentPercent = 95;
+        } else {
+            const t = elapsed / duration;
+            currentPercent = Math.min(95, Math.round(95 * (1 - Math.pow(1 - t, 3))));
+        }
+        showLoading(text, currentPercent);
+    }, 100);
+}
+
+function stopSmoothProgress() {
+    if (_progressInterval) {
+        clearInterval(_progressInterval);
+        _progressInterval = null;
+    }
+}
 
 function showLoading(text = "Loading...", percent = null) {
     const overlay = document.getElementById("loadingOverlay");
@@ -788,6 +817,7 @@ function showLoading(text = "Loading...", percent = null) {
 
 function hideLoading() {
     document.getElementById("loadingOverlay").classList.add("hidden");
+    stopSmoothProgress();
     if (_loadingMsgInterval) { clearInterval(_loadingMsgInterval); _loadingMsgInterval = null; }
     const bar = document.querySelector("#loadingOverlay .progress-bar-container");
     if (bar) bar.remove();
@@ -1422,11 +1452,15 @@ async function calculateAll() {
 
     renderDashboardSkeletons();
     state.portfolio.stocks.forEach(s => setCardLoading(s.id, true));
-    showLoading("Generating FA Report...\nThis may take a moment (fetching prices & rates)");
+    
+    const estimatedSecs = Math.min(12, Math.max(4, state.portfolio.stocks.length * 1.2));
+    startSmoothProgress("Generating FA Report...\nThis may take a moment (fetching prices & rates)", estimatedSecs);
 
     try {
         const result = await apiPost("/api/calculate", state.portfolio);
-        hideLoading();
+        stopSmoothProgress();
+        showLoading("Generating FA Report...\nThis may take a moment (fetching prices & rates)", 100);
+        setTimeout(() => hideLoading(), 200);
 
         if (!result.success) {
             return showToast(`Calculation error: ${result.error}`, "error");
@@ -2684,46 +2718,89 @@ async function fetchRuntimeDataForAllStocks() {
     const year = state.portfolio.calendar_year;
     const total = state.portfolio.stocks.length;
     let idx = 0;
+    
     for (const stock of state.portfolio.stocks) {
         idx++;
         const ticker = stock.yahoo_ticker || stock.ticker;
-        showLoading(`Fetching live data (${idx}/${total}): ${stock.ticker}…`, (idx / total) * 100);
 
         setCardLoading(stock.id, true);
 
-        // Fetch company info if missing details
-        if (!stock.company_info || !stock.company_info.name || !stock.company_info.address) {
-            try {
-                const info = await apiPost("/api/lookup-stock", { ticker: ticker });
-                if (info.success) {
-                    stock.company_info = {
-                        country_code: info.country_code,
-                        name: info.name,
-                        display_name: info.display_name,
-                        address: info.address,
-                        zip: info.zip,
-                        nature: info.nature
-                    };
-                    if (info.yahoo_ticker) stock.yahoo_ticker = info.yahoo_ticker;
+        // Pre-create promises for parallel execution to avoid sequential roundtrips
+        const infoPromise = (!stock.company_info || !stock.company_info.name || !stock.company_info.address)
+            ? apiPost("/api/lookup-stock", { ticker: ticker })
+            : Promise.resolve(null);
 
-                    // Update UI card immediately
-                    const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
-                    if (card) {
-                        card.querySelector(".stock-name").textContent = stock.company_info.name;
-                        card.querySelector(".company-country").value = stock.company_info.country_code || "";
-                        card.querySelector(".company-name").value = stock.company_info.display_name || "";
-                        card.querySelector(".company-address").value = stock.company_info.address || "";
-                        card.querySelector(".company-zip").value = stock.company_info.zip || "";
-                        card.querySelector(".company-nature").value = stock.company_info.nature || "Company";
-                    }
+        const divPromise = (!stock.skip_dividends)
+            ? apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`)
+            : Promise.resolve(null);
+
+        const peakPromise = apiGet(`/api/yearly-max-price?ticker=${encodeURIComponent(ticker)}&year=${year}`);
+
+        // Set up local smooth progressive progress tracking for this stock
+        let stockPercent = 0;
+        const basePercent = ((idx - 1) / total) * 100;
+        const stepWidth = 100 / total;
+
+        const updateStockProgress = (subStepMsg) => {
+            const currentTotalPercent = basePercent + (stockPercent / 100) * stepWidth;
+            showLoading(`Fetching live data (${idx}/${total}): ${stock.ticker}…\n<span style="font-size:0.85rem;color:var(--text-muted)">${subStepMsg}</span>`, currentTotalPercent);
+        };
+
+        // Determine initial sub-step message
+        let subStepMsg = "Fetching company details";
+        updateStockProgress(subStepMsg);
+
+        // Animate local progress smoothly from 0% to 92% over 3.5 seconds
+        const startTime = Date.now();
+        const estimatedDuration = 3500;
+        const progressInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const t = Math.min(1, elapsed / estimatedDuration);
+            stockPercent = 92 * (1 - Math.pow(1 - t, 3)); // easeOutCubic
+            
+            // Dynamic message updates based on elapsed time to make it feel extremely responsive
+            if (elapsed > 1000 && elapsed <= 2000) {
+                subStepMsg = "Fetching dividends";
+            } else if (elapsed > 2000) {
+                subStepMsg = "Calculating peak asset value";
+            }
+            
+            updateStockProgress(subStepMsg);
+        }, 100);
+
+        try {
+            // Run all queries simultaneously in parallel!
+            const [info, divData, peakInfo] = await Promise.all([infoPromise, divPromise, peakPromise]);
+
+            clearInterval(progressInterval);
+            stockPercent = 100;
+            updateStockProgress("Done!");
+
+            // 1. Process company info
+            if (info && info.success) {
+                stock.company_info = {
+                    country_code: info.country_code,
+                    name: info.name,
+                    display_name: info.display_name,
+                    address: info.address,
+                    zip: info.zip,
+                    nature: info.nature
+                };
+                if (info.yahoo_ticker) stock.yahoo_ticker = info.yahoo_ticker;
+
+                const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
+                if (card) {
+                    card.querySelector(".stock-name").textContent = stock.company_info.name;
+                    card.querySelector(".company-country").value = stock.company_info.country_code || "";
+                    card.querySelector(".company-name").value = stock.company_info.display_name || "";
+                    card.querySelector(".company-address").value = stock.company_info.address || "";
+                    card.querySelector(".company-zip").value = stock.company_info.zip || "";
+                    card.querySelector(".company-nature").value = stock.company_info.nature || "Company";
                 }
-            } catch (e) { console.warn(`Company info fetch failed for ${ticker}`, e); }
-        }
+            }
 
-        // Fetch dividends
-        if (!stock.skip_dividends) {
-            try {
-                const divData = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`);
+            // 2. Process dividends
+            if (divData) {
                 stock.dividends = (divData.dividends || []).map(d => ({
                     id: generateId(), ex_date: d.ex_date, amount: d.amount,
                 }));
@@ -2733,21 +2810,25 @@ async function fetchRuntimeDataForAllStocks() {
                     tbody.innerHTML = "";
                     stock.dividends.forEach(div => renderDividendRow(card, stock, div));
                 }
-            } catch (e) { console.warn(`Dividend fetch failed for ${ticker}`, e); }
-        }
+            }
 
-        // Fetch peak price (for badge display)
-        try {
-            const peakInfo = await apiGet(`/api/yearly-max-price?ticker=${encodeURIComponent(ticker)}&year=${year}`);
-            if (peakInfo.max_price != null) {
+            // 3. Process peak price
+            if (peakInfo && peakInfo.max_price != null) {
                 stock.yearly_max_price = peakInfo.max_price;
                 stock.yearly_max_price_date = peakInfo.max_price_date;
                 const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
                 if (card) showPeakPriceBadge(card, peakInfo.max_price, peakInfo.max_price_date);
             }
-        } catch (e) { console.warn(`Peak price fetch failed for ${ticker}`, e); }
+
+        } catch (e) {
+            clearInterval(progressInterval);
+            console.warn(`Parallel fetch failed for ${ticker}`, e);
+        }
 
         setCardLoading(stock.id, false);
+        
+        // Wait briefly before moving to next stock so that the user sees the 100% done state
+        await new Promise(resolve => setTimeout(resolve, 150));
     }
 }
 async function fetchSbiRates() {
@@ -3207,17 +3288,20 @@ function renderTaxYearSummary(taxYears) {
                         td.innerHTML = `<span class="val-link">${formatINR(val)}</span>`;
                         const link = td.querySelector(".val-link");
                         link.addEventListener("click", () => jumpToTaxSummaryBreakdown(ticker, cat, qk, ty.label, link, `${ticker} ${meta.label}`));
-                        link.addEventListener("mouseenter", (e) => {
-                            const events = bucket.details?.[qk] || [];
-                            const details = events.map(ev => ({
-                                date: ev.date, qty: ev.qty,
-                                price_usd: ev.price_usd || ev.dividend_usd || 0,
-                                rate: ev.rate || 0,
-                                value_inr: ev.value_inr || 0
-                            }));
-                            showCalcTooltip(e, buildTooltipHTML(details, `${ticker} ${meta.label}`));
-                        });
-                        link.addEventListener("mouseleave", hideCalcTooltip);
+                        
+                        if (qk !== "total") {
+                            link.addEventListener("mouseenter", (e) => {
+                                const events = bucket.details?.[qk] || [];
+                                const details = events.map(ev => ({
+                                    date: ev.date, qty: ev.qty,
+                                    price_usd: ev.price_usd || ev.dividend_usd || 0,
+                                    rate: ev.rate || 0,
+                                    value_inr: ev.value_inr || 0
+                                }));
+                                showCalcTooltip(e, buildTooltipHTML(details, `${ticker} ${meta.label}`));
+                            });
+                            link.addEventListener("mouseleave", hideCalcTooltip);
+                        }
                     } else {
                         td.textContent = "—";
                     }
@@ -3266,17 +3350,6 @@ function renderTaxYearSummary(taxYears) {
                     td.innerHTML = `<span class="val-link">${formatINR(val)}</span>`;
                     const link = td.querySelector(".val-link");
                     link.addEventListener("click", () => jumpToTaxSummaryBreakdown('', cat, qk, ty.label, link, `Total ${meta.label}`));
-                    link.addEventListener("mouseenter", (e) => {
-                        const events = ty.events.filter(ev => ev.category === cat && (qk === "total" || ev.quarter === qk));
-                        const details = events.map(ev => ({
-                            date: ev.date, qty: ev.qty,
-                            price_usd: ev.dividend_usd || ev.sale_price_usd || ev.proceeds_usd || 0,
-                            rate: ev.rate || 0,
-                            value_inr: ev.value_inr || ev.gain || 0
-                        }));
-                        showCalcTooltip(e, buildTooltipHTML(details, `Total ${meta.label}`));
-                    });
-                    link.addEventListener("mouseleave", hideCalcTooltip);
                 } else {
                     td.textContent = "—";
                 }
