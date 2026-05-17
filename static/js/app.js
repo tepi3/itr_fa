@@ -17,6 +17,155 @@ const state = {
     isDirty: false, // Track unsaved changes
 };
 
+let _navSource = null;
+function showBackToSource(sourceEl, label) {
+    _navSource = { element: sourceEl, scrollY: window.scrollY, label };
+    const pill = document.getElementById("backToSource");
+    if (pill) {
+        pill.querySelector("#backToSourceLabel").textContent = `↑ Back to ${label}`;
+        pill.classList.remove("hidden");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const pill = document.getElementById("backToSource");
+    if (pill) {
+        pill.addEventListener("click", () => {
+            if (!_navSource) return;
+            _navSource.element.scrollIntoView({ behavior: "smooth", block: "center" });
+            _navSource.element.classList.add("highlight-pulse");
+            setTimeout(() => _navSource.element.classList.remove("highlight-pulse"), 2000);
+            pill.classList.add("hidden");
+            _navSource = null;
+        });
+    }
+
+    window.addEventListener("scroll", () => {
+        if (_navSource) {
+            if (Math.abs(window.scrollY - _navSource.scrollY) < 200) {
+                const pill = document.getElementById("backToSource");
+                if (pill) pill.classList.add("hidden");
+                _navSource = null;
+            }
+        }
+    });
+});
+
+let _tooltipTimeout;
+const tooltipEl = document.createElement("div");
+tooltipEl.className = "calc-tooltip hidden";
+document.body.appendChild(tooltipEl);
+
+function showTooltip(e, contentHTML) {
+    if (!contentHTML) return;
+    clearTimeout(_tooltipTimeout);
+    tooltipEl.innerHTML = contentHTML;
+    tooltipEl.classList.remove("hidden");
+
+    // Smart positioning
+    const x = e.clientX;
+    const y = e.clientY;
+    const padding = 15;
+    
+    let left = x;
+    let top = y + padding;
+
+    // Wait a tick for dimensions
+    requestAnimationFrame(() => {
+        const rect = tooltipEl.getBoundingClientRect();
+        if (left + rect.width > window.innerWidth) {
+            left = window.innerWidth - rect.width - padding;
+        }
+        if (top + rect.height > window.innerHeight) {
+            top = y - rect.height - padding;
+        }
+        tooltipEl.style.left = left + "px";
+        tooltipEl.style.top = top + "px";
+        tooltipEl.style.transform = `translate(0, 0)`; // Remove hover transform jump
+    });
+}
+
+function hideTooltip() {
+    _tooltipTimeout = setTimeout(() => {
+        tooltipEl.classList.add("hidden");
+    }, 150);
+}
+
+function buildTooltipHTML(details, type) {
+    if (!details) return "";
+    
+    if (Array.isArray(details)) {
+        if (details.length === 0) return "";
+        let html = `<div style="font-weight:bold;margin-bottom:4px;border-bottom:1px solid var(--border);padding-bottom:2px;">${type} (${details.length} entries)</div>`;
+        
+        let showCount = details.length > 6 ? 3 : details.length;
+        for (let i = 0; i < showCount; i++) {
+            const d = details[i];
+            const date = d.date ? d.date.substring(5) : ""; 
+            html += `<div>${date ? date + ': ' : ''}${d.qty ? d.qty + '×' : ''}$${d.price_usd} × ₹${d.rate} → ₹${Math.round(d.value_inr)}</div>`;
+        }
+        
+        if (details.length > 6) {
+            html += `<div style="color:var(--text-muted);font-style:italic;margin-top:2px;">+${details.length - 3} more…</div>`;
+        }
+        
+        const total = details.reduce((sum, d) => sum + (d.value_inr || 0), 0);
+        html += `<div style="margin-top:4px;border-top:1px solid var(--border);padding-top:2px;font-weight:bold;">Total: ₹${formatINR(Math.round(total))}</div>`;
+        return html;
+    } else {
+        let html = `<div>${details.qty ? details.qty + ' × ' : ''}$${details.price_usd} × ₹${details.rate}</div>`;
+        html += `<div style="border-top:1px solid var(--border);margin-top:2px;padding-top:2px;font-weight:bold;">= ₹${formatINR(Math.round(details.value_inr))}</div>`;
+        return html;
+    }
+}
+
+/**
+ * Map calculation_details from the backend into the standardized tooltip format.
+ * Returns a single object {qty, price_usd, rate, value_inr} for single-entry columns,
+ * or an array of {date, qty, price_usd, rate, value_inr} for multi-entry columns.
+ * Returns null if no data available.
+ */
+function mapCalcDetailsToTooltip(calculationDetails, fieldKey) {
+    if (!calculationDetails) return null;
+
+    // Map field keys to calculation_details keys
+    const keyMap = {
+        initial_value: "initial",
+        peak_value: "peak",
+        closing_balance: "closing",
+        total_dividends: "dividends",
+        sale_proceeds: "sales"
+    };
+    const detail = calculationDetails[keyMap[fieldKey]];
+    if (!detail) return null;
+
+    if (fieldKey === "initial_value" && detail.components) {
+        const c = detail.components;
+        return { qty: c.quantity, price_usd: c.buy_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.quantity * c.buy_price * (c.ttbr || 0) };
+    }
+    if (fieldKey === "peak_value" && detail.components) {
+        const c = detail.components;
+        return { qty: c.qty_on_peak_date, price_usd: c.peak_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.qty_on_peak_date * c.peak_price * (c.ttbr || 0), date: detail.peak_date };
+    }
+    if (fieldKey === "closing_balance" && detail.components) {
+        const c = detail.components;
+        return { qty: c.remaining_qty, price_usd: c.close_price_dec31?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.remaining_qty * c.close_price_dec31 * (c.ttbr || 0) };
+    }
+    if (fieldKey === "total_dividends" && detail.dividend_entries?.length > 0) {
+        return detail.dividend_entries.map(de => ({
+            date: de.ex_date, qty: de.qty, price_usd: de.amount_foreign?.toFixed(4),
+            rate: de.ttbr?.toFixed(4), value_inr: de.div_inr || (de.qty * de.amount_foreign * (de.ttbr || 0))
+        }));
+    }
+    if (fieldKey === "sale_proceeds" && detail.sale_entries?.length > 0) {
+        return detail.sale_entries.map(se => ({
+            date: se.sell_date, qty: se.quantity, price_usd: se.sell_price?.toFixed(2),
+            rate: se.ttbr?.toFixed(4), value_inr: se.proceeds_inr || (se.quantity * se.sell_price * (se.ttbr || 0))
+        }));
+    }
+    return null;
+}
+
 // ===== Undo/Redo =====
 const undoStack = [];
 const redoStack = [];
@@ -1770,10 +1919,21 @@ function renderResultsTable(rows) {
             td.dataset.originalValue = field.val;
 
             // Click on the value span → jump to validation
-            td.querySelector(".val-link").addEventListener("click", (e) => {
+            const valLink = td.querySelector(".val-link");
+            valLink.addEventListener("click", (e) => {
                 e.stopPropagation();
-                jumpToValidation(row.lot_id, field.key);
+                jumpToValidation(row.lot_id, field.key, valLink, `A3 Row ${row.sl_no}`);
             });
+
+            // Hover tooltip
+            valLink.addEventListener("mouseenter", (e) => {
+                const tooltipData = mapCalcDetailsToTooltip(row.calculation_details, field.key);
+                if (tooltipData) {
+                    const label = field.key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                    showTooltip(e, buildTooltipHTML(tooltipData, label));
+                }
+            });
+            valLink.addEventListener("mouseleave", hideTooltip);
 
             // Click on the cell (anywhere else) → edit
             td.addEventListener("click", () => enableCellEdit(td, row, field.key));
@@ -2069,7 +2229,7 @@ function renderTaxValidationTable(rows) {
     });
 }
 
-function jumpToTaxSummaryBreakdown(ticker, category, quarter, tyLabel) {
+function jumpToTaxSummaryBreakdown(ticker, category, quarter, tyLabel, sourceEl = null, label = "") {
     const section = document.getElementById("validateTaxSection");
     if (section.classList.contains("hidden")) return;
     
@@ -2106,6 +2266,7 @@ function jumpToTaxSummaryBreakdown(ticker, category, quarter, tyLabel) {
     });
 
     if (firstMatch) {
+        if (sourceEl && label) showBackToSource(sourceEl, label);
         const header = document.getElementById("appHeader");
         const headerHeight = header ? header.offsetHeight : 0;
         const top = firstMatch.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
@@ -2140,10 +2301,10 @@ function jumpToTaxValidation(ticker, type, eventDate) {
     }
 }
 
-function jumpToValidation(lotId, fieldKey) {
+function jumpToValidation(lotId, fieldKey, sourceEl = null, label = "") {
     const section = document.getElementById("validateA3Section");
     if (section.classList.contains("hidden")) return;
-    
+
     // Ensure content is expanded
     const content = document.getElementById("validateA3Content");
     if (content.classList.contains("collapsed")) {
@@ -2153,17 +2314,17 @@ function jumpToValidation(lotId, fieldKey) {
     const targetId = `val-${lotId}-${fieldKey}`;
     const el = document.getElementById(targetId);
     if (el) {
+        if (sourceEl && label) showBackToSource(sourceEl, label);
         // Highlight cell
         el.classList.add("highlight-pulse");
         setTimeout(() => el.classList.remove("highlight-pulse"), 2000);
-        
+
         const header = document.getElementById("appHeader");
         const headerHeight = header ? header.offsetHeight : 0;
         const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
         window.scrollTo({ top, behavior: "smooth" });
     }
 }
-
 function enableCellEdit(td, row, fieldKey) {
     if (td.querySelector("input")) return; // Already editing
 
@@ -3025,7 +3186,20 @@ function renderTaxYearSummary(taxYears) {
                         "font-variant-numeric:tabular-nums;"
                     ].join("");
                     if (val > 0) {
-                        td.innerHTML = `<span class="val-link" title="Click to view breakdown for ${ticker} ${meta.label}" onclick="jumpToTaxSummaryBreakdown('${ticker}', '${cat}', '${qk}', '${ty.label}')">${formatINR(val)}</span>`;
+                        td.innerHTML = `<span class="val-link" title="Click to view breakdown for ${ticker} ${meta.label}">${formatINR(val)}</span>`;
+                        const link = td.querySelector(".val-link");
+                        link.addEventListener("click", () => jumpToTaxSummaryBreakdown(ticker, cat, qk, ty.label, link, `${ticker} ${meta.label}`));
+                        link.addEventListener("mouseenter", (e) => {
+                            const events = bucket.details?.[qk] || [];
+                            const details = events.map(ev => ({
+                                date: ev.date, qty: ev.qty,
+                                price_usd: ev.price_usd || ev.dividend_usd || 0,
+                                rate: ev.rate || 0,
+                                value_inr: ev.value_inr || 0
+                            }));
+                            showTooltip(e, buildTooltipHTML(details, `${ticker} ${meta.label}`));
+                        });
+                        link.addEventListener("mouseleave", hideTooltip);
                     } else {
                         td.textContent = "—";
                     }
@@ -3071,7 +3245,20 @@ function renderTaxYearSummary(taxYears) {
                     "font-variant-numeric:tabular-nums;"
                 ].join("");
                 if (val > 0) {
-                    td.innerHTML = `<span class="val-link" title="Click to view all ${meta.label} breakdowns" onclick="jumpToTaxSummaryBreakdown('', '${cat}', '${qk}', '${ty.label}')">${formatINR(val)}</span>`;
+                    td.innerHTML = `<span class="val-link" title="Click to view all ${meta.label} breakdowns">${formatINR(val)}</span>`;
+                    const link = td.querySelector(".val-link");
+                    link.addEventListener("click", () => jumpToTaxSummaryBreakdown('', cat, qk, ty.label, link, `Total ${meta.label}`));
+                    link.addEventListener("mouseenter", (e) => {
+                        const events = ty.events.filter(ev => ev.category === cat && (qk === "total" || ev.quarter === qk));
+                        const details = events.map(ev => ({
+                            date: ev.date, qty: ev.qty,
+                            price_usd: ev.dividend_usd || ev.sale_price_usd || ev.proceeds_usd || 0,
+                            rate: ev.rate || 0,
+                            value_inr: ev.value_inr || ev.gain || 0
+                        }));
+                        showTooltip(e, buildTooltipHTML(details, `Total ${meta.label}`));
+                    });
+                    link.addEventListener("mouseleave", hideTooltip);
                 } else {
                     td.textContent = "—";
                 }

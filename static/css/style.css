@@ -2219,3 +2219,48 @@ kbd {
     white-space: nowrap;
 }
 
+/* Calculation Tooltip */
+.calc-tooltip {
+    position: absolute;
+    z-index: 100;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    padding: 10px 14px;
+    max-width: 360px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+    pointer-events: none;     /* Don't steal hover */
+    animation: tooltipFadeIn 0.15s ease;
+}
+
+@keyframes tooltipFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.back-to-source {
+    position: fixed;
+    top: 80px;          /* Below sticky header */
+    right: 24px;
+    z-index: 200;
+    background: var(--accent);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    transition: opacity 0.2s, transform 0.2s;
+    animation: slideIn 0.3s ease;
+}
+
+.back-to-source:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+}
+

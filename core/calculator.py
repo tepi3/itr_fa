@@ -544,12 +544,20 @@ def _get_quarter_key(event_date: date, tax_year_key: str) -> str:
 
 
 def _empty_quarters() -> dict:
-    return {"q1": 0.0, "q2": 0.0, "q3": 0.0, "q4": 0.0, "q5": 0.0, "total": 0.0}
+    return {
+        "q1": 0.0, "q2": 0.0, "q3": 0.0, "q4": 0.0, "q5": 0.0, "total": 0.0,
+        "details": {"q1": [], "q2": [], "q3": [], "q4": [], "q5": [], "total": []}
+    }
 
 
-def _add_to_quarter(bucket: dict, qkey: str, amount: float):
+def _add_to_quarter(bucket: dict, qkey: str, amount: float, detail: dict = None):
     bucket[qkey] = bucket.get(qkey, 0.0) + amount
     bucket["total"] = bucket.get("total", 0.0) + amount
+    if detail:
+        if "details" not in bucket:
+            bucket["details"] = {"q1": [], "q2": [], "q3": [], "q4": [], "q5": [], "total": []}
+        bucket["details"][qkey].append(detail)
+        bucket["details"]["total"].append(detail)
 
 
 def _make_stock_entry() -> dict:
@@ -563,7 +571,10 @@ def _make_stock_entry() -> dict:
 
 
 def _round_quarters(bucket: dict) -> dict:
-    return {k: round(v) for k, v in bucket.items()}
+    res = {k: round(v) for k, v in bucket.items() if k != "details"}
+    if "details" in bucket:
+        res["details"] = bucket["details"]
+    return res
 
 
 def simulate_sell_impact(payload: dict) -> dict:
@@ -827,7 +838,7 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
             ty["stocks"][ticker] = _make_stock_entry()
         return ty["stocks"][ticker]
 
-    def _accumulate_gain(ty_key: str, ticker: str, qkey: str, net_inr: float):
+    def _accumulate_gain(ty_key: str, ticker: str, qkey: str, net_inr: float, detail: dict = None):
         """Route a net gain to the correct bucket (ltcg/stcg/ltcl/stcl) in both
         the per-stock entry and the tax year totals."""
         ty = _get_ty(ty_key)
@@ -839,8 +850,8 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
             bucket_key = "ltcl" if _is_long_term else "stcl"
             net_inr = abs(net_inr)  # store as positive loss amount
 
-        _add_to_quarter(stock_entry[bucket_key], qkey, net_inr)
-        _add_to_quarter(ty["totals"][bucket_key], qkey, net_inr)
+        _add_to_quarter(stock_entry[bucket_key], qkey, net_inr, detail)
+        _add_to_quarter(ty["totals"][bucket_key], qkey, net_inr, detail)
 
     # ---- Process each stock ----
     for stock in portfolio.get("stocks", []):
@@ -897,7 +908,15 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 ty_key = _get_tax_year_key(sell_date, calendar_year)
                 qkey = _get_quarter_key(sell_date, ty_key)
 
-                _accumulate_gain(ty_key, ticker, qkey, gain_inr)
+                detail = {
+                    "date": sell_date.isoformat(),
+                    "qty": sell_qty,
+                    "price_usd": sell_price,
+                    "rate": sell_rate,
+                    "value_inr": gain_inr
+                }
+
+                _accumulate_gain(ty_key, ticker, qkey, gain_inr, detail)
 
             # ---- Dividends ----
             if skip_divs:
@@ -937,10 +956,18 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 ty_key = _get_tax_year_key(ex_date, calendar_year)
                 qkey = _get_quarter_key(ex_date, ty_key)
 
+                detail = {
+                    "date": ex_date.isoformat(),
+                    "qty": qty,
+                    "price_usd": amount,
+                    "rate": rate,
+                    "value_inr": div_inr
+                }
+
                 ty = _get_ty(ty_key)
                 stock_entry = _ensure_stock(ty_key, ticker)
-                _add_to_quarter(stock_entry["dividends"], qkey, div_inr)
-                _add_to_quarter(ty["totals"]["dividends"], qkey, div_inr)
+                _add_to_quarter(stock_entry["dividends"], qkey, div_inr, detail)
+                _add_to_quarter(ty["totals"]["dividends"], qkey, div_inr, detail)
 
     # Round all values
     for ty_key in ("prev", "curr"):
