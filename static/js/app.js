@@ -2761,11 +2761,21 @@ async function savePortfolioAs() {
         }
     }
 
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonContent);
-    const dlAnchorElem = document.createElement('a');
-    dlAnchorElem.setAttribute("href", dataStr);
-    dlAnchorElem.setAttribute("download", filename);
-    dlAnchorElem.click();
+    // Fallback using Blob and anchor
+    const blob = new Blob([jsonContent], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
 
     markClean();
     showToast("Portfolio downloaded to your computer.", "success");
@@ -3069,10 +3079,17 @@ async function exportCSV() {
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
+        a.style.display = 'none';
         a.href = url;
         a.download = defaultFilename;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        
+        // Clean up
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
 
         hideLoading();
         showToast("CSV downloaded!", "success");
