@@ -33,7 +33,7 @@ def api_save():
 
     # Strip runtime-only fields
     for stock in portfolio.get("stocks", []):
-        stock.pop("dividends", None)
+        # Keep dividends as they now contain manual payment dates
         stock.pop("yearly_max_price", None)
         stock.pop("yearly_max_price_date", None)
 

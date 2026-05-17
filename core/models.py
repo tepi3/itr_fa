@@ -34,6 +34,7 @@ class Dividend(BaseModel):
     
     id: Optional[str] = None
     ex_date: str
+    payment_date: Optional[str] = None
     amount: float
 
 class Stock(BaseModel):

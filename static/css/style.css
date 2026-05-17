@@ -1992,12 +1992,17 @@ kbd {
     margin-bottom: 24px;
 }
 
-.skeleton-stat-card {
-    height: 80px;
-    border-radius: var(--radius);
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
+.div-pay-date-warn {
+    border-color: var(--danger) !important;
+    box-shadow: 0 0 0 3px var(--danger-light) !important;
+    animation: pay-date-glow 2s infinite;
 }
+
+@keyframes pay-date-glow {
+    0%, 100% { box-shadow: 0 0 0 2px var(--danger-light); }
+    50% { box-shadow: 0 0 0 5px var(--danger-light); }
+}
+
 
 .loading-skeleton {
     position: relative;

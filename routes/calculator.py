@@ -71,6 +71,7 @@ def api_consolidated_tax_summary():
                             for fd in fetched:
                                 stock["dividends"].append({
                                     "ex_date": fd["ex_date"],
+                                    "payment_date": fd.get("payment_date") or fd["ex_date"],
                                     "amount": fd["amount"],
                                     "is_manual": False
                                 })

@@ -252,7 +252,7 @@ def calculate_dividends(
 ) -> dict:
     """
     Calculate column 11: Total gross dividends (₹).
-    = Σ(div_per_share × qty_on_ex_date × TTBR(date_of_ex_date_event))
+    = Σ(div_per_share × qty_on_ex_date × TTBR(date_of_payment_date_event))
     """
     if skip_dividends:
         return {"value": 0, "dividend_entries": [], "skipped": True}
@@ -273,13 +273,18 @@ def calculate_dividends(
             continue
 
         ex_date = _parse_date(div["ex_date"])
-        # Only process dividends for the target calendar year
-        if ex_date.year != calendar_year:
+        
+        # Payment Date determines the rate (Rule 115) and A3 placement
+        pay_date_str = div.get("payment_date") or div.get("ex_date")
+        pay_date = _parse_date(pay_date_str)
+
+        # Only process dividends for the target calendar year (based on payment date)
+        if pay_date.year != calendar_year:
             continue
 
         amount = float(div["amount"])
 
-        # Skip if lot didn't exist yet
+        # Skip if lot didn't exist yet (Qualification is on Ex-Date)
         if buy_date > ex_date:
             continue
 
@@ -293,11 +298,12 @@ def calculate_dividends(
         if qty <= 0:
             continue
 
-        # Get TTBR
-        rate, rate_date, _ = _get_rate_value(ex_date, sbi_overrides, use_event_date=True)
+        # Get TTBR (Use actual date of payment for A3)
+        rate, rate_date, _ = _get_rate_value(pay_date, sbi_overrides, use_event_date=True)
         if rate is None:
             entries.append({
                 "ex_date": div["ex_date"],
+                "payment_date": pay_date_str,
                 "amount_foreign": amount,
                 "qty": qty,
                 "error": f"SBI rate not found",
@@ -308,13 +314,14 @@ def calculate_dividends(
         total_div_inr += div_inr
 
         entries.append({
+            "div_id": div.get("id"),
             "ex_date": div["ex_date"],
+            "payment_date": pay_date_str,
             "amount_foreign": amount,
             "qty": qty,
-            "ttbr": rate,
             "rate_date": rate_date,
-            "div_inr": round(div_inr),
-            "div_id": div.get("id"),
+            "ttbr": rate,
+            "value_inr": div_inr,
         })
 
     return {
@@ -951,21 +958,34 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                     continue
 
                 amount = float(div.get("amount", 0))
-                rate, _, _ = _get_rate_value(ex_date, sbi_overrides)
+
+                # Qualification was on Ex-Date (already checked above)
+                # Tax Year Placement & Rule 115 Conversion: Use Payment Date
+                pay_date_str = div.get("payment_date") or div.get("ex_date")
+                pay_date = _parse_date(pay_date_str)
+
+                # Use Payment Date for tax year key and Rule 115 rate
+                ty_key = _get_tax_year_key(pay_date, calendar_year)
+                qkey = _get_quarter_key(pay_date, ty_key)
+
+                # Rate for Tax Summary (Rule 115: Last working day of prev month)
+                rate, rate_date, _ = _get_rate_value(pay_date, sbi_overrides, use_event_date=False)
                 if rate is None:
                     continue
 
                 div_inr = amount * qty * rate
 
-                ty_key = _get_tax_year_key(ex_date, calendar_year)
-                qkey = _get_quarter_key(ex_date, ty_key)
-
                 detail = {
-                    "date": ex_date.isoformat(),
+                    "div_id": div.get("id"),
+                    "date": pay_date.isoformat(),
+                    "payment_date": pay_date.isoformat(),
+                    "ex_date": ex_date.isoformat(),
                     "qty": qty,
-                    "price_usd": amount,
-                    "rate": rate,
-                    "value_inr": div_inr
+                    "amount_foreign": amount,
+                    "ttbr": rate,
+                    "rate_date": rate_date,
+                    "value_inr": div_inr,
+                    "rule": "Rule 115 (Prev Month)"
                 }
 
                 ty = _get_ty(ty_key)

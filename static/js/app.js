@@ -959,6 +959,7 @@ async function lookupStock() {
                 stock.dividends = divInfo.dividends.map(d => ({
                     id: generateId(),
                     ex_date: d.ex_date,
+                    payment_date: d.payment_date || d.ex_date,
                     amount: d.amount
                 }));
             }
@@ -1473,6 +1474,7 @@ function addDividendRow(card, stock, divData = null) {
     const div = divData || {
         id: generateId(),
         ex_date: "",
+        payment_date: "",
         amount: "",
     };
     if (!divData) {
@@ -1490,15 +1492,39 @@ function renderDividendRow(card, stock, div) {
 
     tr.innerHTML = `
         <td><input type="date" class="div-date" value="${div.ex_date}"></td>
+        <td><input type="date" class="div-pay-date" value="${div.payment_date || ""}"></td>
         <td><input type="number" class="div-amount" value="${div.amount}" step="any" min="0" placeholder="0.00"></td>
         <td><button class="btn btn-sm btn-danger remove-div-btn">✕</button></td>
     `;
 
+    const exDateInput = tr.querySelector(".div-date");
+    const payDateInput = tr.querySelector(".div-pay-date");
+
+    const updateVisuals = () => {
+        const exVal = exDateInput.value;
+        const payVal = payDateInput.value;
+        if (exVal && payVal && exVal === payVal) {
+            payDateInput.classList.add("div-pay-date-warn");
+            payDateInput.title = "Payment date is initialized using Ex-Date. Please update with the actual payment date.";
+        } else {
+            payDateInput.classList.remove("div-pay-date-warn");
+            payDateInput.title = "";
+        }
+    };
+
+    updateVisuals();
+
     tr.querySelectorAll("input").forEach(input => {
         input.addEventListener("change", () => {
             pushUndoSnapshot("Edit Dividend");
-            div.ex_date = tr.querySelector(".div-date").value;
+            // Auto-fill payment date if it's empty when ex-date is set
+            if (input === exDateInput && !payDateInput.value) {
+                payDateInput.value = exDateInput.value;
+            }
+            div.ex_date = exDateInput.value;
+            div.payment_date = payDateInput.value;
             div.amount = parseFloat(tr.querySelector(".div-amount").value) || 0;
+            updateVisuals();
         });
     });
 
@@ -2144,8 +2170,9 @@ function renderValidationTable(rows) {
                 breakdown = `<div class="b-math">${sectionLink(mathText, 'lots-section', c.lot_id)}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "total_dividends" && col.detail?.dividend_entries?.length > 0) {
                 breakdown = col.detail.dividend_entries.map(de => {
-                    const mathText = `${de.ex_date}: (${de.qty}×$${de.amount_foreign.toFixed(4)})`;
-                    return `<div class="b-item">${sectionLink(mathText, 'dividends-section', de.div_id)}×${rateLink(de.ttbr, de.rate_date)}</div>`;
+                    const dateLabel = de.payment_date ? `Pay: ${de.payment_date} (Ex: ${de.ex_date})` : `Ex: ${de.ex_date}`;
+                    const mathText = `(${de.qty}×$${de.amount_foreign.toFixed(4)})`;
+                    return `<div class="b-item" title="${dateLabel}">${sectionLink(mathText, 'dividends-section', de.div_id)}×${rateLink(de.ttbr, de.rate_date)}</div>`;
                 }).join("");
             } else if (col.key === "sale_proceeds" && col.detail?.sale_entries?.length > 0) {
                 breakdown = col.detail.sale_entries.map(se => {
@@ -2233,7 +2260,8 @@ function renderTaxValidationTable(rows) {
         // Dividends
         if (row.calculation_details?.dividends?.dividend_entries) {
             row.calculation_details.dividends.dividend_entries.forEach(de => {
-                const divDate = new Date(de.ex_date);
+                const payDateStr = de.payment_date || de.ex_date;
+                const divDate = new Date(payDateStr);
                 const tyLabel = divDate.getMonth() < 3
                     ? `FY ${divDate.getFullYear()-1}-${divDate.getFullYear()}`
                     : `FY ${divDate.getFullYear()}-${divDate.getFullYear()+1}`;
@@ -2241,7 +2269,7 @@ function renderTaxValidationTable(rows) {
                     ty: tyLabel,
                     ticker,
                     type: "DIVIDEND",
-                    date: de.ex_date,
+                    date: payDateStr,
                     buy_cost: 0,
                     proceeds: de.div_inr || 0,
                     gain: de.div_inr || 0,
@@ -2328,10 +2356,12 @@ function renderTaxValidationTable(rows) {
                 </div>`;
         } else {
             const de = e.details;
+            const payLabel = de.payment_date ? `Paid: ${de.payment_date}` : `Ex: ${de.ex_date}`;
             const divMath = `(${de.qty}×$${de.amount_foreign.toFixed(4)}) × ${rateLink(de.ttbr, de.rate_date)}`;
             breakdown = `
                 <div class="b-container">
-                    <div class="b-math"><strong>Div:</strong> ${sectionLink(e.ticker, e.date, 'dividends-section', de.div_id)}</div>
+                    <div class="b-math"><strong>Div:</strong> ${sectionLink(e.ticker, payLabel, 'dividends-section', de.div_id)}</div>
+                    <div class="b-math" style="font-size:0.65rem;opacity:0.7;">Rule 115 (Prev Month Rate)</div>
                     <div class="b-math" style="margin-top:4px;">Amount: ${sectionLink(e.ticker, divMath, 'lots-section', e.lot_id)} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
                 </div>`;
         }
@@ -2557,7 +2587,8 @@ function collectSbiRates(rows) {
         ];
         if (details.dividends && details.dividends.dividend_entries) {
             details.dividends.dividend_entries.forEach(de => {
-                entries.push({ label: `${ticker} — Dividend (${de.ex_date})`, data: de });
+                const payDate = de.payment_date || de.ex_date;
+                entries.push({ label: `${ticker} — Dividend (${payDate})`, data: de });
             });
         }
         if (details.sales && details.sales.sale_entries) {
@@ -2731,7 +2762,7 @@ async function savePortfolioAs() {
     // Deep clone and strip runtime-only fields before downloading
     const portfolioToSave = JSON.parse(JSON.stringify(state.portfolio));
     portfolioToSave.stocks.forEach(stock => {
-        delete stock.dividends;
+        // Keep dividends as they now contain manual payment dates
         delete stock.yearly_max_price;
         delete stock.yearly_max_price_date;
     });
@@ -2814,7 +2845,7 @@ async function fetchRuntimeDataForAllStocks() {
             ? apiPost("/api/lookup-stock", { ticker: ticker })
             : Promise.resolve(null);
 
-        const divPromise = (!stock.skip_dividends)
+        const divPromise = (!stock.skip_dividends && (!stock.dividends || stock.dividends.length === 0))
             ? apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`)
             : Promise.resolve(null);
 
@@ -2841,14 +2872,14 @@ async function fetchRuntimeDataForAllStocks() {
             const elapsed = Date.now() - startTime;
             const t = Math.min(1, elapsed / estimatedDuration);
             stockPercent = 92 * (1 - Math.pow(1 - t, 3)); // easeOutCubic
-            
+
             // Dynamic message updates based on elapsed time to make it feel extremely responsive
             if (elapsed > 1000 && elapsed <= 2000) {
                 subStepMsg = "Fetching dividends";
             } else if (elapsed > 2000) {
                 subStepMsg = "Calculating peak asset value";
             }
-            
+
             updateStockProgress(subStepMsg);
         }, 100);
 
@@ -2886,7 +2917,10 @@ async function fetchRuntimeDataForAllStocks() {
             // 2. Process dividends
             if (divData) {
                 stock.dividends = (divData.dividends || []).map(d => ({
-                    id: generateId(), ex_date: d.ex_date, amount: d.amount,
+                    id: generateId(), 
+                    ex_date: d.ex_date, 
+                    payment_date: d.payment_date || d.ex_date,
+                    amount: d.amount,
                 }));
                 const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
                 if (card) {
@@ -2895,7 +2929,6 @@ async function fetchRuntimeDataForAllStocks() {
                     stock.dividends.forEach(div => renderDividendRow(card, stock, div));
                 }
             }
-
             // 3. Process peak price
             if (peakInfo && peakInfo.max_price != null) {
                 stock.yearly_max_price = peakInfo.max_price;
@@ -4152,7 +4185,10 @@ async function fetchDividendsForStock(card, stock) {
         const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`);
         pushUndoSnapshot(`Fetch Dividends (${stock.ticker})`);
         stock.dividends = (data.dividends || []).map(d => ({
-            id: generateId(), ex_date: d.ex_date, amount: d.amount,
+            id: generateId(), 
+            ex_date: d.ex_date, 
+            payment_date: d.payment_date || d.ex_date,
+            amount: d.amount,
         }));
         // Re-render dividends tbody
         const tbody = card.querySelector(".dividends-tbody");
@@ -4222,7 +4258,10 @@ async function fetchAllDividends() {
         try {
             const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${state.portfolio.calendar_year}`);
             stock.dividends = (data.dividends || []).map(d => ({
-                id: generateId(), ex_date: d.ex_date, amount: d.amount,
+                id: generateId(), 
+                ex_date: d.ex_date, 
+                payment_date: d.payment_date || d.ex_date,
+                amount: d.amount,
             }));
             total += stock.dividends.length;
             const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
@@ -4634,7 +4673,7 @@ const tutorialStepsA3 = [
     { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., QCOM, NVDA, VWRA) and click Lookup to add it to your portfolio. Tickers for non-US exchanges are auto-resolved." },
     { selector: ".add-lot-btn", title: "Acquisition Lots", desc: "Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the 📈 Fetch button to auto-fill the closing price." },
     { selector: ".add-sell-btn", title: "Sell Transactions", desc: "Record any sell transactions against a specific lot. The tool uses FIFO matching and tracks partial sells." },
-    { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Click to re-fetch dividend data from Yahoo Finance for the current calendar year. Dividends are also auto-fetched when adding a stock." },
+    { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Fetch dividend data from Yahoo Finance for the calendar year. **Note:** Since Yahoo lacks historical payment dates, the field is initialized with the Ex-Date (highlighted in red). Please verify and update it with the actual payment date for accurate Rule 115 calculations." },
     { selector: "#calcFab", title: "Generate FA Report", desc: "Click the floating button to compute all 12 columns of Schedule FA Section A3, including initial value, peak value, closing balance, dividends, and sale proceeds — all in ₹ using SBI TT rates." },
 ];
 

@@ -90,6 +90,7 @@ python3 app.py
 
 ### Dividends
 - **Dividend Auto-Fetch** — Automatically fetches dividend events for the current year when importing data or adding stocks.
+- **Payment Date Verification (Rule 115)** — Since Yahoo Finance lacks historical payment dates, the app initializes the `Payment Date` with the `Ex-Date` (highlighted in red). Users can manually verify and update this date to ensure the correct monthly SBI rate is used for tax calculation as per Rule 115.
 - **Per-Stock Fetch Dividends** — Re-fetch dividend data for any individual stock with a single click (🔄 button per stock card).
 - **Batch Fetch All Dividends** — Refresh dividend data for all stocks at once from the header (💰 Fetch All Dividends).
 
@@ -120,7 +121,7 @@ python3 app.py
 2.  **Fetch SBI Rates** — Click "⬇ Fetch SBI Rates" button (if rates are missing for your year).
 3.  **Import Data (Optional)** — Click "📁 Upload ETRADE Docs" to import holdings and/or sell transactions, or use "📥 Import Prev Year" to bring over holdings from a previous year's save.
 4.  **Add Stocks/Lots Manually** — Enter ticker symbols and add acquisition lots (date, quantity, price) or sells as needed.
-5.  **Fetch Dividends** — Click "💰 Fetch All Dividends" to pull dividend data for all stocks, or use 🔄 per stock.
+5.  **Fetch & Verify Dividends** — Click "💰 Fetch All Dividends" to pull data. **Note:** Check the "Payment Date" column; if it's glowing red, it means it's defaulting to the Ex-Date. Update it with the actual payment date for precise tax calculation.
 6.  **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 portal columns.
 7.  **Review Tax Summary** — Review the ITR Tax Year Summary with LTCG/STCG netting, or generate a Consolidated FY Statement.
 8.  **Export** — Click "📥 Export CSV" to download the formatted file for tax filing.

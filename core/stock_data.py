@@ -197,46 +197,40 @@ def get_historical_prices(ticker: str, start_date: str, end_date: str) -> list:
 def get_dividends(ticker: str, year: int) -> list:
     """
     Fetch dividend data for a specific calendar year.
-
     Returns:
-        List of {"ex_date": "YYYY-MM-DD", "amount": float}
-        Empty list if no dividends.
+        List of {"ex_date": "YYYY-MM-DD", "payment_date": "YYYY-MM-DD", "amount": float}
     """
     yahoo_ticker = resolve_yahoo_ticker(ticker)
-    cache_key = f"dividends:{yahoo_ticker.upper()}:{year}"
+    cache_key = f"dividends_v3:{yahoo_ticker.upper()}:{year}"
     
     cached = get_cached_val(cache_key)
     if cached is not None:
-        logger.info(f"Loaded dividends from cache for {yahoo_ticker} in {year}")
+        logger.info(f"Loaded dividends (v3) from cache for {yahoo_ticker} in {year}")
         return cached
 
     logger.info(f"Fetching dividends for {yahoo_ticker} in {year}")
+    year_divs = []
+
     try:
         t = _get_yf().Ticker(yahoo_ticker)
         divs = t.dividends
-
-        if divs.empty:
-            if year < date.today().year:
-                set_cached_val(cache_key, [])
-            return []
-
-        # Filter for the calendar year
-        year_divs = []
-        for idx, amount in divs.items():
-            if idx.year == year:
-                year_divs.append({
-                    "ex_date": idx.strftime("%Y-%m-%d"),
-                    "amount": round(float(amount), 6),
-                })
-
-        # Cache permanently if this year is fully closed (in the past)
-        if year < date.today().year:
-            set_cached_val(cache_key, year_divs)
-
-        return year_divs
+        if not divs.empty:
+            for idx, amount in divs.items():
+                if idx.year == year:
+                    ex_date_str = idx.strftime("%Y-%m-%d")
+                    year_divs.append({
+                        "ex_date": ex_date_str,
+                        "payment_date": ex_date_str, # Default to ex_date for manual override
+                        "amount": round(float(amount), 6),
+                    })
     except Exception as e:
-        logger.error(f"Error fetching dividends for {ticker}: {e}")
-        return []
+        logger.error(f"yfinance error for {ticker}: {e}")
+
+    # Cache if this year is in the past
+    if year < date.today().year:
+        set_cached_val(cache_key, year_divs)
+
+    return year_divs
 
 
 def get_yearly_max_price(ticker: str, year: int) -> dict:

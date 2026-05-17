@@ -109,6 +109,20 @@ def api_setup_demo():
                 }
               ]
             }
+          ],
+          "dividends": [
+            {
+              "id": "div_aapl_1",
+              "ex_date": "2025-02-07",
+              "payment_date": "2025-02-13",
+              "amount": 0.24
+            },
+            {
+              "id": "div_aapl_2",
+              "ex_date": "2025-05-09",
+              "payment_date": "2025-05-15",
+              "amount": 0.25
+            }
           ]
         },
         {
@@ -186,6 +200,14 @@ def api_setup_demo():
               "quantity": 80.0,
               "buy_price": 11.20,
               "sells": []
+            }
+          ],
+          "dividends": [
+            {
+              "id": "div_nvda_1",
+              "ex_date": "2025-03-05",
+              "payment_date": "2025-03-27",
+              "amount": 0.01
             }
           ]
         }
