@@ -2978,6 +2978,7 @@ async function exportCSV() {
     }
 }
 
+
 // ===== Utilities =====
 function generateId() {
     return "id_" + Math.random().toString(36).substr(2, 9);
@@ -3518,24 +3519,47 @@ function renderTaxYearSummary(taxYears) {
 
 // ===== Tab Switching =====
 function switchTab(tab) {
-    const a3Els = [
-        "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
-        "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
-        "monthlyRatesSection", "assetPieChartSection",
-    ];
     const isA3 = tab === "a3";
     const isSellHelper = tab === "sellHelper";
     const isTaxStatement = tab === "taxStatement";
 
-    a3Els.forEach(id => {
+    // All A3 tab elements to hide when switching away
+    const allA3Els = [
+        "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
+        "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
+        "monthlyRatesSection", "assetPieChartSection", "validateA3Section", "validateTaxSection"
+    ];
+
+    allA3Els.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-        if (id === "monthlyRatesSection") {
-            if (!isA3) el.classList.add("hidden");
-            return;
+        if (!isA3) {
+            el.classList.add("hidden");
         }
-        el.classList.toggle("hidden", !isA3);
     });
+
+    // If active tab is A3, show core and conditionally calculated sections
+    if (isA3) {
+        // Core A3 sections that are always visible
+        const alwaysVisible = ["addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar"];
+        alwaysVisible.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove("hidden");
+        });
+
+        // Calculated sections only visible if a calculation has run
+        const hasCalculated = state.calculatedRows && state.calculatedRows.length > 0;
+        if (hasCalculated) {
+            const calculatedEls = [
+                "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
+                "assetPieChartSection", "validateA3Section", "validateTaxSection"
+            ];
+            calculatedEls.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove("hidden");
+            });
+        }
+    }
 
     document.getElementById("sellHelperPanel").classList.toggle("hidden", !isSellHelper);
     document.getElementById("taxStatementPanel").classList.toggle("hidden", !isTaxStatement);
