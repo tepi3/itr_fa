@@ -1165,6 +1165,14 @@ function renderStockCard(stock) {
     card.querySelector(".company-nature").value = stock.company_info.nature;
     card.querySelector(".skip-dividends-check").checked = stock.skip_dividends;
 
+    // Ensure sections have correct classes for cross-linking
+    const lotTable = card.querySelector(".lots-table");
+    if (lotTable && lotTable.parentElement) lotTable.parentElement.classList.add("lots-section");
+    const sellTable = card.querySelector(".sells-table");
+    if (sellTable && sellTable.parentElement) sellTable.parentElement.classList.add("sells-section");
+    const divTable = card.querySelector(".dividends-table");
+    if (divTable && divTable.parentElement) divTable.parentElement.classList.add("dividends-section");
+
     // Bind company info changes
     card.querySelectorAll(".company-info-section input, .company-info-section select").forEach(el => {
         el.addEventListener("change", () => syncStockFromCard(card));
@@ -2056,6 +2064,14 @@ function renderResultsTable(rows) {
     renderTaxValidationTable(rows);
 }
 
+// ===== Validation Tables Helpers =====
+
+/** Helper to wrap TTBR rate in a clickable cross-link span */
+const rateLink = (rateVal, rateDate) => {
+    if (!rateVal || !rateDate) return `₹${rateVal ? rateVal.toFixed(4) : '?'}`;
+    return `<span class="validate-crosslink" data-jump-rate="${rateDate}" title="Jump to SBI rate for ${rateDate}">₹${rateVal.toFixed(4)}</span>`;
+};
+
 // ===== Render Validation Table =====
 function renderValidationTable(rows) {
     const tbody = document.getElementById("validateA3TableBody");
@@ -2088,12 +2104,6 @@ function renderValidationTable(rows) {
             
             let breakdown = "—";
             let finalVal = row[col.key];
-
-            // Helper to wrap TTBR rate in a clickable cross-link span
-            const rateLink = (rateVal, rateDate) => {
-                if (!rateVal || !rateDate) return `₹${rateVal ? rateVal.toFixed(4) : '?'}`;
-                return `<span class="validate-crosslink" data-jump-rate="${rateDate}" title="Jump to SBI rate for ${rateDate}">₹${rateVal.toFixed(4)}</span>`;
-            };
 
             // Helper to wrap lot math in a clickable cross-link span
             const sectionLink = (text, sectionClass, targetId) => {
@@ -2173,27 +2183,23 @@ function renderTaxValidationTable(rows) {
     tbody.innerHTML = "";
     section.classList.remove("hidden");
 
-    // Helper for cross-linking
-    const rateLink = (rateVal, rateDate) => {
-        if (!rateVal || !rateDate) return `₹${rateVal ? rateVal.toFixed(4) : '?'}`;
-        return `<span class="validate-crosslink" data-jump-rate="${rateDate}" title="Jump to SBI rate for ${rateDate}">₹${rateVal.toFixed(4)}</span>`;
-    };
+    // Helper to wrap lot math in a clickable cross-link span
     const sectionLink = (ticker, text, sectionClass, targetId) => {
         let idAttr = targetId ? `data-jump-id="${targetId}"` : "";
-        return `<span class="validate-crosslink" data-jump-stock="${ticker}" data-jump-section="${sectionClass}" ${idAttr} title="Jump to specific row in ${ticker}">${text}</span>`;
+        return `<span class="validate-crosslink" data-jump-stock="${ticker}" data-jump-section="${sectionClass}" ${idAttr} title="Jump to specific row in ${ticker || 'Portfolio'}">${text}</span>`;
     };
 
     // Extract all events
     const events = [];
     rows.forEach(row => {
         const ticker = row.ticker;
-        
+
         // Sales
         if (row.calculation_details?.sales?.sale_entries) {
             row.calculation_details.sales.sale_entries.forEach(se => {
                 const sellDate = new Date(se.sell_date);
-                const tyLabel = sellDate.getMonth() < 3 
-                    ? `FY ${sellDate.getFullYear()-1}-${sellDate.getFullYear()}` 
+                const tyLabel = sellDate.getMonth() < 3
+                    ? `FY ${sellDate.getFullYear()-1}-${sellDate.getFullYear()}`
                     : `FY ${sellDate.getFullYear()}-${sellDate.getFullYear()+1}`;
                 events.push({
                     ty: tyLabel,
@@ -2203,7 +2209,8 @@ function renderTaxValidationTable(rows) {
                     buy_cost: se.buy_cost_inr || 0,
                     proceeds: se.proceeds_inr || 0,
                     gain: se.profit_loss_inr || 0,
-                    details: se
+                    details: se,
+                    lot_id: row.lot_id
                 });
             });
         }
@@ -2212,8 +2219,8 @@ function renderTaxValidationTable(rows) {
         if (row.calculation_details?.dividends?.dividend_entries) {
             row.calculation_details.dividends.dividend_entries.forEach(de => {
                 const divDate = new Date(de.ex_date);
-                const tyLabel = divDate.getMonth() < 3 
-                    ? `FY ${divDate.getFullYear()-1}-${divDate.getFullYear()}` 
+                const tyLabel = divDate.getMonth() < 3
+                    ? `FY ${divDate.getFullYear()-1}-${divDate.getFullYear()}`
                     : `FY ${divDate.getFullYear()}-${divDate.getFullYear()+1}`;
                 events.push({
                     ty: tyLabel,
@@ -2223,7 +2230,8 @@ function renderTaxValidationTable(rows) {
                     buy_cost: 0,
                     proceeds: de.div_inr || 0,
                     gain: de.div_inr || 0,
-                    details: de
+                    details: de,
+                    lot_id: row.lot_id
                 });
             });
         }
@@ -2273,13 +2281,13 @@ function renderTaxValidationTable(rows) {
     events.forEach((e, idx) => {
         const tr = document.createElement("tr");
         tr.id = `val-tax-${e.ticker}-${e.type}-${e.date}`;
-        
+
         const groupKey = `${e.ty}-${e.ticker}-${e.category}-${e.qk}`;
         if (groupKey !== lastGroupKey) {
             tr.classList.add("group-start");
             lastGroupKey = groupKey;
         }
-        
+
         // Mark group end for the previous row if this is a new group
         if (idx > 0 && groupKey !== `${events[idx-1].ty}-${events[idx-1].ticker}-${events[idx-1].category}-${events[idx-1].qk}`) {
             tbody.lastElementChild.classList.add("group-end");
@@ -2295,13 +2303,13 @@ function renderTaxValidationTable(rows) {
         tr.className += " tax-val-row";
         if (e.type === "SALE") {
             const se = e.details;
-            const buyMath = `(${se.quantity}×$${se.buy_price.toFixed(2)}) × ${rateLink(se.buy_ttbr, se.buy_rate_date)}`;
             const sellMath = `(${se.quantity}×$${se.sell_price.toFixed(2)}) × ${rateLink(se.ttbr, se.rate_date)}`;
+            const buyMath = `(${se.quantity}×$${se.buy_price.toFixed(2)}) × ${rateLink(se.buy_ttbr, se.buy_rate_date)}`;
             breakdown = `
                 <div class="b-container">
                     <div class="b-math"><strong>Sell:</strong> ${sectionLink(e.ticker, e.date, 'sells-section', se.sell_id)}</div>
-                    <div class="b-math" style="margin-top:4px;">Proceeds: ${sellMath} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
-                    <div class="b-math">Buy Cost: ${buyMath} = <span style="font-weight:600">₹${formatINR(e.buy_cost)}</span></div>
+                    <div class="b-math" style="margin-top:4px;">Proceeds: ${sectionLink(e.ticker, sellMath, 'sells-section', se.sell_id)} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
+                    <div class="b-math">Buy Cost: ${sectionLink(e.ticker, buyMath, 'lots-section', e.lot_id)} = <span style="font-weight:600">₹${formatINR(e.buy_cost)}</span></div>
                 </div>`;
         } else {
             const de = e.details;
@@ -2309,10 +2317,9 @@ function renderTaxValidationTable(rows) {
             breakdown = `
                 <div class="b-container">
                     <div class="b-math"><strong>Div:</strong> ${sectionLink(e.ticker, e.date, 'dividends-section', de.div_id)}</div>
-                    <div class="b-math" style="margin-top:4px;">Amount: ${divMath} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
+                    <div class="b-math" style="margin-top:4px;">Amount: ${sectionLink(e.ticker, divMath, 'lots-section', e.lot_id)} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
                 </div>`;
         }
-
         tr.innerHTML = `
             <td><span class="ty-badge">${e.ty}</span></td>
             <td><strong>${e.ticker}</strong></td>
@@ -3345,11 +3352,15 @@ function renderTaxYearSummary(taxYears) {
                         "font-variant-numeric:tabular-nums;"
                     ].join("");
                     if (val > 0) {
-                        td.innerHTML = `<span class="val-link">${formatINR(val)}</span>`;
-                        const link = td.querySelector(".val-link");
-                        link.addEventListener("click", () => jumpToTaxSummaryBreakdown(ticker, cat, qk, ty.label, link, `${ticker} ${meta.label}`));
-                        
-                        if (qk !== "total") {
+                        if (qk === "total") {
+                            // Total column for individual stock: show plain value
+                            td.textContent = formatINR(val);
+                        } else {
+                            // Quarterly column: show clickable link
+                            td.innerHTML = `<span class="val-link">${formatINR(val)}</span>`;
+                            const link = td.querySelector(".val-link");
+                            link.addEventListener("click", () => jumpToTaxSummaryBreakdown(ticker, cat, qk, ty.label, link, `${ticker} ${meta.label}`));
+                            
                             link.addEventListener("mouseenter", (e) => {
                                 const events = bucket.details?.[qk] || [];
                                 const details = events.map(ev => ({
@@ -3407,9 +3418,8 @@ function renderTaxYearSummary(taxYears) {
                     "font-variant-numeric:tabular-nums;"
                 ].join("");
                 if (val > 0) {
-                    td.innerHTML = `<span class="val-link">${formatINR(val)}</span>`;
-                    const link = td.querySelector(".val-link");
-                    link.addEventListener("click", () => jumpToTaxSummaryBreakdown('', cat, qk, ty.label, link, `Total ${meta.label}`));
+                    // Total rows at bottom: always show plain value (disabled link)
+                    td.textContent = formatINR(val);
                 } else {
                     td.textContent = "—";
                 }
@@ -5180,23 +5190,29 @@ function jumpToStockSection(ticker, sectionClass, targetId) {
     // Find the stock card with this ticker
     const cards = document.querySelectorAll(".stock-card");
     let targetCard = null;
-    for (const card of cards) {
-        const tickerEl = card.querySelector(".stock-ticker");
-        if (tickerEl && tickerEl.textContent.trim() === ticker) {
-            targetCard = card;
-            break;
+
+    if (!ticker) {
+        // If no ticker provided (e.g. Total row), just take the first available card
+        targetCard = cards[0];
+    } else {
+        for (const card of cards) {
+            const tickerEl = card.querySelector(".stock-ticker");
+            if (tickerEl && tickerEl.textContent.trim().toUpperCase() === ticker.toUpperCase()) {
+                targetCard = card;
+                break;
+            }
         }
     }
-    
+
     if (!targetCard) return;
-    
+
     // Expand the card if collapsed
     const body = targetCard.querySelector(".stock-card-body");
-    if (body && body.classList.contains("collapsed")) {
+    if (body && !body.classList.contains("expanded")) {
         const toggleBtn = targetCard.querySelector(".toggle-details-btn");
         if (toggleBtn) toggleBtn.click();
     }
-    
+
     // Find the target section within the card
     const targetSection = targetCard.querySelector(`.${sectionClass}`);
     let scrollTarget = targetSection || targetCard;
@@ -5210,13 +5226,13 @@ function jumpToStockSection(ticker, sectionClass, targetId) {
             highlightTarget = row;
         }
     }
-    
+
     // Scroll to it
     const header = document.getElementById("appHeader");
     const headerHeight = header ? header.offsetHeight : 0;
     const top = scrollTarget.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
     window.scrollTo({ top, behavior: "smooth" });
-    
+
     // Highlight pulse on the target
     highlightTarget.classList.add("highlight-pulse");
     setTimeout(() => highlightTarget.classList.remove("highlight-pulse"), 2000);
