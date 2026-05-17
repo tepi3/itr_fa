@@ -365,6 +365,9 @@ def calculate_sale_proceeds(
         total_proceeds_inr += proceeds_inr
 
         # P&L calculations
+        holding_days = (sell_date - buy_date).days
+        is_long_term = holding_days >= 730
+        
         pl_usd = round((sell_price - buy_price) * sell_qty, 2)
         buy_cost_inr = round(buy_price * sell_qty * buy_rate) if buy_rate else None
         pl_inr = round(proceeds_inr - buy_cost_inr) if buy_cost_inr is not None else None
@@ -375,6 +378,7 @@ def calculate_sale_proceeds(
             "sell_price": sell_price,
             "quantity": sell_qty,
             "buy_price": buy_price,
+            "is_long_term": is_long_term,
             "ttbr": rate,
             "rate_date": rate_date,
             "proceeds_inr": round(proceeds_inr),

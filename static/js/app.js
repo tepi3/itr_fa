@@ -332,6 +332,15 @@ function clearCalculatedSections() {
     // Hide and clear tax year summary section
     document.getElementById("taxYearSection").classList.add("hidden");
     document.getElementById("taxYearBlocks").innerHTML = "";
+
+    // Hide and clear Validate Tax section
+    const valTaxSection = document.getElementById("validateTaxSection");
+    if (valTaxSection) {
+        valTaxSection.classList.add("hidden");
+        const tbody = document.getElementById("validateTaxTableBody");
+        if (tbody) tbody.innerHTML = "";
+    }
+
     // Clear per-stock summary and pie chart
     const summaryBody = document.getElementById("stockSummaryTableBody");
     if (summaryBody) summaryBody.innerHTML = "";
@@ -2223,12 +2232,20 @@ function renderTaxValidationTable(rows) {
     // Sort: Tax Year (desc) -> Ticker (asc) -> Category (asc) -> Quarter (asc) -> Date (asc)
     const getQuarter = (dateStr) => {
         const d = new Date(dateStr);
-        const m = d.getMonth();
+        const m = d.getMonth() + 1; // 1-12
         const day = d.getDate();
-        if (m === 3 || m === 4 || (m === 5 && day <= 15)) return "q1";
-        if ((m === 5 && day >= 16) || m === 6 || m === 7 || (m === 8 && day <= 15)) return "q2";
-        if ((m === 8 && day >= 16) || m === 9 || m === 10 || (m === 11 && day <= 15)) return "q3";
-        if ((m === 11 && day >= 16) || m === 0 || m === 1 || (m === 2 && day <= 15)) return "q4";
+
+        // ITR Quarterly Buckets for April-March FY:
+        // q1: 1 Apr - 15 Jun
+        // q2: 16 Jun - 15 Sep
+        // q3: 16 Sep - 15 Dec
+        // q4: 16 Dec - 15 Mar (next year)
+        // q5: 16 Mar - 31 Mar (next year)
+
+        if (m === 4 || m === 5 || (m === 6 && day <= 15)) return "q1";
+        if ((m === 6 && day >= 16) || m === 7 || m === 8 || (m === 9 && day <= 15)) return "q2";
+        if ((m === 9 && day >= 16) || m === 10 || m === 11 || (m === 12 && day <= 15)) return "q3";
+        if ((m === 12 && day >= 16) || m === 1 || m === 2 || (m === 3 && day <= 15)) return "q4";
         return "q5";
     };
 

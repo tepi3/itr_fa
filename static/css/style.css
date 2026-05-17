@@ -2191,22 +2191,22 @@ kbd {
 }
 
 .tax-val-row td {
-    border-left: 3px solid rgba(99, 102, 241, 0.2) !important;
-    border-right: 3px solid rgba(99, 102, 241, 0.2) !important;
+    border-left: 1px solid var(--border) !important;
+    border-right: 1px solid var(--border) !important;
 }
 
 .tax-val-row.group-start td {
-    border-top: 3px solid rgba(99, 102, 241, 0.5) !important;
+    border-top: 6px solid var(--border) !important;
 }
 
 .tax-val-row.group-end td {
-    border-bottom: 3px solid rgba(99, 102, 241, 0.5) !important;
+    border-bottom: 6px solid var(--border) !important;
 }
 
 .tax-val-row.group-start td:first-child,
 .tax-val-row:not(.group-start):not(.group-end) td:first-child,
 .tax-val-row.group-end td:first-child {
-    box-shadow: inset 10px 0 0 0 rgba(99, 102, 241, 0.15);
+    box-shadow: inset 10px 0 0 0 rgba(128, 128, 128, 0.1);
 }
 
 .ty-badge {
