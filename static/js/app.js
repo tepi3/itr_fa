@@ -55,16 +55,21 @@ const tooltipEl = document.createElement("div");
 tooltipEl.className = "calc-tooltip hidden";
 document.body.appendChild(tooltipEl);
 
-function showTooltip(e, contentHTML) {
-    if (!contentHTML) return;
+function showCalcTooltip(e, contentHTML) {
+    console.log("[TOOLTIP] showCalcTooltip called!", { contentHTML, clientX: e.clientX, clientY: e.clientY });
+    if (!contentHTML) {
+        console.warn("[TOOLTIP] No content HTML provided, ignoring.");
+        return;
+    }
     clearTimeout(_tooltipTimeout);
     tooltipEl.innerHTML = contentHTML;
     tooltipEl.classList.remove("hidden");
+    console.log("[TOOLTIP] Removed hidden class. Element display style:", window.getComputedStyle(tooltipEl).display);
 
     // Smart positioning
     const x = e.clientX;
     const y = e.clientY;
-    const padding = 20; // Increased padding slightly to prevent overlap/hover flickering
+    const padding = 20; 
     
     let left = x;
     let top = y + padding;
@@ -72,10 +77,12 @@ function showTooltip(e, contentHTML) {
     // Apply immediate position to prevent flicker
     tooltipEl.style.left = left + "px";
     tooltipEl.style.top = top + "px";
+    console.log("[TOOLTIP] Set initial position:", { left: tooltipEl.style.left, top: tooltipEl.style.top });
 
     // Adjust in animation frame once dimensions are known
     requestAnimationFrame(() => {
         const rect = tooltipEl.getBoundingClientRect();
+        console.log("[TOOLTIP] animationFrame bounding rect:", rect, { windowWidth: window.innerWidth, windowHeight: window.innerHeight });
         if (left + rect.width > window.innerWidth) {
             left = window.innerWidth - rect.width - padding;
         }
@@ -84,18 +91,23 @@ function showTooltip(e, contentHTML) {
         }
         tooltipEl.style.left = left + "px";
         tooltipEl.style.top = top + "px";
+        console.log("[TOOLTIP] Final adjusted position:", { left: tooltipEl.style.left, top: tooltipEl.style.top });
     });
 }
 
-function hideTooltip() {
+function hideCalcTooltip() {
+    console.log("[TOOLTIP] hideCalcTooltip requested.");
     _tooltipTimeout = setTimeout(() => {
         tooltipEl.classList.add("hidden");
+        console.log("[TOOLTIP] Added hidden class to hide tooltip.");
     }, 150);
 }
 
 function buildTooltipHTML(details, type) {
     if (!details) return "";
     
+    const clickHint = `<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;border-top:1px dashed var(--border);padding-top:4px;text-align:center;font-weight:normal;">💡 Click to view breakdown</div>`;
+
     if (Array.isArray(details)) {
         if (details.length === 0) return "";
         let html = `<div style="font-weight:bold;margin-bottom:4px;border-bottom:1px solid var(--border);padding-bottom:2px;">${type} (${details.length} entries)</div>`;
@@ -113,10 +125,12 @@ function buildTooltipHTML(details, type) {
         
         const total = details.reduce((sum, d) => sum + (d.value_inr || 0), 0);
         html += `<div style="margin-top:4px;border-top:1px solid var(--border);padding-top:2px;font-weight:bold;">Total: ₹${formatINR(Math.round(total))}</div>`;
+        html += clickHint;
         return html;
     } else {
         let html = `<div>${details.qty ? details.qty + ' × ' : ''}$${details.price_usd} × ₹${details.rate}</div>`;
         html += `<div style="border-top:1px solid var(--border);margin-top:2px;padding-top:2px;font-weight:bold;">= ₹${formatINR(Math.round(details.value_inr))}</div>`;
+        html += clickHint;
         return html;
     }
 }
@@ -128,7 +142,11 @@ function buildTooltipHTML(details, type) {
  * Returns null if no data available.
  */
 function mapCalcDetailsToTooltip(calculationDetails, fieldKey) {
-    if (!calculationDetails) return null;
+    console.log("[MAP_DETAILS] mapCalcDetailsToTooltip called", { calculationDetails, fieldKey });
+    if (!calculationDetails) {
+        console.warn("[MAP_DETAILS] calculationDetails is falsy, returning null");
+        return null;
+    }
 
     // Map field keys to calculation_details keys
     const keyMap = {
@@ -138,34 +156,40 @@ function mapCalcDetailsToTooltip(calculationDetails, fieldKey) {
         total_dividends: "dividends",
         sale_proceeds: "sales"
     };
-    const detail = calculationDetails[keyMap[fieldKey]];
-    if (!detail) return null;
+    const detailKey = keyMap[fieldKey];
+    console.log("[MAP_DETAILS] key mapped to detailKey:", detailKey);
+    const detail = calculationDetails[detailKey];
+    if (!detail) {
+        console.warn("[MAP_DETAILS] No detail found for detailKey:", detailKey);
+        return null;
+    }
+    console.log("[MAP_DETAILS] Found detail object:", detail);
 
+    let res = null;
     if (fieldKey === "initial_value" && detail.components) {
         const c = detail.components;
-        return { qty: c.quantity, price_usd: c.buy_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.quantity * c.buy_price * (c.ttbr || 0) };
-    }
-    if (fieldKey === "peak_value" && detail.components) {
+        res = { qty: c.quantity, price_usd: c.buy_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.quantity * c.buy_price * (c.ttbr || 0) };
+    } else if (fieldKey === "peak_value" && detail.components) {
         const c = detail.components;
-        return { qty: c.qty_on_peak_date, price_usd: c.peak_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.qty_on_peak_date * c.peak_price * (c.ttbr || 0), date: detail.peak_date };
-    }
-    if (fieldKey === "closing_balance" && detail.components) {
+        res = { qty: c.qty_on_peak_date, price_usd: c.peak_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.qty_on_peak_date * c.peak_price * (c.ttbr || 0), date: detail.peak_date };
+    } else if (fieldKey === "closing_balance" && detail.components) {
         const c = detail.components;
-        return { qty: c.remaining_qty, price_usd: c.close_price_dec31?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.remaining_qty * c.close_price_dec31 * (c.ttbr || 0) };
-    }
-    if (fieldKey === "total_dividends" && detail.dividend_entries?.length > 0) {
-        return detail.dividend_entries.map(de => ({
+        res = { qty: c.remaining_qty, price_usd: c.close_price_dec31?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.remaining_qty * c.close_price_dec31 * (c.ttbr || 0) };
+    } else if (fieldKey === "total_dividends" && detail.dividend_entries?.length > 0) {
+        res = detail.dividend_entries.map(de => ({
             date: de.ex_date, qty: de.qty, price_usd: de.amount_foreign?.toFixed(4),
             rate: de.ttbr?.toFixed(4), value_inr: de.div_inr || (de.qty * de.amount_foreign * (de.ttbr || 0))
         }));
-    }
-    if (fieldKey === "sale_proceeds" && detail.sale_entries?.length > 0) {
-        return detail.sale_entries.map(se => ({
+    } else if (fieldKey === "sale_proceeds" && detail.sale_entries?.length > 0) {
+        res = detail.sale_entries.map(se => ({
             date: se.sell_date, qty: se.quantity, price_usd: se.sell_price?.toFixed(2),
             rate: se.ttbr?.toFixed(4), value_inr: se.proceeds_inr || (se.quantity * se.sell_price * (se.ttbr || 0))
         }));
+    } else {
+        console.warn("[MAP_DETAILS] Fallthrough case: no matching fieldKey logic or components are missing.", { fieldKey, hasComponents: !!detail.components });
     }
-    return null;
+    console.log("[MAP_DETAILS] mapCalcDetailsToTooltip returning:", res);
+    return res;
 }
 
 // ===== Undo/Redo =====
@@ -1914,7 +1938,7 @@ function renderResultsTable(rows) {
             const val = field.val != null ? Math.round(field.val) : 0;
             const textVal = val > 0 ? formatINR(val) : "0";
             
-            td.innerHTML = `<span class="val-link" title="Click to view calculation breakdown">${textVal}</span><span class="edit-icon" title="Click to manually override value">✏️</span>`;
+            td.innerHTML = `<span class="val-link">${textVal}</span><span class="edit-icon" title="Click to manually override value">✏️</span>`;
             
             td.dataset.lotId = row.lot_id;
             td.dataset.field = field.key;
@@ -1932,10 +1956,10 @@ function renderResultsTable(rows) {
                 const tooltipData = mapCalcDetailsToTooltip(row.calculation_details, field.key);
                 if (tooltipData) {
                     const label = field.key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-                    showTooltip(e, buildTooltipHTML(tooltipData, label));
+                    showCalcTooltip(e, buildTooltipHTML(tooltipData, label));
                 }
             });
-            valLink.addEventListener("mouseleave", hideTooltip);
+            valLink.addEventListener("mouseleave", hideCalcTooltip);
 
             // Click on the cell (anywhere else) → edit
             td.addEventListener("click", () => enableCellEdit(td, row, field.key));
@@ -3188,7 +3212,7 @@ function renderTaxYearSummary(taxYears) {
                         "font-variant-numeric:tabular-nums;"
                     ].join("");
                     if (val > 0) {
-                        td.innerHTML = `<span class="val-link" title="Click to view breakdown for ${ticker} ${meta.label}">${formatINR(val)}</span>`;
+                        td.innerHTML = `<span class="val-link">${formatINR(val)}</span>`;
                         const link = td.querySelector(".val-link");
                         link.addEventListener("click", () => jumpToTaxSummaryBreakdown(ticker, cat, qk, ty.label, link, `${ticker} ${meta.label}`));
                         link.addEventListener("mouseenter", (e) => {
@@ -3199,9 +3223,9 @@ function renderTaxYearSummary(taxYears) {
                                 rate: ev.rate || 0,
                                 value_inr: ev.value_inr || 0
                             }));
-                            showTooltip(e, buildTooltipHTML(details, `${ticker} ${meta.label}`));
+                            showCalcTooltip(e, buildTooltipHTML(details, `${ticker} ${meta.label}`));
                         });
-                        link.addEventListener("mouseleave", hideTooltip);
+                        link.addEventListener("mouseleave", hideCalcTooltip);
                     } else {
                         td.textContent = "—";
                     }
@@ -3247,7 +3271,7 @@ function renderTaxYearSummary(taxYears) {
                     "font-variant-numeric:tabular-nums;"
                 ].join("");
                 if (val > 0) {
-                    td.innerHTML = `<span class="val-link" title="Click to view all ${meta.label} breakdowns">${formatINR(val)}</span>`;
+                    td.innerHTML = `<span class="val-link">${formatINR(val)}</span>`;
                     const link = td.querySelector(".val-link");
                     link.addEventListener("click", () => jumpToTaxSummaryBreakdown('', cat, qk, ty.label, link, `Total ${meta.label}`));
                     link.addEventListener("mouseenter", (e) => {
@@ -3258,9 +3282,9 @@ function renderTaxYearSummary(taxYears) {
                             rate: ev.rate || 0,
                             value_inr: ev.value_inr || ev.gain || 0
                         }));
-                        showTooltip(e, buildTooltipHTML(details, `Total ${meta.label}`));
+                        showCalcTooltip(e, buildTooltipHTML(details, `Total ${meta.label}`));
                     });
-                    link.addEventListener("mouseleave", hideTooltip);
+                    link.addEventListener("mouseleave", hideCalcTooltip);
                 } else {
                     td.textContent = "—";
                 }
