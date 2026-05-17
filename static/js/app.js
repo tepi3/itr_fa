@@ -1503,20 +1503,6 @@ function renderDividendRow(card, stock, div) {
     const exDateInput = tr.querySelector(".div-date");
     const payDateInput = tr.querySelector(".div-pay-date");
 
-    const updateVisuals = () => {
-        const exVal = exDateInput.value;
-        const payVal = payDateInput.value;
-        if (exVal && payVal && exVal === payVal) {
-            payDateInput.classList.add("div-pay-date-warn");
-            payDateInput.title = "Payment date is initialized using Ex-Date. Please update with the actual payment date.";
-        } else {
-            payDateInput.classList.remove("div-pay-date-warn");
-            payDateInput.title = "";
-        }
-    };
-
-    updateVisuals();
-
     tr.querySelectorAll("input").forEach(input => {
         input.addEventListener("change", () => {
             pushUndoSnapshot("Edit Dividend");
@@ -1527,7 +1513,6 @@ function renderDividendRow(card, stock, div) {
             div.ex_date = exDateInput.value;
             div.payment_date = payDateInput.value;
             div.amount = parseFloat(tr.querySelector(".div-amount").value) || 0;
-            updateVisuals();
         });
     });
 
@@ -4686,7 +4671,7 @@ const tutorialStepsA3 = [
     { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., QCOM, NVDA, VWRA) and click Lookup to add it to your portfolio. Tickers for non-US exchanges are auto-resolved." },
     { selector: ".add-lot-btn", title: "Acquisition Lots", desc: "Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the 📈 Fetch button to auto-fill the closing price." },
     { selector: ".add-sell-btn", title: "Sell Transactions", desc: "Record any sell transactions against a specific lot. The tool uses FIFO matching and tracks partial sells." },
-    { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Fetch dividend data from Yahoo Finance for the calendar year. **Note:** Since Yahoo lacks historical payment dates, the field is initialized with the Ex-Date (highlighted in red). Please verify and update it with the actual payment date for accurate Rule 115 calculations." },
+    { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Fetch exact dividend data (including Payment Dates) from Nasdaq for the calendar year. This ensures accurate Rule 115 calculations without manual date entry." },
     { selector: "#calcFab", title: "Generate FA Report", desc: "Click the floating button to compute all 12 columns of Schedule FA Section A3, including initial value, peak value, closing balance, dividends, and sale proceeds — all in ₹ using SBI TT rates." },
 ];
 

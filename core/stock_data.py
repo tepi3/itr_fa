@@ -196,42 +196,92 @@ def get_historical_prices(ticker: str, start_date: str, end_date: str) -> list:
 
 def get_dividends(ticker: str, year: int) -> list:
     """
-    Fetch dividend data for a specific calendar year.
+    Fetch dividend data for a specific calendar year using finance-calendars (Nasdaq).
     Returns:
         List of {"ex_date": "YYYY-MM-DD", "payment_date": "YYYY-MM-DD", "amount": float}
     """
+    # Nasdaq usually doesn't need suffixes, but we use the resolved one just in case
+    # resolving ticker might add .L, but finance-calendars (Nasdaq) only works for US stocks
+    # If it's a non-US stock, we fallback to yfinance logic (ex-date only)
     yahoo_ticker = resolve_yahoo_ticker(ticker)
-    cache_key = f"dividends_v3:{yahoo_ticker.upper()}:{year}"
-    
+
+    # We use v4 for exact payment dates from finance-calendars
+    cache_key = f"dividends_v4:{yahoo_ticker.upper()}:{year}"
+
     cached = get_cached_val(cache_key)
     if cached is not None:
-        logger.info(f"Loaded dividends (v3) from cache for {yahoo_ticker} in {year}")
+        logger.info(f"Loaded dividends (v4) from cache for {yahoo_ticker} in {year}")
         return cached
 
-    logger.info(f"Fetching dividends for {yahoo_ticker} in {year}")
+    logger.info(f"Fetching exact dividends (Nasdaq) for {yahoo_ticker} in {year}")
     year_divs = []
 
     try:
-        t = _get_yf().Ticker(yahoo_ticker)
-        divs = t.dividends
-        if not divs.empty:
-            for idx, amount in divs.items():
-                if idx.year == year:
-                    ex_date_str = idx.strftime("%Y-%m-%d")
-                    year_divs.append({
-                        "ex_date": ex_date_str,
-                        "payment_date": ex_date_str, # Default to ex_date for manual override
-                        "amount": round(float(amount), 6),
-                    })
+        from finance_calendars import finance_calendars as fc
+        # finance-calendars returns a DataFrame with:
+        # index (Ex-Date), amount, paymentDate, etc.
+        df = fc.get_div_hist_per_stock(yahoo_ticker.split('.')[0]) # Remove suffix for Nasdaq
+
+        if df is not None and not df.empty:
+            for idx, row in df.iterrows():
+                # idx is the ex-date string
+                try:
+                    # Filter by year
+                    # index is exOrEffDate, paymentDate is MM/DD/YYYY or YYYY-MM-DD
+                    ex_date_str = idx
+                    ex_year = int(ex_date_str.split('/')[2]) if '/' in ex_date_str else int(ex_date_str.split('-')[0])
+
+                    if ex_year == year:
+                        # Clean amount (remove '$')
+                        amt_str = str(row['amount']).replace('$', '').strip()
+
+                        # Normalize payment date to YYYY-MM-DD
+                        pay_date_raw = str(row['paymentDate'])
+                        if '/' in pay_date_raw:
+                            m, d, y = pay_date_raw.split('/')
+                            pay_date_str = f"{y}-{m.zfill(2)}-{d.zfill(2)}"
+                        else:
+                            pay_date_str = pay_date_raw
+
+                        # Normalize ex date to YYYY-MM-DD
+                        if '/' in ex_date_str:
+                            m, d, y = ex_date_str.split('/')
+                            ex_date_norm = f"{y}-{m.zfill(2)}-{d.zfill(2)}"
+                        else:
+                            ex_date_norm = ex_date_str
+
+                        year_divs.append({
+                            "ex_date": ex_date_norm,
+                            "payment_date": pay_date_str,
+                            "amount": round(float(amt_str), 6),
+                        })
+                except Exception as row_err:
+                    logger.warning(f"Error parsing dividend row for {yahoo_ticker}: {row_err}")
+                    continue
     except Exception as e:
-        logger.error(f"yfinance error for {ticker}: {e}")
+        logger.error(f"finance-calendars error for {ticker}: {e}")
+        # Fallback to yfinance if Nasdaq fails or ticker not found
+        try:
+            logger.info(f"Falling back to yfinance for {yahoo_ticker}")
+            t = _get_yf().Ticker(yahoo_ticker)
+            divs = t.dividends
+            if not divs.empty:
+                for idx, amount in divs.items():
+                    if idx.year == year:
+                        ex_date_str = idx.strftime("%Y-%m-%d")
+                        year_divs.append({
+                            "ex_date": ex_date_str,
+                            "payment_date": ex_date_str,
+                            "amount": round(float(amount), 6),
+                        })
+        except Exception as yf_err:
+            logger.error(f"yfinance fallback error for {ticker}: {yf_err}")
 
     # Cache if this year is in the past
     if year < date.today().year:
         set_cached_val(cache_key, year_divs)
 
     return year_divs
-
 
 def get_yearly_max_price(ticker: str, year: int) -> dict:
     """
