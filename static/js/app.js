@@ -2271,8 +2271,8 @@ function renderTaxValidationTable(rows) {
                     type: "DIVIDEND",
                     date: payDateStr,
                     buy_cost: 0,
-                    proceeds: de.div_inr || 0,
-                    gain: de.div_inr || 0,
+                    proceeds: de.value_inr || 0,
+                    gain: de.value_inr || 0,
                     details: de,
                     lot_id: row.lot_id
                 });
