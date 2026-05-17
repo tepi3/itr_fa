@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from core.utils import get_user_dir
-from core.etrade_parser import process_etrade_file
+from core.etrade_parser import process_etrade_files
 from core.ibkr_parser import process_ibkr_file
 from core.sell_details_parser import process_sell_details_file
 from core.stock_data import get_company_info
@@ -90,12 +90,13 @@ def api_import_previous_year():
 
 @parsers_bp.route("/api/upload-etrade", methods=["POST"])
 def api_upload_etrade():
-    """Upload and parse E-Trade holdings expanded report."""
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
+    """Upload and parse E-Trade reports (Holdings + Multiple G&L files) for Roll-Back."""
+    etrade_file = request.files.get("etradeFile") # ByStatus
+    # Multiple G&L files
+    sell_files = request.files.getlist("sellFiles")
+
+    if not etrade_file:
+        return jsonify({"error": "Holdings (ByStatus) file is required"}), 400
 
     portfolio_data = request.form.get("portfolio")
     if portfolio_data:
@@ -105,11 +106,21 @@ def api_upload_etrade():
         calendar_year = request.form.get("calendar_year", datetime.now().year)
         portfolio = {"calendar_year": int(calendar_year), "stocks": []}
     
-    temp_portfolio = {"calendar_year": int(calendar_year), "stocks": []}
-
     try:
-        file_bytes = file.read()
-        result = process_etrade_file(file_bytes, file.filename, temp_portfolio)
+        et_bytes = etrade_file.read()
+        et_name = etrade_file.filename
+        
+        gnl_files_data = []
+        for sf in sell_files:
+            if sf.filename:
+                gnl_files_data.append((sf.read(), sf.filename))
+        
+        result = process_etrade_files(
+            et_bytes, et_name, 
+            gnl_files_data,
+            target_year=int(calendar_year)
+        )
+        
         smart_txs = group_and_deduplicate_transactions(result.get("transactions", []), portfolio)
         return jsonify({
             "success": True, 

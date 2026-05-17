@@ -771,8 +771,8 @@
                 <div class="modal-file-label">
                     <span class="modal-file-icon">📈</span>
                     <div>
-                        <strong>Holdings</strong>
-                        <p class="hint" style="margin:2px 0 0;">Upload expanded doc from selecting holdings on etrade then selecting view by status and downloading expanded file.</p>
+                        <strong>Holdings (ByStatus)</strong>
+                        <p class="hint" style="margin:2px 0 0;">Upload expanded doc from selecting holdings on etrade then selecting <strong>View By Status</strong> and downloading expanded file.</p>
                     </div>
                 </div>
                 <label class="btn btn-outline btn-sm modal-file-pick" for="etradeFileInput">Choose File</label>
@@ -784,13 +784,13 @@
                 <div class="modal-file-label">
                     <span class="modal-file-icon">📉</span>
                     <div>
-                        <strong>G&amp;L Expanded File <span style="font-weight:400;color:var(--text-muted);">(optional)</span></strong>
-                        <p class="hint" style="margin:2px 0 0;">Go to my account then select gains and losses then select year and download expanded.</p>
+                        <strong>Gain & Loss Files <span style="font-weight:400;color:var(--text-muted);">(one or more)</span></strong>
+                        <p class="hint" style="margin:2px 0 0;">Upload all G&L expanded files from <strong>target year up to today</strong>. (e.g. 2025 and 2026 G&L).</p>
                     </div>
                 </div>
-                <label class="btn btn-outline btn-sm modal-file-pick" for="sellDetailsFileInput">Choose File</label>
-                <input type="file" id="sellDetailsFileInput" style="display:none;" accept=".csv,.xlsx">
-                <span id="sellDetailsFileName" class="modal-file-chosen">No file chosen</span>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="sellDetailsFileInput">Choose Files</label>
+                <input type="file" id="sellDetailsFileInput" style="display:none;" accept=".csv,.xlsx" multiple>
+                <span id="sellDetailsFileName" class="modal-file-chosen">No files chosen</span>
             </div>
 
             <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">

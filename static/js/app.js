@@ -1841,7 +1841,7 @@ function closeEtradeModal() {
     document.getElementById("etradeFileInput").value = "";
     document.getElementById("sellDetailsFileInput").value = "";
     document.getElementById("etradeFileName").textContent = "No file chosen";
-    document.getElementById("sellDetailsFileName").textContent = "No file chosen";
+    document.getElementById("sellDetailsFileName").textContent = "No files chosen";
 }
 
 // ===== IBKR Upload Modal =====
@@ -1862,8 +1862,14 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("etradeFileName").textContent = f ? f.name : "No file chosen";
     });
     document.getElementById("sellDetailsFileInput").addEventListener("change", e => {
-        const f = e.target.files[0];
-        document.getElementById("sellDetailsFileName").textContent = f ? f.name : "No file chosen";
+        const files = e.target.files;
+        if (files.length === 0) {
+            document.getElementById("sellDetailsFileName").textContent = "No files chosen";
+        } else if (files.length === 1) {
+            document.getElementById("sellDetailsFileName").textContent = files[0].name;
+        } else {
+            document.getElementById("sellDetailsFileName").textContent = `${files.length} files selected`;
+        }
     });
     document.getElementById("etradeImportBtn").addEventListener("click", importEtradeDocs);
 
@@ -1877,83 +1883,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function importEtradeDocs() {
     const etradeFile = document.getElementById("etradeFileInput").files[0];
-    const sellFile   = document.getElementById("sellDetailsFileInput").files[0];
+    const sellFiles   = document.getElementById("sellDetailsFileInput").files;
 
-    if (!etradeFile && !sellFile) {
-        showToast("Please choose at least one file to import", "warning");
+    if (!etradeFile) {
+        showToast("Please choose the Holdings (ByStatus) file to import", "warning");
         return;
     }
 
-    let portfolio = state.portfolio; // Local reference stays same
-    let totalSkipped = 0;
-    let allTransactions = [];
-
-    // ── Step 1: Upload Etrade positions/transactions (if provided) ──────
-    if (etradeFile) {
-        showLoading("Step 1/2 — Parsing Positions / Transactions file...");
-        try {
-            const fd = new FormData();
-            fd.append("file", etradeFile);
-            fd.append("portfolio", JSON.stringify(portfolio));
-            const resp = await fetch("/api/upload-etrade", { method: "POST", body: fd });
-            const result = await resp.json();
-            if (result.success) {
-                totalSkipped += result.skipped_count || 0;
-                if (result.transactions) allTransactions = allTransactions.concat(result.transactions);
-            } else {
-                hideLoading();
-                showToast("Positions file error: " + result.error, "error");
-                return;
-            }
-        } catch (err) {
-            hideLoading();
-            showToast("Positions upload failed: " + err.message, "error");
-            return;
+    showLoading("Parsing E*TRADE files for Roll-Back...");
+    try {
+        const fd = new FormData();
+        fd.append("etradeFile", etradeFile);
+        for (let i = 0; i < sellFiles.length; i++) {
+            fd.append("sellFiles", sellFiles[i]);
         }
-    }
+        fd.append("portfolio", JSON.stringify(state.portfolio));
 
-    // ── Step 2: Upload G&L Expanded (if provided) ───────────────────────
-    if (sellFile) {
-        showLoading(etradeFile ? "Step 2/2 — Parsing G&L Expanded file..." : "Parsing G&L Expanded file...");
-        try {
-            const fd = new FormData();
-            fd.append("file", sellFile);
-            fd.append("portfolio", JSON.stringify(portfolio));
-            const resp = await fetch("/api/upload-sell-details", { method: "POST", body: fd });
-            const result = await resp.json();
-            if (result.success) {
-                totalSkipped += result.skipped_count || 0;
-                if (result.transactions) allTransactions = allTransactions.concat(result.transactions);
+        const resp = await fetch("/api/upload-etrade", { method: "POST", body: fd });
+        const result = await resp.json();
+        
+        hideLoading();
+        if (result.success) {
+            closeEtradeModal();
+            if (result.transactions && result.transactions.length > 0) {
+                showImportReview(result.transactions, `E*TRADE Roll-Back Import`);
             } else {
-                hideLoading();
-                showToast("G&L file error: " + result.error, "error");
-                return;
+                showToast("No new transactions found in E*TRADE files.", "info");
             }
-        } catch (err) {
-            hideLoading();
-            showToast("G&L upload failed: " + err.message, "error");
-            return;
+        } else {
+            showToast("E*TRADE import error: " + result.error, "error");
         }
+    } catch (err) {
+        hideLoading();
+        showToast("E*TRADE upload failed: " + err.message, "error");
     }
-
-    // ── Done — show review wizard ───────────────────────────────────────
-    hideLoading();
-    closeEtradeModal(); // Close the upload modal first
-    
-    const cy = portfolio.calendar_year || "";
-    const parts = [];
-    if (etradeFile) parts.push("Positions");
-    if (sellFile)   parts.push("G&L Sell Details");
-    const label = parts.join(" + ");
-
-    if (totalSkipped > 0) {
-        showToast(
-            `⚠ ${totalSkipped} transaction${totalSkipped > 1 ? "s" : ""} skipped — dated after CY${cy}`,
-            "warning"
-        );
-    }
-
-    showImportReview(allTransactions, label);
 }
 
 async function importIbkrDocs() {
