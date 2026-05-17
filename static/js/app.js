@@ -56,15 +56,11 @@ tooltipEl.className = "calc-tooltip hidden";
 document.body.appendChild(tooltipEl);
 
 function showCalcTooltip(e, contentHTML) {
-    console.log("[TOOLTIP] showCalcTooltip called!", { contentHTML, clientX: e.clientX, clientY: e.clientY });
-    if (!contentHTML) {
-        console.warn("[TOOLTIP] No content HTML provided, ignoring.");
-        return;
-    }
+    if (!contentHTML) return;
+    
     clearTimeout(_tooltipTimeout);
     tooltipEl.innerHTML = contentHTML;
     tooltipEl.classList.remove("hidden");
-    console.log("[TOOLTIP] Removed hidden class. Element display style:", window.getComputedStyle(tooltipEl).display);
 
     // Smart positioning
     const x = e.clientX;
@@ -77,12 +73,10 @@ function showCalcTooltip(e, contentHTML) {
     // Apply immediate position to prevent flicker
     tooltipEl.style.left = left + "px";
     tooltipEl.style.top = top + "px";
-    console.log("[TOOLTIP] Set initial position:", { left: tooltipEl.style.left, top: tooltipEl.style.top });
 
     // Adjust in animation frame once dimensions are known
     requestAnimationFrame(() => {
         const rect = tooltipEl.getBoundingClientRect();
-        console.log("[TOOLTIP] animationFrame bounding rect:", rect, { windowWidth: window.innerWidth, windowHeight: window.innerHeight });
         if (left + rect.width > window.innerWidth) {
             left = window.innerWidth - rect.width - padding;
         }
@@ -91,15 +85,12 @@ function showCalcTooltip(e, contentHTML) {
         }
         tooltipEl.style.left = left + "px";
         tooltipEl.style.top = top + "px";
-        console.log("[TOOLTIP] Final adjusted position:", { left: tooltipEl.style.left, top: tooltipEl.style.top });
     });
 }
 
 function hideCalcTooltip() {
-    console.log("[TOOLTIP] hideCalcTooltip requested.");
     _tooltipTimeout = setTimeout(() => {
         tooltipEl.classList.add("hidden");
-        console.log("[TOOLTIP] Added hidden class to hide tooltip.");
     }, 150);
 }
 
@@ -142,11 +133,7 @@ function buildTooltipHTML(details, type) {
  * Returns null if no data available.
  */
 function mapCalcDetailsToTooltip(calculationDetails, fieldKey) {
-    console.log("[MAP_DETAILS] mapCalcDetailsToTooltip called", { calculationDetails, fieldKey });
-    if (!calculationDetails) {
-        console.warn("[MAP_DETAILS] calculationDetails is falsy, returning null");
-        return null;
-    }
+    if (!calculationDetails) return null;
 
     // Map field keys to calculation_details keys
     const keyMap = {
@@ -157,39 +144,34 @@ function mapCalcDetailsToTooltip(calculationDetails, fieldKey) {
         sale_proceeds: "sales"
     };
     const detailKey = keyMap[fieldKey];
-    console.log("[MAP_DETAILS] key mapped to detailKey:", detailKey);
     const detail = calculationDetails[detailKey];
-    if (!detail) {
-        console.warn("[MAP_DETAILS] No detail found for detailKey:", detailKey);
-        return null;
-    }
-    console.log("[MAP_DETAILS] Found detail object:", detail);
+    if (!detail) return null;
 
-    let res = null;
     if (fieldKey === "initial_value" && detail.components) {
         const c = detail.components;
-        res = { qty: c.quantity, price_usd: c.buy_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.quantity * c.buy_price * (c.ttbr || 0) };
-    } else if (fieldKey === "peak_value" && detail.components) {
+        return { qty: c.quantity, price_usd: c.buy_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.quantity * c.buy_price * (c.ttbr || 0) };
+    }
+    if (fieldKey === "peak_value" && detail.components) {
         const c = detail.components;
-        res = { qty: c.qty_on_peak_date, price_usd: c.peak_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.qty_on_peak_date * c.peak_price * (c.ttbr || 0), date: detail.peak_date };
-    } else if (fieldKey === "closing_balance" && detail.components) {
+        return { qty: c.qty_on_peak_date, price_usd: c.peak_price?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.qty_on_peak_date * c.peak_price * (c.ttbr || 0), date: detail.peak_date };
+    }
+    if (fieldKey === "closing_balance" && detail.components) {
         const c = detail.components;
-        res = { qty: c.remaining_qty, price_usd: c.close_price_dec31?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.remaining_qty * c.close_price_dec31 * (c.ttbr || 0) };
-    } else if (fieldKey === "total_dividends" && detail.dividend_entries?.length > 0) {
-        res = detail.dividend_entries.map(de => ({
+        return { qty: c.remaining_qty, price_usd: c.close_price_dec31?.toFixed(2), rate: c.ttbr?.toFixed(4), value_inr: c.remaining_qty * c.close_price_dec31 * (c.ttbr || 0) };
+    }
+    if (fieldKey === "total_dividends" && detail.dividend_entries?.length > 0) {
+        return detail.dividend_entries.map(de => ({
             date: de.ex_date, qty: de.qty, price_usd: de.amount_foreign?.toFixed(4),
             rate: de.ttbr?.toFixed(4), value_inr: de.div_inr || (de.qty * de.amount_foreign * (de.ttbr || 0))
         }));
-    } else if (fieldKey === "sale_proceeds" && detail.sale_entries?.length > 0) {
-        res = detail.sale_entries.map(se => ({
+    }
+    if (fieldKey === "sale_proceeds" && detail.sale_entries?.length > 0) {
+        return detail.sale_entries.map(se => ({
             date: se.sell_date, qty: se.quantity, price_usd: se.sell_price?.toFixed(2),
             rate: se.ttbr?.toFixed(4), value_inr: se.proceeds_inr || (se.quantity * se.sell_price * (se.ttbr || 0))
         }));
-    } else {
-        console.warn("[MAP_DETAILS] Fallthrough case: no matching fieldKey logic or components are missing.", { fieldKey, hasComponents: !!detail.components });
     }
-    console.log("[MAP_DETAILS] mapCalcDetailsToTooltip returning:", res);
-    return res;
+    return null;
 }
 
 // ===== Undo/Redo =====
