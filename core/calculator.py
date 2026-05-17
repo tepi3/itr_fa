@@ -920,11 +920,18 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 qkey = _get_quarter_key(sell_date, ty_key)
 
                 detail = {
+                    "sell_id": sell.get("id"),
                     "date": sell_date.isoformat(),
                     "qty": sell_qty,
-                    "price_usd": sell_price,
-                    "rate": sell_rate,
-                    "value_inr": gain_inr
+                    "sell_price": sell_price,
+                    "sell_ttbr": sell_rate,
+                    "buy_price": buy_price,
+                    "buy_ttbr": buy_rate,
+                    "buy_rate_date": buy_rate_date,
+                    "proceeds_inr": sell_price * sell_rate * sell_qty,
+                    "buy_cost_inr": buy_price * buy_rate * sell_qty,
+                    "gain_inr": gain_inr,
+                    "is_long_term": _is_long_term
                 }
 
                 _accumulate_gain(ty_key, ticker, qkey, gain_inr, detail)

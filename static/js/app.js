@@ -2102,7 +2102,7 @@ function renderResultsTable(rows) {
 
     // Also render validation tables
     renderValidationTable(rows);
-    renderTaxValidationTable(rows);
+    // renderTaxValidationTable(rows); <-- Handled by fetchTaxYearSummary
 }
 
 // ===== Validation Tables Helpers =====
@@ -2217,7 +2217,7 @@ function renderValidationTable(rows) {
 }
 
 // ===== Render Tax Validation Table =====
-function renderTaxValidationTable(rows) {
+function renderTaxValidationTable(taxYears) {
     const tbody = document.getElementById("validateTaxTableBody");
     const section = document.getElementById("validateTaxSection");
     if (!tbody || !section) return;
@@ -2231,91 +2231,46 @@ function renderTaxValidationTable(rows) {
         return `<span class="validate-crosslink" data-jump-stock="${ticker}" data-jump-section="${sectionClass}" ${idAttr} title="Jump to specific row in ${ticker || 'Portfolio'}">${text}</span>`;
     };
 
-    // Extract all events
+    // Extract all events from taxYears structure
     const events = [];
-    rows.forEach(row => {
-        const ticker = row.ticker;
+    const categories = ["ltcg", "ltcl", "stcg", "stcl", "dividends"];
+    const quarters = ["q1", "q2", "q3", "q4", "q5"];
 
-        // Sales
-        if (row.calculation_details?.sales?.sale_entries) {
-            row.calculation_details.sales.sale_entries.forEach(se => {
-                const sellDate = new Date(se.sell_date);
-                const tyLabel = sellDate.getMonth() < 3
-                    ? `FY ${sellDate.getFullYear()-1}-${sellDate.getFullYear()}`
-                    : `FY ${sellDate.getFullYear()}-${sellDate.getFullYear()+1}`;
-                events.push({
-                    ty: tyLabel,
-                    ticker,
-                    type: "SALE",
-                    date: se.sell_date,
-                    buy_cost: se.buy_cost_inr || 0,
-                    proceeds: se.proceeds_inr || 0,
-                    gain: se.profit_loss_inr || 0,
-                    details: se,
-                    lot_id: row.lot_id
+    ["prev", "curr"].forEach(tyKey => {
+        const ty = taxYears[tyKey];
+        const tyLabel = ty.label;
+        
+        Object.keys(ty.stocks).forEach(ticker => {
+            const stockData = ty.stocks[ticker];
+            categories.forEach(cat => {
+                quarters.forEach(qk => {
+                    const details = stockData[cat].details?.[qk] || [];
+                    details.forEach(d => {
+                        events.push({
+                            ty: tyLabel,
+                            ticker,
+                            category: cat,
+                            qk,
+                            type: cat === "dividends" ? "DIVIDEND" : "SALE",
+                            date: d.date,
+                            buy_cost: d.buy_cost_inr || 0,
+                            proceeds: d.proceeds_inr || d.value_inr || 0,
+                            gain: d.gain_inr || d.value_inr || 0,
+                            details: d,
+                            lot_id: d.lot_id
+                        });
+                    });
                 });
             });
-        }
-
-        // Dividends
-        if (row.calculation_details?.dividends?.dividend_entries) {
-            row.calculation_details.dividends.dividend_entries.forEach(de => {
-                const payDateStr = de.payment_date || de.ex_date;
-                const divDate = new Date(payDateStr);
-                const tyLabel = divDate.getMonth() < 3
-                    ? `FY ${divDate.getFullYear()-1}-${divDate.getFullYear()}`
-                    : `FY ${divDate.getFullYear()}-${divDate.getFullYear()+1}`;
-                events.push({
-                    ty: tyLabel,
-                    ticker,
-                    type: "DIVIDEND",
-                    date: payDateStr,
-                    buy_cost: 0,
-                    proceeds: de.value_inr || 0,
-                    gain: de.value_inr || 0,
-                    details: de,
-                    lot_id: row.lot_id
-                });
-            });
-        }
+        });
     });
 
     // Sort: Tax Year (desc) -> Ticker (asc) -> Category (asc) -> Quarter (asc) -> Date (asc)
-    const getQuarter = (dateStr) => {
-        const d = new Date(dateStr);
-        const m = d.getMonth() + 1; // 1-12
-        const day = d.getDate();
-
-        // ITR Quarterly Buckets for April-March FY:
-        // q1: 1 Apr - 15 Jun
-        // q2: 16 Jun - 15 Sep
-        // q3: 16 Sep - 15 Dec
-        // q4: 16 Dec - 15 Mar (next year)
-        // q5: 16 Mar - 31 Mar (next year)
-
-        if (m === 4 || m === 5 || (m === 6 && day <= 15)) return "q1";
-        if ((m === 6 && day >= 16) || m === 7 || m === 8 || (m === 9 && day <= 15)) return "q2";
-        if ((m === 9 && day >= 16) || m === 10 || m === 11 || (m === 12 && day <= 15)) return "q3";
-        if ((m === 12 && day >= 16) || m === 1 || m === 2 || (m === 3 && day <= 15)) return "q4";
-        return "q5";
-    };
-
-    const getCategory = (e) => {
-        if (e.type === "DIVIDEND") return "dividends";
-        const isGain = e.gain >= 0;
-        const isLong = e.details.is_long_term;
-        return isGain ? (isLong ? "ltcg" : "stcg") : (isLong ? "ltcl" : "stcl");
-    };
-
-    events.forEach(e => {
-        e.qk = getQuarter(e.date);
-        e.category = getCategory(e);
-    });
-
+    const categoryOrder = { "ltcg": 1, "ltcl": 2, "stcg": 3, "stcl": 4, "dividends": 5 };
     events.sort((a, b) => {
-        if (b.ty !== a.ty) return b.ty.localeCompare(a.ty);
-        if (a.ticker !== b.ticker) return a.ticker.compareLocale ? a.ticker.localeCompare(b.ticker) : (a.ticker < b.ticker ? -1 : 1);
-        if (a.category !== b.category) return a.category.localeCompare(b.category);
+        if (a.ty !== b.ty) return b.ty.localeCompare(a.ty);
+        if (a.ticker !== b.ticker) return a.ticker.localeCompare(b.ticker);
+        if (a.category !== b.category) return categoryOrder[a.category] - categoryOrder[b.category];
         if (a.qk !== b.qk) return a.qk.localeCompare(b.qk);
         return a.date.localeCompare(b.date);
     });
@@ -2323,7 +2278,7 @@ function renderTaxValidationTable(rows) {
     let lastGroupKey = null;
     events.forEach((e, idx) => {
         const tr = document.createElement("tr");
-        tr.id = `val-tax-${e.ticker}-${e.type}-${e.date}`;
+        tr.id = `val-tax-${e.ticker}-${e.type}-${e.date}-${idx}`;
 
         const groupKey = `${e.ty}-${e.ticker}-${e.category}-${e.qk}`;
         if (groupKey !== lastGroupKey) {
@@ -2344,10 +2299,12 @@ function renderTaxValidationTable(rows) {
         tr.dataset.quarter = e.qk;
         tr.dataset.category = e.category;
         tr.className += " tax-val-row";
+        
+        let breakdown = "";
         if (e.type === "SALE") {
             const se = e.details;
-            const sellMath = `(${se.quantity}×$${se.sell_price.toFixed(2)}) × ${rateLink(se.ttbr, se.rate_date)}`;
-            const buyMath = `(${se.quantity}×$${se.buy_price.toFixed(2)}) × ${rateLink(se.buy_ttbr, se.buy_rate_date)}`;
+            const sellMath = `(${se.qty}×$${se.sell_price.toFixed(2)}) × ${rateLink(se.sell_ttbr, se.date)}`;
+            const buyMath = `(${se.qty}×$${se.buy_price.toFixed(2)}) × ${rateLink(se.buy_ttbr, se.buy_rate_date)}`;
             breakdown = `
                 <div class="b-container">
                     <div class="b-math"><strong>Sell:</strong> ${sectionLink(e.ticker, e.date, 'sells-section', se.sell_id)}</div>
@@ -2361,7 +2318,7 @@ function renderTaxValidationTable(rows) {
             breakdown = `
                 <div class="b-container">
                     <div class="b-math"><strong>Div:</strong> ${sectionLink(e.ticker, payLabel, 'dividends-section', de.div_id)}</div>
-                    <div class="b-math" style="font-size:0.65rem;opacity:0.7;">Rule 115 (Prev Month Rate)</div>
+                    <div class="b-math" style="font-size:0.65rem;opacity:0.7;">${de.rule || 'Rule 115 (Prev Month Rate)'}</div>
                     <div class="b-math" style="margin-top:4px;">Amount: ${sectionLink(e.ticker, divMath, 'lots-section', e.lot_id)} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
                 </div>`;
         }
@@ -2407,10 +2364,9 @@ function jumpToTaxSummaryBreakdown(ticker, category, quarter, tyLabel, sourceEl 
     let firstMatch = null;
     let matchCount = 0;
 
-    // tyLabel is like "Apr 2024 – Mar 2025"
-    // row.dataset.ty is like "FY 2024-2025"
-    const tyMatch = tyLabel.match(/(\d{4}) – Mar (\d{4})/);
-    const tyFilter = tyMatch ? `FY ${tyMatch[1]}-${tyMatch[2]}` : null;
+    // tyLabel is like "FY 2024-2025"
+    // row.dataset.ty is also like "FY 2024-2025"
+    const tyFilter = tyLabel;
 
     allRows.forEach(row => {
         const isTickerMatch = !ticker || row.dataset.ticker === ticker;
@@ -3327,8 +3283,10 @@ async function fetchTaxYearSummary() {
         const result = await apiPost("/api/tax-year-summary", state.portfolio);
         if (result.success && result.tax_years) {
             renderTaxYearSummary(result.tax_years);
+            renderTaxValidationTable(result.tax_years);
             document.getElementById("taxYearSection").classList.remove("hidden");
-        } else {
+        }
+ else {
             console.warn("Tax year summary failed:", result.error);
         }
     } catch (e) {
