@@ -18,12 +18,20 @@ const state = {
 };
 
 let _navSource = null;
+let _backToSourceTimeout = null;
 function showBackToSource(sourceEl, label) {
     _navSource = { element: sourceEl, scrollY: window.scrollY, label };
     const pill = document.getElementById("backToSource");
     if (pill) {
         pill.querySelector("#backToSourceLabel").textContent = `↑ Back to ${label}`;
         pill.classList.remove("hidden");
+
+        // Auto-hide after 30 seconds
+        clearTimeout(_backToSourceTimeout);
+        _backToSourceTimeout = setTimeout(() => {
+            pill.classList.add("hidden");
+            _navSource = null;
+        }, 30000);
     }
 }
 
@@ -37,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
             setTimeout(() => _navSource.element.classList.remove("highlight-pulse"), 2000);
             pill.classList.add("hidden");
             _navSource = null;
+            clearTimeout(_backToSourceTimeout);
         });
     }
 });
@@ -55,12 +64,16 @@ function showTooltip(e, contentHTML) {
     // Smart positioning
     const x = e.clientX;
     const y = e.clientY;
-    const padding = 15;
+    const padding = 20; // Increased padding slightly to prevent overlap/hover flickering
     
     let left = x;
     let top = y + padding;
 
-    // Wait a tick for dimensions
+    // Apply immediate position to prevent flicker
+    tooltipEl.style.left = left + "px";
+    tooltipEl.style.top = top + "px";
+
+    // Adjust in animation frame once dimensions are known
     requestAnimationFrame(() => {
         const rect = tooltipEl.getBoundingClientRect();
         if (left + rect.width > window.innerWidth) {
@@ -71,7 +84,6 @@ function showTooltip(e, contentHTML) {
         }
         tooltipEl.style.left = left + "px";
         tooltipEl.style.top = top + "px";
-        tooltipEl.style.transform = `translate(0, 0)`; // Remove hover transform jump
     });
 }
 

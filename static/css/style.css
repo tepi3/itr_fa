@@ -2222,8 +2222,9 @@ kbd {
 /* Calculation Tooltip */
 .calc-tooltip {
     position: fixed;
-    z-index: 100;
+    z-index: 999999 !important;
     background: var(--bg-secondary);
+    color: var(--text-main) !important;
     border: 1px solid var(--border);
     border-left: 3px solid var(--accent);
     border-radius: var(--radius-sm);
@@ -2233,13 +2234,13 @@ kbd {
     max-height: 220px;
     overflow-y: auto;
     font-size: 0.75rem;
-    pointer-events: none;     /* Don't steal hover */
-    animation: tooltipFadeIn 0.15s ease;
+    pointer-events: none !important;     /* Don't steal hover */
+    animation: tooltipFadeIn 0.15s ease-out;
 }
 
 @keyframes tooltipFadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .back-to-source {
