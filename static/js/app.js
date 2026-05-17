@@ -448,6 +448,7 @@ function bindEvents() {
     document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
     document.getElementById("lockRatesBtn").addEventListener("click", toggleLockRates);
     document.getElementById("clearSbiBtn").addEventListener("click", clearSbiOverrides);
+    document.getElementById("clearCacheBtn").addEventListener("click", clearStockCache);
     document.getElementById("undoBtn").addEventListener("click", undo);
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
@@ -847,6 +848,25 @@ function clearSbiOverrides() {
         calculateAll(); // Recalculate if report exists
     } else {
         restorePortfolioUI();
+    }
+}
+
+async function clearStockCache() {
+    if (!confirm("Are you sure you want to clear the local stock data cache? All historical stock info and dividend data will be cleared, forcing fresh queries from Yahoo Finance on your next live fetch.")) return;
+    
+    showLoading("Clearing stock data cache...");
+    try {
+        const res = await apiPost("/api/clear-stock-cache");
+        if (res.success) {
+            showToast("Stock data cache cleared successfully!", "success");
+        } else {
+            showToast("Failed to clear stock data cache", "error");
+        }
+    } catch (e) {
+        console.error("Failed to clear stock cache", e);
+        showToast("Error clearing stock data cache", "error");
+    } finally {
+        hideLoading();
     }
 }
 

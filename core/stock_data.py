@@ -377,3 +377,14 @@ def get_live_price(ticker: str) -> dict:
     except Exception as e:
         logger.error(f"Error fetching live price for {ticker}: {e}")
         return {"price": None, "currency": "USD", "market_state": "UNKNOWN", "ticker": yahoo_ticker}
+
+
+def clear_stock_cache() -> bool:
+    """Clear all entries in the yfinance stock cache database."""
+    try:
+        with _get_cache_conn() as conn:
+            conn.execute("DELETE FROM yfinance_cache")
+        return True
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
+        return False

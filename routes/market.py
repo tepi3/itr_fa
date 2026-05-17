@@ -9,7 +9,7 @@ from core.sbi_rates import (
 from core.stock_data import (
     get_company_info, get_price_on_date, get_dividends,
     has_dividends, get_yearly_max_price, get_live_price,
-    get_historical_prices
+    get_historical_prices, clear_stock_cache
 )
 from datetime import date as dt_date, timedelta
 
@@ -157,3 +157,9 @@ def api_unlock_rates():
 def api_locked_years():
     """Get list of locked years."""
     return jsonify({"locked_years": get_locked_years()})
+
+@market_bp.route("/api/clear-stock-cache", methods=["POST"])
+def api_clear_stock_cache():
+    """Clear all cached yfinance data."""
+    success = clear_stock_cache()
+    return jsonify({"success": success})
