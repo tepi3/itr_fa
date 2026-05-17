@@ -39,16 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
             _navSource = null;
         });
     }
-
-    window.addEventListener("scroll", () => {
-        if (_navSource) {
-            if (Math.abs(window.scrollY - _navSource.scrollY) < 200) {
-                const pill = document.getElementById("backToSource");
-                if (pill) pill.classList.add("hidden");
-                _navSource = null;
-            }
-        }
-    });
 });
 
 let _tooltipTimeout;

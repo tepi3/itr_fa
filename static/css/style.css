@@ -2221,7 +2221,7 @@ kbd {
 
 /* Calculation Tooltip */
 .calc-tooltip {
-    position: absolute;
+    position: fixed;
     z-index: 100;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
