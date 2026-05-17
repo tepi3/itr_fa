@@ -60,21 +60,27 @@ def process_sell_details_file(file_bytes: bytes, filename: str, portfolio: dict)
     qty_idx = find_col_index(headers, ["quantity", "qty"])
     date_acquired_idx = find_col_index(headers, ["date acquired"])
     date_sold_idx = find_col_index(headers, ["date sold"])
+    plan_type_idx = find_col_index(headers, ["plan type"])
+    
+    # RSU FMV
     ordinary_income_per_share_idx = find_col_index(headers, [
-        "adjusted cost basis per share",
         "ordinary income recognized per share",
         "ordinary income per share",
+        "adjusted cost basis per share",
     ])
+    # ESPP FMV (Purchase Date FMV)
+    espp_fmv_idx = find_col_index(headers, ["purchase date fair mkt. value", "purchase date fmv"])
+    
     proceeds_per_share_idx = find_col_index(headers, ["proceeds per share"])
 
-    if symbol_idx == -1 or qty_idx == -1 or date_acquired_idx == -1 or date_sold_idx == -1 or ordinary_income_per_share_idx == -1 or proceeds_per_share_idx == -1:
+    if symbol_idx == -1 or qty_idx == -1 or date_acquired_idx == -1 or date_sold_idx == -1 or proceeds_per_share_idx == -1:
         raise ValueError(f"Missing required columns in Gain/Loss file. Found headers: {headers}")
 
     transactions = []
     skipped_count = 0
 
     for row in rows[1:]:
-        if len(row) <= max(symbol_idx, qty_idx, date_acquired_idx, date_sold_idx, ordinary_income_per_share_idx, proceeds_per_share_idx):
+        if len(row) <= max(symbol_idx, qty_idx, date_acquired_idx, date_sold_idx, proceeds_per_share_idx):
             continue
 
         if record_type_idx != -1:
@@ -95,11 +101,23 @@ def process_sell_details_file(file_bytes: bytes, filename: str, portfolio: dict)
             skipped_count += 1
             continue
 
+        plan_type = ""
+        if plan_type_idx != -1:
+            plan_type = str(row[plan_type_idx] or "").strip().lower()
+
         try:
             qty = float(str(row[qty_idx]).replace(",", ""))
             if qty <= 0:
                 continue
-            buy_price = float(str(row[ordinary_income_per_share_idx]).replace("$", "").replace(",", ""))
+            
+            # Logic for ESPP vs RSU (RS)
+            if "espp" in plan_type and espp_fmv_idx != -1:
+                buy_price = float(str(row[espp_fmv_idx]).replace("$", "").replace(",", ""))
+            elif ordinary_income_per_share_idx != -1:
+                buy_price = float(str(row[ordinary_income_per_share_idx]).replace("$", "").replace(",", ""))
+            else:
+                continue
+
             sell_price = float(str(row[proceeds_per_share_idx]).replace("$", "").replace(",", ""))
         except (ValueError, TypeError):
             continue

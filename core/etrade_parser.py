@@ -67,7 +67,7 @@ def process_etrade_file(file_bytes: bytes, filename: str, portfolio: dict) -> di
     date_idx = find_col_index(headers, ["vest date", "date acquired", "date", "transaction date"])
     type_idx = find_col_index(headers, ["transaction type", "action", "type", "record type"])
     symbol_idx = find_col_index(headers, ["symbol", "ticker"])
-    qty_idx = find_col_index(headers, ["sellable qty.", "quantity", "qty", "purchased qty."])
+    qty_idx = find_col_index(headers, ["quantity", "sellable qty.", "qty", "purchased qty."])
     price_idx = find_col_index(headers, ["purchase date fmv", "price", "execution price", "purchase price", "est. cost basis (per share):"])
 
     if symbol_idx == -1 or date_idx == -1 or qty_idx == -1 or price_idx == -1:

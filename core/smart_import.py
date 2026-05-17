@@ -61,7 +61,7 @@ def group_and_deduplicate_transactions(transactions: list, portfolio: dict) -> l
         if t_type == "BUY":
             # Find matching lot
             for lot in stock.get("lots", []):
-                if lot.get("buy_date") == date and abs(float(lot.get("buy_price", 0)) - price) < 0.01:
+                if lot.get("buy_date") == date and abs(float(lot.get("buy_price", 0)) - price) < 0.05:
                     portfolio_qty += float(lot.get("quantity", 0))
         elif t_type == "SELL":
             buy_date = tx.get("buy_date")
@@ -71,11 +71,11 @@ def group_and_deduplicate_transactions(transactions: list, portfolio: dict) -> l
             for lot in stock.get("lots", []):
                 # If linked sell, verify it matches the specific lot
                 if buy_date:
-                    if lot.get("buy_date") != buy_date or abs(float(lot.get("buy_price", 0)) - buy_price) >= 0.01:
+                    if lot.get("buy_date") != buy_date or abs(float(lot.get("buy_price", 0)) - buy_price) >= 0.05:
                         continue
                         
                 for sell in lot.get("sells", []):
-                    if sell.get("sell_date") == date and abs(float(sell.get("sell_price", 0)) - price) < 0.01:
+                    if sell.get("sell_date") == date and abs(float(sell.get("sell_price", 0)) - price) < 0.05:
                         portfolio_qty += float(sell.get("quantity", 0))
         
         # Determine status

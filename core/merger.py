@@ -42,7 +42,7 @@ def apply_transactions(portfolio: dict, transactions: list) -> dict:
             # Find matching lot by date and price
             matching_lot = None
             for lot in stock["lots"]:
-                if lot["buy_date"] == date and abs(float(lot["buy_price"]) - price) < 0.01:
+                if lot["buy_date"] == date and abs(float(lot["buy_price"]) - price) < 0.05:
                     matching_lot = lot
                     break
             
@@ -68,7 +68,7 @@ def apply_transactions(portfolio: dict, transactions: list) -> dict:
                 # ── Linked SELL (explicit buy info) ───────────────────────
                 matching_lot = None
                 for lot in stock["lots"]:
-                    if lot["buy_date"] == buy_date and abs(float(lot["buy_price"]) - buy_price) < 0.01:
+                    if lot["buy_date"] == buy_date and abs(float(lot["buy_price"]) - buy_price) < 0.05:
                         matching_lot = lot
                         break
                 
@@ -84,9 +84,12 @@ def apply_transactions(portfolio: dict, transactions: list) -> dict:
                     stock["lots"].append(matching_lot)
                     stock["lots"].sort(key=lambda l: l["buy_date"])
                 else:
-                    # Do not blindly increment parent lot's total quantity.
-                    # It causes inflation bugs for IBKR and during re-imports.
-                    pass
+                    # Ensure lot quantity covers this sell and all existing sells.
+                    # This handles cases where a BUY was partial or missing, while 
+                    # avoiding inflation during re-imports of the same sells.
+                    current_sells_total = sum(float(s["quantity"]) for s in matching_lot.get("sells", []))
+                    if float(matching_lot["quantity"]) < current_sells_total + qty:
+                        matching_lot["quantity"] = current_sells_total + qty
                 
                 # Add the specific sell record
                 if "sells" not in matching_lot: matching_lot["sells"] = []
