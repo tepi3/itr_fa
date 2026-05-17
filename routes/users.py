@@ -1,4 +1,5 @@
 import shutil
+import json
 from flask import Blueprint, jsonify, request
 from config import PORTFOLIOS_DIR
 from core.utils import get_user_dir
@@ -55,3 +56,146 @@ def api_delete_user(username):
         
     shutil.rmtree(user_dir)
     return jsonify({"success": True})
+
+@users_bp.route("/api/users/setup-demo", methods=["POST"])
+def api_setup_demo():
+    """Create a demo profile and load a sample CY2025 portfolio with AAPL, TSLA, and NVDA."""
+    user_dir, safe_name = get_user_dir("DemoUser")
+    
+    dummy_portfolio = {
+      "calendar_year": 2025,
+      "stocks": [
+        {
+          "id": "stock_aapl",
+          "ticker": "AAPL",
+          "yahoo_ticker": "AAPL",
+          "currency": "USD",
+          "skip_dividends": False,
+          "company_info": {
+            "country_code": "2-UNITED STATES OF AMERICA",
+            "name": "Apple Inc.",
+            "address": "One Apple Park Way, Cupertino, CA",
+            "zip": "95014",
+            "nature": "Company",
+            "country": "United States",
+            "display_name": "Apple Inc. (AAPL)"
+          },
+          "lots": [
+            {
+              "id": "lot_aapl_2021",
+              "buy_date": "2021-04-12",
+              "quantity": 50.0,
+              "buy_price": 131.24,
+              "sells": [
+                {
+                  "id": "sell_aapl_2025",
+                  "sell_date": "2025-03-10",
+                  "quantity": 30.0,
+                  "sell_price": 178.50
+                }
+              ]
+            },
+            {
+              "id": "lot_aapl_2022",
+              "buy_date": "2022-08-25",
+              "quantity": 40.0,
+              "buy_price": 168.40,
+              "sells": [
+                {
+                  "id": "sell_aapl_2025_2",
+                  "sell_date": "2025-08-14",
+                  "quantity": 20.0,
+                  "sell_price": 192.30
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "stock_tsla",
+          "ticker": "TSLA",
+          "yahoo_ticker": "TSLA",
+          "currency": "USD",
+          "skip_dividends": True,
+          "company_info": {
+            "country_code": "2-UNITED STATES OF AMERICA",
+            "name": "Tesla, Inc.",
+            "address": "1 Tesla Road, Austin, TX",
+            "zip": "78725",
+            "nature": "Company",
+            "country": "United States",
+            "display_name": "Tesla, Inc. (TSLA)"
+          },
+          "lots": [
+            {
+              "id": "lot_tsla_2021",
+              "buy_date": "2021-11-05",
+              "quantity": 25.0,
+              "buy_price": 386.57,
+              "sells": [
+                {
+                  "id": "sell_tsla_2025",
+                  "sell_date": "2025-06-20",
+                  "quantity": 15.0,
+                  "sell_price": 255.40
+                }
+              ]
+            },
+            {
+              "id": "lot_tsla_2022",
+              "buy_date": "2022-05-18",
+              "quantity": 30.0,
+              "buy_price": 236.40,
+              "sells": []
+            }
+          ]
+        },
+        {
+          "id": "stock_nvda",
+          "ticker": "NVDA",
+          "yahoo_ticker": "NVDA",
+          "currency": "USD",
+          "skip_dividends": False,
+          "company_info": {
+            "country_code": "2-UNITED STATES OF AMERICA",
+            "name": "NVIDIA Corporation",
+            "address": "2788 San Tomas Expressway, Santa Clara, CA",
+            "zip": "95051",
+            "nature": "Company",
+            "country": "United States",
+            "display_name": "NVIDIA Corporation (NVDA)"
+          },
+          "lots": [
+            {
+              "id": "lot_nvda_2021",
+              "buy_date": "2021-07-22",
+              "quantity": 100.0,
+              "buy_price": 19.50,
+              "sells": [
+                {
+                  "id": "sell_nvda_2025",
+                  "sell_date": "2025-02-17",
+                  "quantity": 50.0,
+                  "sell_price": 135.20
+                }
+              ]
+            },
+            {
+              "id": "lot_nvda_2022",
+              "buy_date": "2022-10-14",
+              "quantity": 80.0,
+              "buy_price": 11.20,
+              "sells": []
+            }
+          ]
+        }
+      ],
+      "overrides": {},
+      "sbi_rate_overrides": {}
+    }
+    
+    filepath = user_dir / "portfolio_CY2025.json"
+    with open(filepath, "w") as f:
+        json.dump(dummy_portfolio, f, indent=2)
+        
+    return jsonify({"success": True, "username": safe_name})

@@ -567,6 +567,28 @@ async function initUserSelection() {
         }
         hideLoading();
     });
+
+    document.getElementById("tryDummyBtn").addEventListener("click", async () => {
+        showLoading("Setting up Demo Profile...");
+        try {
+            const resp = await apiPost("/api/users/setup-demo");
+            if (resp.success) {
+                // Force initial year selection to 2025
+                document.getElementById("initialYearSelect").value = "2025";
+                
+                // Select user DemoUser (which will trigger load of CY2025 sample portfolio!)
+                await selectUser(resp.username);
+                showToast("Welcome! Loaded Demo Profile for CY2025 with AAPL, TSLA, & NVDA.", "success");
+            } else {
+                showToast("Failed to setup demo profile", "error");
+            }
+        } catch (e) {
+            console.error("Demo setup error", e);
+            showToast("Error setting up demo profile", "error");
+        } finally {
+            hideLoading();
+        }
+    });
     
     await fetchUsers();
 }
