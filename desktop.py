@@ -48,11 +48,11 @@ def get_splash_html():
             }}
             .icon {{ font-size: 52px; margin-bottom: 15px; }}
             .title {{ font-size: 32px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }}
-            .subtitle {{ color: #94a3b8; font-size: 15px; margin: 8px 0 35px 0; }}
+            .subtitle {{ color: #94a3b8; font-size: 15px; margin: 8px 0 25px 0; }}
             .loading-text {{ color: #6366f1; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }}
             .progress-container {{ width: 280px; height: 6px; background: #1e1e38; border-radius: 10px; overflow: hidden; }}
             .progress-bar {{ width: 0%; height: 100%; background: #6366f1; border-radius: 10px; transition: width 0.3s ease; }}
-            .version {{ position: absolute; bottom: 20px; color: #475569; font-size: 10px; font-weight: 500; }}
+            .version {{ margin-top: 20px; color: #475569; font-size: 10px; font-weight: 500; }}
             
             @keyframes pulse {{
                 0% {{ opacity: 0.6; }}
