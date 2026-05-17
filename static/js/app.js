@@ -162,7 +162,7 @@ function mapCalcDetailsToTooltip(calculationDetails, fieldKey) {
     if (fieldKey === "total_dividends" && detail.dividend_entries?.length > 0) {
         return detail.dividend_entries.map(de => ({
             date: de.ex_date, qty: de.qty, price_usd: de.amount_foreign?.toFixed(4),
-            rate: de.ttbr?.toFixed(4), value_inr: de.div_inr || (de.qty * de.amount_foreign * (de.ttbr || 0))
+            rate: de.ttbr?.toFixed(4), value_inr: de.value_inr || (de.qty * de.amount_foreign * (de.ttbr || 0))
         }));
     }
     if (fieldKey === "sale_proceeds" && detail.sale_entries?.length > 0) {
@@ -3437,10 +3437,11 @@ function renderTaxYearSummary(taxYears) {
                             link.addEventListener("mouseenter", (e) => {
                                 const events = bucket.details?.[qk] || [];
                                 const details = events.map(ev => ({
-                                    date: ev.date, qty: ev.qty,
-                                    price_usd: ev.price_usd || ev.dividend_usd || 0,
-                                    rate: ev.rate || 0,
-                                    value_inr: ev.value_inr || 0
+                                    date: ev.date, 
+                                    qty: ev.qty,
+                                    price_usd: ev.sell_price || ev.amount_foreign || 0,
+                                    rate: ev.sell_ttbr || ev.ttbr || 0,
+                                    value_inr: ev.proceeds_inr || ev.value_inr || 0
                                 }));
                                 showCalcTooltip(e, buildTooltipHTML(details, `${ticker} ${meta.label}`));
                             });
