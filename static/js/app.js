@@ -2739,46 +2739,15 @@ async function savePortfolioAs() {
     const filename = `portfolio_CY${state.portfolio.calendar_year}_${state.username}.json`;
     const jsonContent = JSON.stringify(portfolioToSave, null, 2);
 
-    // Try File System Access API
-    if ('showSaveFilePicker' in window) {
-        try {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: filename,
-                types: [{
-                    description: 'JSON File',
-                    accept: { 'application/json': ['.json'] },
-                }],
-            });
-            const writable = await handle.createWritable();
-            await writable.write(jsonContent);
-            await writable.close();
-            markClean();
-            showToast("Portfolio saved successfully!", "success");
-            return;
-        } catch (err) {
-            if (err.name === 'AbortError') return;
-            console.warn("File System Access API failed, falling back", err);
-        }
-    }
-
-    // Fallback using Blob and anchor
-    const blob = new Blob([jsonContent], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
+    const result = await saveFileRobustly(jsonContent, filename, 'JSON File', 'application/json', '.json');
     
-    // Clean up
-    setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, 100);
-
-    markClean();
-    showToast("Portfolio downloaded to your computer.", "success");
+    if (result.success) {
+        markClean();
+        const msg = result.method === 'browser-download' ? "Portfolio downloaded to your computer." : "Portfolio saved successfully!";
+        showToast(msg, "success");
+    } else if (result.error !== 'Cancelled') {
+        showToast(`Save error: ${result.error}`, "error");
+    }
 }
 function openPortfolioFile() {
     document.getElementById("openFileInput").click();
@@ -3017,52 +2986,73 @@ function clearCurrentYear() {
 }
 
 // ===== Export CSV =====
+async function saveFileRobustly(content, filename, fileTypeLabel, fileTypeMime, fileExtension) {
+    const fileTypeSpec = `${fileTypeLabel} (*${fileExtension})`;
+    
+    // Tier 1: File System Access API (Modern Browsers / WebView2 on Windows)
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: filename,
+                types: [{
+                    description: fileTypeLabel,
+                    accept: { [fileTypeMime]: [fileExtension] },
+                }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(content);
+            await writable.close();
+            return { success: true, method: 'native-picker' };
+        } catch (err) {
+            if (err.name === 'AbortError') return { success: false, error: 'Cancelled' };
+            console.warn("File System Access API failed, trying Tier 2", err);
+        }
+    }
+
+    // Tier 2: Native Bridge (macOS WebKit / Linux standalone)
+    try {
+        const response = await fetch("/api/save-native", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                content: content,
+                filename: filename,
+                file_type: fileTypeSpec
+            })
+        });
+        const result = await response.json();
+        if (result.success) return { success: true, method: 'native-bridge' };
+        if (result.error === 'Cancelled') return { success: false, error: 'Cancelled' };
+        // If result.error is 'Not running in native window mode', we fall through to Tier 3
+    } catch (err) {
+        console.warn("Native bridge failed, trying Tier 3", err);
+    }
+
+    // Tier 3: Browser Blob Download (Legacy Fallback)
+    try {
+        const blob = new Blob([content], { type: fileTypeMime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+        return { success: true, method: 'browser-download' };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+}
+
 async function exportCSV() {
     if (!state.calculatedRows.length) {
         return showToast("Calculate first, then export", "warning");
     }
 
-    const defaultFilename = `Schedule_FA_A3_CY${state.portfolio.calendar_year}.csv`;
-
-    // Try File System Access API for native "Save As" dialog
-    if ('showSaveFilePicker' in window) {
-        try {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: defaultFilename,
-                types: [{
-                    description: 'CSV File',
-                    accept: { 'text/csv': ['.csv'] },
-                }],
-            });
-
-            showLoading("Generating CSV...");
-            const resp = await fetch("/api/export-csv", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    rows: state.calculatedRows,
-                    calendar_year: state.portfolio.calendar_year,
-                }),
-            });
-
-            if (!resp.ok) throw new Error("Export failed");
-            const blob = await resp.blob();
-
-            const writable = await handle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-
-            hideLoading();
-            showToast("CSV saved successfully!", "success");
-            return;
-        } catch (err) {
-            // If user cancelled, just return
-            if (err.name === 'AbortError') return;
-            console.warn("File System Access API failed or unsupported, falling back to traditional download", err);
-        }
-    }
-
-    // Fallback for browsers without showSaveFilePicker
     showLoading("Generating CSV...");
     try {
         const resp = await fetch("/api/export-csv", {
@@ -3075,24 +3065,19 @@ async function exportCSV() {
         });
 
         if (!resp.ok) throw new Error("Export failed");
-
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.style.display = 'none';
-        a.href = url;
-        a.download = defaultFilename;
-        document.body.appendChild(a);
-        a.click();
         
-        // Clean up
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
-
+        const content = await resp.text();
+        const filename = `Schedule_FA_A3_CY${state.portfolio.calendar_year}.csv`;
+        
         hideLoading();
-        showToast("CSV downloaded!", "success");
+        const result = await saveFileRobustly(content, filename, 'CSV File', 'text/csv', '.csv');
+        
+        if (result.success) {
+            const msg = result.method === 'browser-download' ? "CSV downloaded!" : "CSV saved successfully!";
+            showToast(msg, "success");
+        } else if (result.error !== 'Cancelled') {
+            showToast(`Save error: ${result.error}`, "error");
+        }
     } catch (e) {
         hideLoading();
         showToast(`Export error: ${e.message}`, "error");

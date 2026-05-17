@@ -149,6 +149,36 @@ def init_flask_app():
         from config import APP_VERSION
         return {"success": True, "version": APP_VERSION}
 
+    @state.app.route("/api/save-native", methods=["POST"])
+    def save_native():
+        """Trigger a native save file dialog using pywebview."""
+        if not state.webview_window:
+            return jsonify({"success": False, "error": "Not running in native window mode"}), 400
+        
+        try:
+            import webview
+            data = request.get_json()
+            content = data.get("content")
+            filename = data.get("filename", "download")
+            file_type = data.get("file_type", "All files (*.*)")
+            
+            result = state.webview_window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=filename,
+                file_types=(file_type, 'All files (*.*)')
+            )
+            
+            if result:
+                save_path = result if isinstance(result, str) else result[0]
+                with open(save_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                return jsonify({"success": True, "path": save_path})
+            else:
+                return jsonify({"success": False, "error": "Cancelled"}), 200
+        except Exception as e:
+            logger.error(f"Native save error: {e}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
     @state.app.route("/api/check-update")
     def check_update():
         """Check GitHub for the latest release and compare with current version."""
