@@ -1901,6 +1901,7 @@ tr:hover td {
     background: linear-gradient(90deg, var(--accent), #a78bfa);
     border-radius: 2px;
     animation: progressSweep 1.5s ease-in-out infinite;
+    transition: width 0.3s ease;
 }
 @keyframes progressSweep {
     0% { transform: translateX(-100%); width: 30%; }

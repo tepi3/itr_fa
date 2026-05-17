@@ -744,18 +744,28 @@ function showToast(message, type = "info", duration = 4000) {
 // ===== Loading Overlay =====
 let _loadingMsgInterval = null;
 
-function showLoading(text = "Loading...") {
+function showLoading(text = "Loading...", percent = null) {
     const overlay = document.getElementById("loadingOverlay");
     const textEl = document.getElementById("loadingText");
     overlay.classList.remove("hidden");
     textEl.innerHTML = text.replace(/\n/g, "<br>");
 
     // Add progress bar if not present
-    if (!overlay.querySelector(".progress-bar-container")) {
+    let fill = overlay.querySelector(".progress-bar-fill");
+    if (!fill) {
         const bar = document.createElement("div");
         bar.className = "progress-bar-container";
         bar.innerHTML = '<div class="progress-bar-fill"></div>';
         overlay.querySelector(".loader").appendChild(bar);
+        fill = bar.querySelector(".progress-bar-fill");
+    }
+
+    if (percent != null) {
+        fill.style.animation = "none";
+        fill.style.width = percent + "%";
+    } else {
+        fill.style.animation = "";
+        fill.style.width = "";
     }
 
     // Cycle messages for FA Report generation
@@ -2677,7 +2687,7 @@ async function fetchRuntimeDataForAllStocks() {
     for (const stock of state.portfolio.stocks) {
         idx++;
         const ticker = stock.yahoo_ticker || stock.ticker;
-        showLoading(`Fetching live data (${idx}/${total}): ${stock.ticker}…`);
+        showLoading(`Fetching live data (${idx}/${total}): ${stock.ticker}…`, (idx / total) * 100);
 
         setCardLoading(stock.id, true);
 
@@ -3934,11 +3944,19 @@ async function fetchCompanyDetailsForStock(card, stock) {
 async function fetchAllDividends() {
     if (state.portfolio.stocks.length === 0) return showToast("No stocks to fetch dividends for", "warning");
     pushUndoSnapshot("Fetch All Dividends");
-    showLoading("Fetching dividends for all stocks…");
+    
     let total = 0;
+    let idx = 0;
+    const numStocks = state.portfolio.stocks.length;
+    
     for (const stock of state.portfolio.stocks) {
-        if (stock.skip_dividends) continue;
+        idx++;
+        if (stock.skip_dividends) {
+            showLoading(`Fetching dividends (${idx}/${numStocks})…`, (idx / numStocks) * 100);
+            continue;
+        }
         const ticker = stock.yahoo_ticker || stock.ticker;
+        showLoading(`Fetching dividends (${idx}/${numStocks}): ${stock.ticker}…`, (idx / numStocks) * 100);
         try {
             const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${state.portfolio.calendar_year}`);
             stock.dividends = (data.dividends || []).map(d => ({
