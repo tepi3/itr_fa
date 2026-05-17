@@ -8,11 +8,13 @@ Licensed for personal, non-commercial use only.
 import logging
 import time
 import socket
-import fcntl
 import sys
 import os
 from threading import Timer, Thread
 from dataclasses import dataclass, field
+
+if sys.platform != 'win32':
+    import fcntl
 
 # Delayed imports for faster splash screen
 Flask = None
@@ -64,7 +66,15 @@ def shutdown_app(exit_code=0, reason=""):
     # Release the lock file
     if state.lock_file_handle:
         try:
-            fcntl.flock(state.lock_file_handle, fcntl.LOCK_UN)
+            if sys.platform != 'win32':
+                fcntl.flock(state.lock_file_handle, fcntl.LOCK_UN)
+            else:
+                import msvcrt
+                try:
+                    state.lock_file_handle.seek(0)
+                    msvcrt.locking(state.lock_file_handle.fileno(), msvcrt.LK_UNLCK, 1)
+                except Exception as e:
+                    logger.debug(f"Windows unlock error (harmless): {e}")
             state.lock_file_handle.close()
             state.lock_file_handle = None
         except Exception as e:
