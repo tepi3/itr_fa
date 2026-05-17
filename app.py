@@ -116,6 +116,10 @@ def init_flask_app():
     # Initialize storage
     init_user_storage()
 
+    # Initial SBI rates fetch if empty
+    from core.sbi_rates import ensure_rates_cached
+    Thread(target=ensure_rates_cached, daemon=True).start()
+
     @state.app.route("/api/heartbeat", methods=["POST"])
     def heartbeat():
         state.last_heartbeat = time.time()

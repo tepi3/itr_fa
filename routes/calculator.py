@@ -17,120 +17,124 @@ def api_consolidated_tax_summary():
       - Apr-Dec 2023 (from CY 2023 'curr' bucket)
       - Jan-Mar 2024 (from CY 2024 'prev' bucket)
     """
-    data = request.get_json()
-    fy_start_year = data.get("fy_start_year")
-    username = data.get("username", "Default")
-    current_portfolio = data.get("current_portfolio")
+    try:
+        data = request.get_json()
+        fy_start_year = data.get("fy_start_year")
+        username = data.get("username", "Default")
+        current_portfolio = data.get("current_portfolio")
 
-    if not fy_start_year:
-        return jsonify({"error": "fy_start_year required"}), 400
-    
-    fyStartYear = int(fy_start_year)
-
-    user_dir, _ = get_user_dir(username)
-
-    def load_cy_summary(year):
-        portfolio = None
-        if current_portfolio and current_portfolio.get("calendar_year") == year:
-            portfolio = current_portfolio
-        else:
-            path = user_dir / f"portfolio_CY{year}.json"
-            if path.exists():
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        portfolio = json.load(f)
-                except Exception as e:
-                    logger.error(f"Error loading CY{year} for consolidated: {e}")
-                    return None
+        if not fy_start_year:
+            return jsonify({"error": "fy_start_year required"}), 400
         
-        if portfolio:
-            from core.stock_data import get_dividends
-            from core.calculator import _parse_date
-            # Ensure dividends for the requested year are present
-            for stock in portfolio.get("stocks", []):
-                if stock.get("skip_dividends"):
-                    continue
-                ticker = stock.get("yahoo_ticker") or stock.get("ticker")
-                if not ticker:
-                    continue
-                
-                divs = stock.get("dividends", [])
-                has_year_divs = False
-                for d in divs:
-                    ex_str = d.get("ex_date")
-                    if ex_str and _parse_date(ex_str).year == year:
-                        has_year_divs = True
-                        break
-                
-                if not has_year_divs:
-                    fetched = get_dividends(ticker, year)
-                    if fetched:
-                        if "dividends" not in stock:
-                            stock["dividends"] = []
-                        for fd in fetched:
-                            stock["dividends"].append({
-                                "ex_date": fd["ex_date"],
-                                "amount": fd["amount"],
-                                "is_manual": False
-                            })
-            return calculate_tax_year_summary(portfolio)
-        return None
+        fyStartYear = int(fy_start_year)
 
-    # Load both years
-    cy_start_res = load_cy_summary(fyStartYear)
-    cy_end_res = load_cy_summary(fyStartYear + 1)
+        user_dir, _ = get_user_dir(username)
 
-    # Consolidated structure
-    consolidated = {
-        "fy_label": f"Apr {fyStartYear} – Mar {fyStartYear + 1}",
-        "fy_start_year": fyStartYear,
-        "fy_end_year": fyStartYear + 1,
-        "has_cy_start": cy_start_res is not None,
-        "has_cy_end": cy_end_res is not None,
-        "stocks": {},
-        "totals": {
-            "ltcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-            "ltcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-            "stcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-            "stcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-            "dividends": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+        def load_cy_summary(year):
+            portfolio = None
+            if current_portfolio and current_portfolio.get("calendar_year") == year:
+                portfolio = current_portfolio
+            else:
+                path = user_dir / f"portfolio_CY{year}.json"
+                if path.exists():
+                    try:
+                        with open(path, "r", encoding="utf-8") as f:
+                            portfolio = json.load(f)
+                    except Exception as e:
+                        logger.error(f"Error loading CY{year} for consolidated: {e}")
+                        return None
+            
+            if portfolio:
+                from core.stock_data import get_dividends
+                from core.calculator import _parse_date
+                # Ensure dividends for the requested year are present
+                for stock in portfolio.get("stocks", []):
+                    if stock.get("skip_dividends"):
+                        continue
+                    ticker = stock.get("yahoo_ticker") or stock.get("ticker")
+                    if not ticker:
+                        continue
+                    
+                    divs = stock.get("dividends", [])
+                    has_year_divs = False
+                    for d in divs:
+                        ex_str = d.get("ex_date")
+                        if ex_str and _parse_date(ex_str).year == year:
+                            has_year_divs = True
+                            break
+                    
+                    if not has_year_divs:
+                        fetched = get_dividends(ticker, year)
+                        if fetched:
+                            if "dividends" not in stock:
+                                stock["dividends"] = []
+                            for fd in fetched:
+                                stock["dividends"].append({
+                                    "ex_date": fd["ex_date"],
+                                    "amount": fd["amount"],
+                                    "is_manual": False
+                                })
+                return calculate_tax_year_summary(portfolio)
+            return None
+
+        # Load both years
+        cy_start_res = load_cy_summary(fyStartYear)
+        cy_end_res = load_cy_summary(fyStartYear + 1)
+
+        # Consolidated structure
+        consolidated = {
+            "fy_label": f"Apr {fyStartYear} – Mar {fyStartYear + 1}",
+            "fy_start_year": fyStartYear,
+            "fy_end_year": fyStartYear + 1,
+            "has_cy_start": cy_start_res is not None,
+            "has_cy_end": cy_end_res is not None,
+            "stocks": {},
+            "totals": {
+                "ltcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                "ltcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                "stcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                "stcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                "dividends": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+            }
         }
-    }
 
-    def merge_ty(source_ty):
-        # Merge stocks
-        for ticker, sdata in source_ty["stocks"].items():
-            if ticker not in consolidated["stocks"]:
-                consolidated["stocks"][ticker] = {
-                    "ltcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-                    "ltcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-                    "stcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-                    "stcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-                    "dividends": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-                }
-            dest = consolidated["stocks"][ticker]
+        def merge_ty(source_ty):
+            # Merge stocks
+            for ticker, sdata in source_ty["stocks"].items():
+                if ticker not in consolidated["stocks"]:
+                    consolidated["stocks"][ticker] = {
+                        "ltcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                        "ltcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                        "stcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                        "stcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                        "dividends": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                    }
+                dest = consolidated["stocks"][ticker]
+                for cat in ["ltcg", "ltcl", "stcg", "stcl", "dividends"]:
+                    for q in ["total", "q1", "q2", "q3", "q4", "q5"]:
+                        dest[cat][q] += sdata[cat].get(q, 0)
+
+            # Merge totals
             for cat in ["ltcg", "ltcl", "stcg", "stcl", "dividends"]:
                 for q in ["total", "q1", "q2", "q3", "q4", "q5"]:
-                    dest[cat][q] += sdata[cat].get(q, 0)
+                    consolidated["totals"][cat][q] += source_ty["totals"][cat].get(q, 0)
 
-        # Merge totals
-        for cat in ["ltcg", "ltcl", "stcg", "stcl", "dividends"]:
-            for q in ["total", "q1", "q2", "q3", "q4", "q5"]:
-                consolidated["totals"][cat][q] += source_ty["totals"][cat].get(q, 0)
+        if cy_start_res:
+            merge_ty(cy_start_res["tax_years"]["curr"])
+        if cy_end_res:
+            merge_ty(cy_end_res["tax_years"]["prev"])
 
-    if cy_start_res:
-        merge_ty(cy_start_res["tax_years"]["curr"])
-    if cy_end_res:
-        merge_ty(cy_end_res["tax_years"]["prev"])
-
-    # Re-run offset logic on consolidated data
-    from core.calculator import compute_offset_summary
-    wrapped = {"prev": consolidated, "curr": {"totals": {
-        "ltcg": {"total": 0}, "ltcl": {"total": 0}, "stcg": {"total": 0}, "stcl": {"total": 0}
-    }}}
-    compute_offset_summary(wrapped)
-    
-    return jsonify({"success": True, "consolidated": consolidated})
+        # Re-run offset logic on consolidated data
+        from core.calculator import compute_offset_summary
+        wrapped = {"prev": consolidated, "curr": {"totals": {
+            "ltcg": {"total": 0}, "ltcl": {"total": 0}, "stcg": {"total": 0}, "stcl": {"total": 0}
+        }}}
+        compute_offset_summary(wrapped)
+        
+        return jsonify({"success": True, "consolidated": consolidated})
+    except Exception as e:
+        logger.exception("Consolidated tax summary error")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @calculator_bp.route("/api/calculate", methods=["POST"])
 def api_calculate():

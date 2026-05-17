@@ -1299,6 +1299,7 @@ function renderLotRow(card, stock, lot) {
             lot.quantity = parseFloat(tr.querySelector(".lot-qty").value) || 0;
             lot.buy_price = parseFloat(tr.querySelector(".lot-price").value) || 0;
             updateSellLotOptions(card, stock);
+            validateSellQuantities(stock, lot);
         });
     });
 
@@ -1343,6 +1344,17 @@ function renderLotRow(card, stock, lot) {
 }
 
 // ===== Sells =====
+function validateSellQuantities(stock, lot) {
+    if (!lot) return true;
+    const totalSold = (lot.sells || []).reduce((sum, s) => sum + (parseFloat(s.quantity) || 0), 0);
+    // Use a small epsilon for float comparison to avoid issues with floating point precision
+    if (totalSold > parseFloat(lot.quantity) + 0.000001) {
+        showToast(`Warning for ${stock.ticker}: Total sold (${totalSold.toFixed(4).replace(/\.?0+$/, "")}) from lot bought on ${lot.buy_date} exceeds its quantity (${lot.quantity})`, "warning");
+        return false;
+    }
+    return true;
+}
+
 function addSellRow(card, stock, lotId = null, sellData = null) {
     if (stock.lots.length === 0) {
         return showToast("Add a lot first before adding sells", "warning");
@@ -1397,6 +1409,7 @@ function renderSellRow(card, stock, lot, sell) {
             sell.sell_date = tr.querySelector(".sell-date").value;
             sell.quantity = parseFloat(tr.querySelector(".sell-qty").value) || 0;
             sell.sell_price = parseFloat(tr.querySelector(".sell-price").value) || 0;
+            validateSellQuantities(stock, lot);
         });
     });
 
@@ -1419,6 +1432,8 @@ function renderSellRow(card, stock, lot, sell) {
             // Clear P&L as it needs recalculation
             const plContainer = tr.querySelector(".sell-pl-container");
             if (plContainer) plContainer.innerHTML = "";
+
+            validateSellQuantities(stock, newLot);
         }
     });
 
@@ -2709,7 +2724,7 @@ async function loadPortfolio() {
     }
 }
 
-function savePortfolioAs() {
+async function savePortfolioAs() {
     // Sync all cards
     document.querySelectorAll(".stock-card").forEach(card => syncStockFromCard(card));
 
@@ -2721,16 +2736,40 @@ function savePortfolioAs() {
         delete stock.yearly_max_price_date;
     });
 
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(portfolioToSave, null, 2));
+    const filename = `portfolio_CY${state.portfolio.calendar_year}_${state.username}.json`;
+    const jsonContent = JSON.stringify(portfolioToSave, null, 2);
+
+    // Try File System Access API
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: filename,
+                types: [{
+                    description: 'JSON File',
+                    accept: { 'application/json': ['.json'] },
+                }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(jsonContent);
+            await writable.close();
+            markClean();
+            showToast("Portfolio saved successfully!", "success");
+            return;
+        } catch (err) {
+            if (err.name === 'AbortError') return;
+            console.warn("File System Access API failed, falling back", err);
+        }
+    }
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonContent);
     const dlAnchorElem = document.createElement('a');
     dlAnchorElem.setAttribute("href", dataStr);
-    dlAnchorElem.setAttribute("download", `portfolio_CY${state.portfolio.calendar_year}_${state.username}.json`);
+    dlAnchorElem.setAttribute("download", filename);
     dlAnchorElem.click();
-    
+
     markClean();
     showToast("Portfolio downloaded to your computer.", "success");
 }
-
 function openPortfolioFile() {
     document.getElementById("openFileInput").click();
 }
@@ -2903,7 +2942,7 @@ async function fetchSbiRates() {
         const result = await apiPost("/api/fetch-sbi-rates");
         hideLoading();
         if (result.success) {
-            let msg = `Fetched ${result.entries} USD rates`;
+            let msg = `Fetched ${result.updated} USD rates`;
             if (result.locked_years && result.locked_years.length > 0) {
                 msg += ` (locked years ${result.locked_years.join(", ")} preserved)`;
             }
@@ -2973,6 +3012,47 @@ async function exportCSV() {
         return showToast("Calculate first, then export", "warning");
     }
 
+    const defaultFilename = `Schedule_FA_A3_CY${state.portfolio.calendar_year}.csv`;
+
+    // Try File System Access API for native "Save As" dialog
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: defaultFilename,
+                types: [{
+                    description: 'CSV File',
+                    accept: { 'text/csv': ['.csv'] },
+                }],
+            });
+
+            showLoading("Generating CSV...");
+            const resp = await fetch("/api/export-csv", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    rows: state.calculatedRows,
+                    calendar_year: state.portfolio.calendar_year,
+                }),
+            });
+
+            if (!resp.ok) throw new Error("Export failed");
+            const blob = await resp.blob();
+
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+
+            hideLoading();
+            showToast("CSV saved successfully!", "success");
+            return;
+        } catch (err) {
+            // If user cancelled, just return
+            if (err.name === 'AbortError') return;
+            console.warn("File System Access API failed or unsupported, falling back to traditional download", err);
+        }
+    }
+
+    // Fallback for browsers without showSaveFilePicker
     showLoading("Generating CSV...");
     try {
         const resp = await fetch("/api/export-csv", {
@@ -2990,7 +3070,7 @@ async function exportCSV() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `Schedule_FA_A3_CY${state.portfolio.calendar_year}.csv`;
+        a.download = defaultFilename;
         a.click();
         URL.revokeObjectURL(url);
 
@@ -3881,6 +3961,8 @@ async function shRunSimulation() {
     if (simState.sells.length === 0) return showToast("Add at least one simulated sell", "warning");
 
     const simSells = [];
+    const lotUsage = {}; // Track aggregate usage per lot
+
     for (const sell of simState.sells) {
         const lotI = parseInt(sell.lotIdx);
         const lot = simState.lots[lotI];
@@ -3889,12 +3971,24 @@ async function shRunSimulation() {
         const price = parseFloat(sell.sell_price);
         const sellDate = sell.sell_date ||
             document.querySelector(`tr[data-row-id="${sell.rowId}"] .sh-sell-date`)?.value || "";
+        
         if (!qty || qty <= 0) { showToast(`Row ${sell.rowId}: enter a sell quantity`, "warning"); return; }
         if (!price || price <= 0) { showToast(`Row ${sell.rowId}: enter a sell price`, "warning"); return; }
         if (!sellDate) { showToast(`Row ${sell.rowId}: enter a sell date`, "warning"); return; }
-        if (qty > lot.available_qty) {
-            showToast(`Row ${sell.rowId}: qty ${qty} exceeds available ${lot.available_qty}`, "warning"); return;
+        
+        // Aggregate usage check
+        const lotId = lot.lot_id;
+        lotUsage[lotId] = (lotUsage[lotId] || 0) + qty;
+        
+        if (lotUsage[lotId] > lot.available_qty) {
+            if (simState.sells.filter(s => parseInt(s.lotIdx) === lotI).length > 1) {
+                showToast(`Total qty for lot ${lot.ticker} (bought ${lot.buy_date}) exceeds available ${lot.available_qty}`, "warning");
+            } else {
+                showToast(`Row ${sell.rowId}: qty ${qty} exceeds available ${lot.available_qty}`, "warning");
+            }
+            return;
         }
+
         simSells.push({
             ticker:     lot.ticker,
             lot_id:     lot.lot_id,

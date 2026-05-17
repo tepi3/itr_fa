@@ -248,6 +248,18 @@ def save_manual_rate(rate_date: str, rate: float):
     logger.info(f"Saved manual rate: {rate_date} USD = {rate}")
 
 
+def ensure_rates_cached():
+    """Check if cache is empty and fetch if so. Used for first-start auto-fetch."""
+    cache = _load_cache()
+    rates = cache.get("rates", {}).get("USD", {})
+    if not rates:
+        logger.info("SBI rate cache is empty. Performing initial fetch...")
+        try:
+            refresh_cache()
+        except Exception as e:
+            logger.error(f"Initial SBI rate fetch failed: {e}")
+
+
 # ===== Rate Locking =====
 
 def lock_year_rates(year: int):
