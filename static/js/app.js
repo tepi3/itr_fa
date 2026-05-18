@@ -414,7 +414,7 @@ function initYearSelectors() {
     const initialSelect = document.getElementById("initialYearSelect");
     
     const currentYear = new Date().getFullYear();
-    for (let y = currentYear; y >= 2000; y--) {
+    for (let y = currentYear; y >= 2024; y--) {
         const opt = document.createElement("option");
         opt.value = y;
         opt.textContent = y;
@@ -4349,7 +4349,7 @@ async function fetchAllDividends() {
 function initFYYearSelector() {
     const select = document.getElementById("fyYearSelect");
     const currentYear = new Date().getFullYear();
-    for (let y = currentYear; y >= 2000; y--) {
+    for (let y = currentYear; y >= 2024; y--) {
         const opt = document.createElement("option");
         opt.value = y;
         opt.textContent = `TY ${y}-${String(y + 1).slice(-2)} (Apr ${y} – Mar ${y + 1})`;
