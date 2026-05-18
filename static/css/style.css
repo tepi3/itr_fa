@@ -1445,8 +1445,8 @@ tr:hover td {
     text-align: right;
 }
 
-/* ===== Sell P&L Badges ===== */
-.sell-pl-badge {
+/* ===== Sell G&L Badges ===== */
+.sell-gl-badge {
     display: inline-flex;
     flex-direction: column;
     gap: 1px;
@@ -1459,19 +1459,19 @@ tr:hover td {
     line-height: 1.3;
 }
 
-.sell-pl-badge.profit {
+.sell-gl-badge.profit {
     background: var(--success-light);
     color: var(--success);
     border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.sell-pl-badge.loss {
+.sell-gl-badge.loss {
     background: var(--danger-light);
     color: var(--danger);
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.sell-pl-badge.neutral {
+.sell-gl-badge.neutral {
     background: var(--bg-tertiary);
     color: var(--text-muted);
     border: 1px solid var(--border);

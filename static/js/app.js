@@ -1431,7 +1431,7 @@ function renderSellRow(card, stock, lot, sell) {
         <td><input type="text" class="sell-date" value="${sell.sell_date}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" class="sell-qty" value="${sell.quantity}" step="any" min="0" placeholder="0"></td>
         <td><input type="number" class="sell-price" value="${sell.sell_price}" step="0.01" min="0" placeholder="0.00"></td>
-        <td class="sell-pl-container"></td>
+        <td class="sell-gl-container"></td>
         <td><button class="btn btn-sm btn-danger remove-sell-btn">✕</button></td>
     `;
 
@@ -1462,9 +1462,9 @@ function renderSellRow(card, stock, lot, sell) {
             if (buyPriceCell) {
                 buyPriceCell.textContent = newLot.buy_price ? `$${parseFloat(newLot.buy_price).toFixed(2)}` : "—";
             }
-            // Clear P&L as it needs recalculation
-            const plContainer = tr.querySelector(".sell-pl-container");
-            if (plContainer) plContainer.innerHTML = "";
+            // Clear G&L as it needs recalculation
+            const glContainer = tr.querySelector(".sell-gl-container");
+            if (glContainer) glContainer.innerHTML = "";
 
             validateSellQuantities(stock, newLot);
         }
@@ -1647,24 +1647,24 @@ async function calculateAll() {
             if (card) showPeakPriceBadge(card, info.price, info.date);
         });
 
-        // Apply P&L badges to sell rows
+        // Apply G&L badges to sell rows
         result.rows.forEach(row => {
             if (row.calculation_details && row.calculation_details.sales && row.calculation_details.sales.sale_entries) {
                 row.calculation_details.sales.sale_entries.forEach(sellEntry => {
                     if (sellEntry.sell_id) {
                         const tr = document.querySelector(`tr[data-sell-id="${sellEntry.sell_id}"]`);
                         if (tr) {
-                            const plContainer = tr.querySelector(".sell-pl-container");
-                            if (plContainer) {
-                                const usdVal = sellEntry.profit_loss_usd || 0;
-                                const inrVal = sellEntry.profit_loss_inr || 0;
+                            const glContainer = tr.querySelector(".sell-gl-container");
+                            if (glContainer) {
+                                const usdVal = sellEntry.gain_loss_usd || 0;
+                                const inrVal = sellEntry.gain_loss_inr || 0;
                                 const isProfit = usdVal >= 0;
                                 const cls = isProfit ? "profit" : "loss";
                                 const usdText = (isProfit ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
                                 const inrText = (inrVal >= 0 ? "+₹" : "-₹") + Math.abs(inrVal).toLocaleString("en-IN");
                                 
-                                plContainer.innerHTML = `
-                                    <div class="sell-pl-badge ${cls}" title="USD P&L: ${usdText} | INR P&L: ${inrText}">
+                                glContainer.innerHTML = `
+                                    <div class="sell-gl-badge ${cls}" title="USD G&L: ${usdText} | INR G&L: ${inrText}">
                                         <span>${usdText}</span>
                                         <span style="font-size:0.65rem;opacity:0.8;">${inrText}</span>
                                     </div>

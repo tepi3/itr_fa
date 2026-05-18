@@ -386,7 +386,7 @@ def calculate_sale_proceeds(
         proceeds_inr = sell_price * sell_qty * rate
         total_proceeds_inr += proceeds_inr
 
-        # P&L calculations
+        # G&L calculations
         holding_days = (sell_date - buy_date).days
         is_long_term = holding_days >= 730
         
@@ -405,8 +405,8 @@ def calculate_sale_proceeds(
             "rate_date": rate_date,
             "proceeds_inr": round(proceeds_inr),
             "buy_cost_inr": buy_cost_inr,
-            "profit_loss_usd": pl_usd,
-            "profit_loss_inr": pl_inr,
+            "gain_loss_usd": pl_usd,
+            "gain_loss_inr": pl_inr,
             "buy_ttbr": buy_rate,
             "buy_rate_date": buy_rate_date,
         })
