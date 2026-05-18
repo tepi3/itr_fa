@@ -2552,25 +2552,45 @@ function collectSbiRates(rows, taxYears = null) {
             const details = row.calculation_details || {};
             const ticker = row.ticker || row.entity_name || '';
             const a3Cols = [
-                { label: `${ticker} — Buy (${formatAppDate(parseAppDate(row.acquire_date))})`, data: details.initial },
-                { label: `${ticker} — Peak Value (${details.peak && details.peak.peak_date ? formatAppDate(parseAppDate(details.peak.peak_date)) : '?'})`, data: details.peak },
-                { label: `${ticker} — Closing (Dec 31)`, data: details.closing },
+                { label: `${ticker} — Buy (${formatAppDate(parseAppDate(row.acquire_date))})`, data: details.initial, field: 'initial_value' },
+                { label: `${ticker} — Peak Value (${details.peak && details.peak.peak_date ? formatAppDate(parseAppDate(details.peak.peak_date)) : '?'})`, data: details.peak, field: 'peak_value' },
+                { label: `${ticker} — Closing (Dec 31)`, data: details.closing, field: 'closing_balance' },
             ];
             a3Cols.forEach(entry => {
                 if (!entry.data) return;
                 const rate = entry.data.rate || entry.data.ttbr || (entry.data.components && entry.data.components.ttbr);
                 const rateDate = entry.data.rate_date || (entry.data.components && entry.data.components.rate_date);
-                if (rate && rateDate) allEntries.push({ label: entry.label, rate, rateDate, source: entry.data.source });
+                if (rate && rateDate) {
+                    allEntries.push({
+                        label: entry.label,
+                        rate,
+                        rateDate,
+                        source: entry.data.source,
+                        origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
+                    });
+                }
             });
             if (details.dividends && details.dividends.dividend_entries) {
                 details.dividends.dividend_entries.forEach(de => {
                     const payDate = de.payment_date || de.ex_date;
-                    allEntries.push({ label: `${ticker} — Dividend A3 (${formatAppDate(parseAppDate(payDate))})`, rate: de.ttbr, rateDate: de.rate_date, source: de.source });
+                    allEntries.push({
+                        label: `${ticker} — Dividend A3 (${formatAppDate(parseAppDate(payDate))})`,
+                        rate: de.ttbr,
+                        rateDate: de.rate_date,
+                        source: de.source,
+                        origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
+                    });
                 });
             }
             if (details.sales && details.sales.sale_entries) {
                 details.sales.sale_entries.forEach(se => {
-                    allEntries.push({ label: `${ticker} — Sale A3 (${formatAppDate(parseAppDate(se.sell_date))})`, rate: se.ttbr, rateDate: se.rate_date, source: se.source });
+                    allEntries.push({
+                        label: `${ticker} — Sale A3 (${formatAppDate(parseAppDate(se.sell_date))})`,
+                        rate: se.ttbr,
+                        rateDate: se.rate_date,
+                        source: se.source,
+                        origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
+                    });
                 });
             }
         });
@@ -2586,13 +2606,31 @@ function collectSbiRates(rows, taxYears = null) {
                     Object.values(stockData[cat].details || {}).forEach(qDetails => {
                         qDetails.forEach(d => {
                             if (cat === "dividends") {
-                                allEntries.push({ label: `${ticker} — Dividend Tax (${formatAppDate(parseAppDate(d.date))})`, rate: d.ttbr, rateDate: d.rate_date, source: d.source });
+                                allEntries.push({
+                                    label: `${ticker} — Dividend Tax (${formatAppDate(parseAppDate(d.date))})`,
+                                    rate: d.ttbr,
+                                    rateDate: d.rate_date,
+                                    source: d.source,
+                                    origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
+                                });
                             } else {
                                 if (d.sell_ttbr && d.sell_rate_date) {
-                                    allEntries.push({ label: `${ticker} — Sale Tax (${formatAppDate(parseAppDate(d.date))})`, rate: d.sell_ttbr, rateDate: d.sell_rate_date, source: d.source });
+                                    allEntries.push({
+                                        label: `${ticker} — Sale Tax (${formatAppDate(parseAppDate(d.date))})`,
+                                        rate: d.sell_ttbr,
+                                        rateDate: d.sell_rate_date,
+                                        source: d.source,
+                                        origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
+                                    });
                                 }
                                 if (d.buy_ttbr && d.buy_rate_date) {
-                                    allEntries.push({ label: `${ticker} — Buy Tax (Lot ${formatAppDate(parseAppDate(d.buy_rate_date))})`, rate: d.buy_ttbr, rateDate: d.buy_rate_date, source: d.source });
+                                    allEntries.push({
+                                        label: `${ticker} — Buy Tax (Lot ${formatAppDate(parseAppDate(d.buy_rate_date))})`,
+                                        rate: d.buy_ttbr,
+                                        rateDate: d.buy_rate_date,
+                                        source: d.source,
+                                        origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
+                                    });
                                 }
                             }
                         });
@@ -5530,10 +5568,20 @@ function performGlobalSearch(query) {
     state.sbiRatesUsed.forEach(entry => {
         const label = entry.label.toLowerCase();
         const formattedDate = entry.rateDate ? formatAppDate(parseAppDate(entry.rateDate)) : "";
-        if (label.includes(q) || formattedDate.includes(query)) {
+        const rateStr = entry.rate ? entry.rate.toString() : "";
+        if (q === "sbi" || q === "rate" || label.includes(q) || formattedDate.includes(query) || rateStr.includes(query)) {
+            // Jump to the report row (Vice Versa)
+            if (entry.origin) {
+                results.push({
+                    type: "SBI Rate",
+                    title: `${entry.label} (Jump to Row)`,
+                    handler: () => { switchTab('a3'); jumpToSection(entry.origin.section, entry.origin.selector); }
+                });
+            }
+            // Also keep option to jump to SBI Rates table
             results.push({
                 type: "SBI Rate",
-                title: `${entry.label} (Rate Date: ${formattedDate})`,
+                title: `${entry.label} (Jump to Rates Table)`,
                 handler: () => { switchTab('a3'); jumpToSection('sbiRatesSection', `tr[data-rate-date="${entry.rateDate}"]`); }
             });
         }

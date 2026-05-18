@@ -128,7 +128,7 @@ def get_splash_html():
 
             function setReady() {{
                 progress = 100;
-                bar.style.transition = 'width 0.6s cubic-bezier(0.22, 1, 0.36, 1)';
+                bar.style.transition = 'width 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
                 bar.style.width = '100%';
                 status.innerText = 'Ready!';
                 status.style.color = '#22c55e';
@@ -262,7 +262,7 @@ def run_webview_mode(state):
                 pass
             
             state.webview_window.load_url(f"http://{FLASK_HOST}:{FLASK_PORT}")
-            time.sleep(1.0)
+            time.sleep(2.0)
             state.webview_window.show()
             
             if settings.get("maximized", True):
