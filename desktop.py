@@ -118,17 +118,17 @@ def get_splash_html():
 
             function updateProgress() {{
                 if (progress < 92) {{
-                    progress += Math.random() * 2;
+                    progress += Math.random() * 5;
                     bar.style.width = Math.min(progress, 92) + '%';
-                    let delay = 150 + Math.random() * 200;
+                    let delay = 100 + Math.random() * 150;
                     setTimeout(updateProgress, delay);
                 }}
             }}
-            setTimeout(updateProgress, 400);
+            setTimeout(updateProgress, 300);
 
             function setReady() {{
                 progress = 100;
-                bar.style.transition = 'width 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
+                bar.style.transition = 'width 0.4s ease-out';
                 bar.style.width = '100%';
                 status.innerText = 'Ready!';
                 status.style.color = '#22c55e';
@@ -255,14 +255,22 @@ def run_webview_mode(state):
     )
 
     def start_main_app():
+        start_time = time.time()
         if wait_for_flask(timeout=25):
+            # Ensure at least 1.5s of "work" progress before finishing
+            elapsed = time.time() - start_time
+            if elapsed < 1.5:
+                time.sleep(1.5 - elapsed)
+                
             try:
                 splash_window.evaluate_js("setReady()")
             except Exception:
                 pass
             
             state.webview_window.load_url(f"http://{FLASK_HOST}:{FLASK_PORT}")
-            time.sleep(2.0)
+            
+            # Final buffer to see the 100% bar and "Ready!"
+            time.sleep(1.0)
             state.webview_window.show()
             
             if settings.get("maximized", True):

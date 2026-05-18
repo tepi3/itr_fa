@@ -2655,7 +2655,10 @@ function collectSbiRates(rows, taxYears = null) {
         const tr = document.createElement("tr");
         tr.dataset.rateDate = rateDate;
         tr.innerHTML = `
-            <td>${label}</td>
+            <td style="display:flex; justify-content:space-between; align-items:center;">
+                <span>${label}</span>
+                ${entry.origin ? `<button class="btn-link jump-back-btn" title="Jump to where this was used" style="padding:2px 6px; font-size:0.9rem;">↗</button>` : ''}
+            </td>
             <td>${formatAppDate(parseAppDate(rateDate))}</td>
             <td class="editable-rate" data-date="${rateDate}" title="Click to edit rate">
                 <span class="rate-val">₹${rate.toFixed(4)}</span>
@@ -2663,6 +2666,13 @@ function collectSbiRates(rows, taxYears = null) {
             </td>
             <td><span class="rate-status ${statusClass}">${src}</span></td>
         `;
+
+        if (entry.origin) {
+            tr.querySelector(".jump-back-btn").addEventListener("click", () => {
+                switchTab('a3');
+                jumpToSection(entry.origin.section, entry.origin.selector);
+            });
+        }
 
         const rateCell = tr.querySelector(".editable-rate");
         rateCell.addEventListener("click", () => {
