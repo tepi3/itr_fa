@@ -106,10 +106,9 @@ function buildTooltipHTML(details, type) {
         let showCount = details.length > 6 ? 3 : details.length;
         for (let i = 0; i < showCount; i++) {
             const d = details[i];
-            const date = d.date ? d.date.substring(5) : ""; 
+            const date = d.date ? formatAppDate(parseAppDate(d.date)) : "";
             html += `<div>${date ? date + ': ' : ''}${d.qty ? d.qty + '×' : ''}$${d.price_usd} × ₹${d.rate} → ₹${Math.round(d.value_inr)}</div>`;
-        }
-        
+        }        
         if (details.length > 6) {
             html += `<div style="color:var(--text-muted);font-style:italic;margin-top:2px;">+${details.length - 3} more…</div>`;
         }
@@ -1382,7 +1381,7 @@ function validateSellQuantities(stock, lot) {
     const totalSold = (lot.sells || []).reduce((sum, s) => sum + (parseFloat(s.quantity) || 0), 0);
     // Use a small epsilon for float comparison to avoid issues with floating point precision
     if (totalSold > parseFloat(lot.quantity) + 0.000001) {
-        showToast(`Warning for ${stock.ticker}: Total sold (${totalSold.toFixed(4).replace(/\.?0+$/, "")}) from lot bought on ${lot.buy_date} exceeds its quantity (${lot.quantity})`, "warning");
+        showToast(`Warning for ${stock.ticker}: Total sold (${totalSold.toFixed(4).replace(/\.?0+$/, "")}) from lot bought on ${formatAppDate(parseAppDate(lot.buy_date))} exceeds its quantity (${lot.quantity})`, "warning");
         return false;
     }
     return true;
@@ -1420,7 +1419,7 @@ function renderSellRow(card, stock, lot, sell) {
 
     // Build lot options
     let lotOptions = stock.lots.map(l =>
-        `<option value="${l.id}" ${l.id === lot.id ? "selected" : ""}>${l.buy_date || "No date"} (qty: ${l.quantity || 0})</option>`
+        `<option value="${l.id}" ${l.id === lot.id ? "selected" : ""}>${l.buy_date ? formatAppDate(parseAppDate(l.buy_date)) : "No date"} (qty: ${l.quantity || 0})</option>`
     ).join("");
 
     const buyPrice = lot.buy_price ? `$${parseFloat(lot.buy_price).toFixed(2)}` : "—";
@@ -1487,7 +1486,7 @@ function updateSellLotOptions(card, stock) {
     card.querySelectorAll(".sell-lot-select").forEach(select => {
         const currentValue = select.value;
         select.innerHTML = stock.lots.map(l =>
-            `<option value="${l.id}" ${l.id === currentValue ? "selected" : ""}>${l.buy_date || "No date"} (qty: ${l.quantity || 0})</option>`
+            `<option value="${l.id}" ${l.id === currentValue ? "selected" : ""}>${l.buy_date ? formatAppDate(parseAppDate(l.buy_date)) : "No date"} (qty: ${l.quantity || 0})</option>`
         ).join("");
     });
 }
@@ -1497,7 +1496,8 @@ function showPeakPriceBadge(card, maxPrice, maxDate) {
     const badge = card.querySelector(".stock-peak-badge");
     const label = card.querySelector(".peak-price-label");
     if (!badge || !label) return;
-    label.textContent = `Peak Price: $${maxPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} on ${maxDate}`;
+    const displayDate = maxDate ? formatAppDate(parseAppDate(maxDate)) : "?";
+    label.textContent = `Peak Price: $${maxPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })} on ${displayDate}`;
     badge.classList.remove("hidden");
 }
 
@@ -1522,9 +1522,12 @@ function renderDividendRow(card, stock, div) {
     const tr = document.createElement("tr");
     tr.dataset.divId = div.id;
 
+    const formattedExDate = div.ex_date ? formatAppDate(parseAppDate(div.ex_date)) : "";
+    const formattedPayDate = div.payment_date ? formatAppDate(parseAppDate(div.payment_date)) : "";
+
     tr.innerHTML = `
-        <td><input type="text" class="div-date" value="${div.ex_date}" placeholder="DD/MM/YYYY"></td>
-        <td><input type="text" class="div-pay-date" value="${div.payment_date || ""}" placeholder="DD/MM/YYYY"></td>
+        <td><input type="text" class="div-date" value="${formattedExDate}" placeholder="DD/MM/YYYY"></td>
+        <td><input type="text" class="div-pay-date" value="${formattedPayDate}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" class="div-amount" value="${div.amount}" step="any" min="0" placeholder="0.00"></td>
         <td><button class="btn btn-sm btn-danger remove-div-btn">✕</button></td>
     `;
@@ -2099,7 +2102,8 @@ function renderResultsTable(rows) {
 /** Helper to wrap TTBR rate in a clickable cross-link span */
 const rateLink = (rateVal, rateDate) => {
     if (!rateVal || !rateDate) return `₹${rateVal ? rateVal.toFixed(4) : '?'}`;
-    return `<span class="validate-crosslink" data-jump-rate="${rateDate}" title="Jump to SBI rate for ${rateDate}">₹${rateVal.toFixed(4)}</span>`;
+    const displayDate = formatAppDate(parseAppDate(rateDate));
+    return `<span class="validate-crosslink" data-jump-rate="${rateDate}" title="Jump to SBI rate for ${displayDate}">₹${rateVal.toFixed(4)}</span>`;
 };
 
 // ===== Render Validation Table =====
@@ -2150,7 +2154,7 @@ function renderValidationTable(rows) {
                 const c = col.detail.components;
                 const rd = col.detail.rate_date || (c && c.rate_date);
                 const mathText = `(${c.qty_on_peak_date}×$${c.peak_price.toFixed(2)})`;
-                breakdown = `<div class="b-math" style="font-size:0.65rem;opacity:0.7;">Peak: ${col.detail.peak_date}</div>
+                breakdown = `<div class="b-math" style="font-size:0.65rem;opacity:0.7;">Peak: ${formatAppDate(parseAppDate(col.detail.peak_date))}</div>
                              <div class="b-math">${sectionLink(mathText, 'lots-section', c.lot_id)}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "closing_balance" && col.detail?.components) {
                 const c = col.detail.components;
@@ -2159,14 +2163,16 @@ function renderValidationTable(rows) {
                 breakdown = `<div class="b-math">${sectionLink(mathText, 'lots-section', c.lot_id)}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "total_dividends" && col.detail?.dividend_entries?.length > 0) {
                 breakdown = col.detail.dividend_entries.map(de => {
-                    const dateLabel = de.payment_date ? `Pay: ${de.payment_date} (Ex: ${de.ex_date})` : `Ex: ${de.ex_date}`;
+                    const payDate = de.payment_date ? formatAppDate(parseAppDate(de.payment_date)) : "";
+                    const exDate = de.ex_date ? formatAppDate(parseAppDate(de.ex_date)) : "";
+                    const dateLabel = de.payment_date ? `Pay: ${payDate} (Ex: ${exDate})` : `Ex: ${exDate}`;
                     const mathText = `(${de.qty}×$${de.amount_foreign.toFixed(4)})`;
                     const divLotPart = sectionLink('Lot', 'lots-section', de.lot_id);
                     return `<div class="b-item" title="${dateLabel}">${sectionLink(mathText, 'dividends-section', de.div_id)}×${rateLink(de.ttbr, de.rate_date)} (${divLotPart})</div>`;
                 }).join("");
             } else if (col.key === "sale_proceeds" && col.detail?.sale_entries?.length > 0) {
                 breakdown = col.detail.sale_entries.map(se => {
-                    const mathText = `${se.sell_date}: (${se.quantity}×$${se.sell_price.toFixed(2)})`;
+                    const mathText = `${formatAppDate(parseAppDate(se.sell_date))}: (${se.quantity}×$${se.sell_price.toFixed(2)})`;
                     return `<div class="b-item">${sectionLink(mathText, 'sells-section', se.sell_id)}×${rateLink(se.ttbr, se.rate_date)}</div>`;
                 }).join("");
             }
@@ -2305,13 +2311,15 @@ function renderTaxValidationTable(taxYears) {
 
             breakdown = `
                 <div class="b-container">
-                    <div class="b-math"><strong>Sell:</strong> ${sectionLink(e.ticker, e.date, 'sells-section', se.sell_id)}</div>
+                    <div class="b-math"><strong>Sell:</strong> ${sectionLink(e.ticker, formatAppDate(parseAppDate(e.date)), 'sells-section', se.sell_id)}</div>
                     <div class="b-math" style="margin-top:4px;">Proceeds: ${sellPricePart} × ${sellRatePart} = <span style="font-weight:600">₹${formatINR(e.proceeds)}</span></div>
                     <div class="b-math">Buy Cost: ${buyPricePart} × ${buyRatePart} = <span style="font-weight:600">₹${formatINR(e.buy_cost)}</span></div>
                 </div>`;
         } else {
             const de = e.details;
-            const payLabel = de.payment_date ? `Paid: ${de.payment_date}` : `Ex: ${de.ex_date}`;
+            const payDate = de.payment_date ? formatAppDate(parseAppDate(de.payment_date)) : "";
+            const exDate = de.ex_date ? formatAppDate(parseAppDate(de.ex_date)) : "";
+            const payLabel = de.payment_date ? `Paid: ${payDate}` : `Ex: ${exDate}`;
             const divPricePart = sectionLink(e.ticker, `(${de.qty}×$${de.amount_foreign.toFixed(4)})`, 'dividends-section', de.div_id);
             const divRatePart = rateLink(de.ttbr, de.rate_date);
             const divLotPart = sectionLink(e.ticker, 'Lot', 'lots-section', e.lot_id);
@@ -2542,8 +2550,8 @@ function collectSbiRates(rows, taxYears = null) {
             const details = row.calculation_details || {};
             const ticker = row.ticker || row.entity_name || '';
             const a3Cols = [
-                { label: `${ticker} — Buy (${row.acquire_date})`, data: details.initial },
-                { label: `${ticker} — Peak Value (${(details.peak && details.peak.peak_date) || '?'})`, data: details.peak },
+                { label: `${ticker} — Buy (${formatAppDate(parseAppDate(row.acquire_date))})`, data: details.initial },
+                { label: `${ticker} — Peak Value (${details.peak && details.peak.peak_date ? formatAppDate(parseAppDate(details.peak.peak_date)) : '?'})`, data: details.peak },
                 { label: `${ticker} — Closing (Dec 31)`, data: details.closing },
             ];
             a3Cols.forEach(entry => {
@@ -2555,12 +2563,12 @@ function collectSbiRates(rows, taxYears = null) {
             if (details.dividends && details.dividends.dividend_entries) {
                 details.dividends.dividend_entries.forEach(de => {
                     const payDate = de.payment_date || de.ex_date;
-                    allEntries.push({ label: `${ticker} — Dividend A3 (${payDate})`, rate: de.ttbr, rateDate: de.rate_date, source: de.source });
+                    allEntries.push({ label: `${ticker} — Dividend A3 (${formatAppDate(parseAppDate(payDate))})`, rate: de.ttbr, rateDate: de.rate_date, source: de.source });
                 });
             }
             if (details.sales && details.sales.sale_entries) {
                 details.sales.sale_entries.forEach(se => {
-                    allEntries.push({ label: `${ticker} — Sale A3 (${se.sell_date})`, rate: se.ttbr, rateDate: se.rate_date, source: se.source });
+                    allEntries.push({ label: `${ticker} — Sale A3 (${formatAppDate(parseAppDate(se.sell_date))})`, rate: se.ttbr, rateDate: se.rate_date, source: se.source });
                 });
             }
         });
@@ -2576,13 +2584,13 @@ function collectSbiRates(rows, taxYears = null) {
                     Object.values(stockData[cat].details || {}).forEach(qDetails => {
                         qDetails.forEach(d => {
                             if (cat === "dividends") {
-                                allEntries.push({ label: `${ticker} — Dividend Tax (${d.date})`, rate: d.ttbr, rateDate: d.rate_date, source: d.source });
+                                allEntries.push({ label: `${ticker} — Dividend Tax (${formatAppDate(parseAppDate(d.date))})`, rate: d.ttbr, rateDate: d.rate_date, source: d.source });
                             } else {
                                 if (d.sell_ttbr && d.sell_rate_date) {
-                                    allEntries.push({ label: `${ticker} — Sale Tax (${d.date})`, rate: d.sell_ttbr, rateDate: d.sell_rate_date, source: d.source });
+                                    allEntries.push({ label: `${ticker} — Sale Tax (${formatAppDate(parseAppDate(d.date))})`, rate: d.sell_ttbr, rateDate: d.sell_rate_date, source: d.source });
                                 }
                                 if (d.buy_ttbr && d.buy_rate_date) {
-                                    allEntries.push({ label: `${ticker} — Buy Tax (Lot ${d.buy_rate_date})`, rate: d.buy_ttbr, rateDate: d.buy_rate_date, source: d.source });
+                                    allEntries.push({ label: `${ticker} — Buy Tax (Lot ${formatAppDate(parseAppDate(d.buy_rate_date))})`, rate: d.buy_ttbr, rateDate: d.buy_rate_date, source: d.source });
                                 }
                             }
                         });
@@ -4183,12 +4191,16 @@ async function fetchDividendsForStock(card, stock) {
     try {
         const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`);
         pushUndoSnapshot(`Fetch Dividends (${stock.ticker})`);
-        stock.dividends = (data.dividends || []).map(d => ({
-            id: generateId(), 
-            ex_date: d.ex_date, 
-            payment_date: d.payment_date || d.ex_date,
-            amount: d.amount,
-        }));
+        stock.dividends = (data.dividends || []).map(d => {
+            const exD = formatAppDate(parseAppDate(d.ex_date));
+            const payD = d.payment_date ? formatAppDate(parseAppDate(d.payment_date)) : exD;
+            return {
+                id: generateId(),
+                ex_date: exD,
+                payment_date: payD,
+                amount: d.amount,
+            };
+        });
         // Re-render dividends tbody
         const tbody = card.querySelector(".dividends-tbody");
         tbody.innerHTML = "";
@@ -4256,12 +4268,16 @@ async function fetchAllDividends() {
         showLoading(`Fetching dividends (${idx}/${numStocks}): ${stock.ticker}…`, (idx / numStocks) * 100);
         try {
             const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${state.portfolio.calendar_year}`);
-            stock.dividends = (data.dividends || []).map(d => ({
-                id: generateId(), 
-                ex_date: d.ex_date, 
-                payment_date: d.payment_date || d.ex_date,
-                amount: d.amount,
-            }));
+            stock.dividends = (data.dividends || []).map(d => {
+                const exD = formatAppDate(parseAppDate(d.ex_date));
+                const payD = d.payment_date ? formatAppDate(parseAppDate(d.payment_date)) : exD;
+                return {
+                    id: generateId(),
+                    ex_date: exD,
+                    payment_date: payD,
+                    amount: d.amount,
+                };
+            });
             total += stock.dividends.length;
             const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
             if (card) {
