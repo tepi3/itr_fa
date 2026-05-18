@@ -1,9 +1,24 @@
 import logging
 import shutil
+import decimal
 from pathlib import Path
 from config import PORTFOLIOS_DIR
 
 logger = logging.getLogger(__name__)
+
+def tax_round(value, places=2) -> float:
+    """Round value for tax purposes using ROUND_HALF_UP logic."""
+    if value is None:
+        return 0.0
+    try:
+        # Convert to string first to avoid floating point precision issues during Decimal initialization
+        val_str = str(value)
+        # Use decimal to do proper ROUND_HALF_UP
+        quantizer = decimal.Decimal(10) ** -places
+        rounded = decimal.Decimal(val_str).quantize(quantizer, rounding=decimal.ROUND_HALF_UP)
+        return float(rounded)
+    except (decimal.InvalidOperation, ValueError, TypeError):
+        return float(value) if value else 0.0
 
 def init_user_storage():
     """Migrate any loose portfolio files to a Default user directory."""

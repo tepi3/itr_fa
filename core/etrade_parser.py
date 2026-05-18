@@ -4,6 +4,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
+from core.utils import tax_round
 
 # openpyxl is lazy-loaded to speed up app startup
 openpyxl = None
@@ -38,7 +39,7 @@ def clean_float(val) -> float:
         return 0.0
     try:
         clean_str = str(val).replace("$", "").replace(",", "").strip()
-        return float(clean_str)
+        return tax_round(float(clean_str), 2)
     except ValueError:
         return 0.0
 
@@ -48,6 +49,7 @@ class ETradeRollbackBuilder:
         self.company_info_map = company_info_map or {}
         # Dictionary to aggregate lots. Key: (symbol, buy_date)
         self.lots = {} 
+        self.skipped_count = 0
 
     def _get_or_create_lot(self, symbol, buy_date):
         key = (symbol, buy_date)
@@ -113,10 +115,10 @@ class ETradeRollbackBuilder:
             qty = clean_float(row.get("Quantity", 0))
             sell_price = clean_float(row.get("Proceeds Per Share", 0))
             
-            # Priority: Ordinary Income (FMV) > Adjusted Cost Basis
-            buy_price = clean_float(row.get("Ordinary Income Recognized Per Share", 0))
+            buy_price = clean_float(row.get("Adjusted Cost Basis Per Share", 0))
             if buy_price == 0:
-                buy_price = clean_float(row.get("Adjusted Cost Basis Per Share", 0))
+                self.skipped_count += 1
+                continue
 
             lot = self._get_or_create_lot(symbol, buy_date)
             if lot["buy_price"] == 0.0 and buy_price > 0: lot["buy_price"] = buy_price
@@ -228,4 +230,4 @@ def process_etrade_files(sellable_bytes: bytes, sellable_filename: str,
                     "buy_price": lot["buy_price"]
                 })
     
-    return {"transactions": transactions, "skipped_count": 0}
+    return {"transactions": transactions, "skipped_count": builder.skipped_count}

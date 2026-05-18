@@ -1401,7 +1401,7 @@ function renderSellRow(card, stock, lot, sell) {
         <td class="sell-buy-price">${buyPrice}</td>
         <td><input type="date" class="sell-date" value="${sell.sell_date}"></td>
         <td><input type="number" class="sell-qty" value="${sell.quantity}" step="any" min="0" placeholder="0"></td>
-        <td><input type="number" class="sell-price" value="${sell.sell_price}" step="any" min="0" placeholder="0.00"></td>
+        <td><input type="number" class="sell-price" value="${sell.sell_price}" step="0.01" min="0" placeholder="0.00"></td>
         <td class="sell-pl-container"></td>
         <td><button class="btn btn-sm btn-danger remove-sell-btn">✕</button></td>
     `;
@@ -3901,6 +3901,15 @@ function shAddRow(lotIdx = 0) {
             if (sell) sell.sell_qty = String(lot.available_qty);
             updateBadge();
         }
+    });
+    tr.querySelector(".sh-sell-price").addEventListener("change", e => {
+        let parsed = parseFloat(e.target.value) || 0;
+        if (e.target.value) {
+            e.target.value = Math.round(parsed * 100) / 100;
+        }
+        const sell = simState.sells.find(s => s.rowId === rowId);
+        if (sell) sell.sell_price = e.target.value;
+        updateBadge();
     });
     tr.querySelector(".sh-sell-price").addEventListener("input", e => {
         const sell = simState.sells.find(s => s.rowId === rowId);

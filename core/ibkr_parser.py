@@ -2,6 +2,7 @@ import io
 import csv
 import logging
 from datetime import datetime
+from core.utils import tax_round
 
 logger = logging.getLogger(__name__)
 
@@ -90,10 +91,10 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
             continue
 
         try:
-            qty = float(str(row[qty_idx]).replace(",", ""))
+            qty = tax_round(float(str(row[qty_idx]).replace(",", "")), 2)
             if qty <= 0:
                 continue
-            price = float(str(row[price_idx]).replace("$", "").replace(",", ""))
+            price = tax_round(float(str(row[price_idx]).replace("$", "").replace(",", "")), 2)
         except (ValueError, TypeError):
             continue
 
