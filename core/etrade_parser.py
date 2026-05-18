@@ -19,16 +19,16 @@ def _get_openpyxl():
 logger = logging.getLogger(__name__)
 
 def parse_date(date_val) -> str:
-    """Parse common E-Trade CSV date formats into YYYY-MM-DD."""
+    """Parse common E-Trade CSV date formats into dd/mm/yyyy."""
     if not date_val or date_val in ("--", "NA", "N/A"):
         return None
     if isinstance(date_val, datetime):
-        return date_val.strftime("%Y-%m-%d")
+        return date_val.strftime("%d/%m/%Y")
     
     date_str = str(date_val).strip().split(" ")[0]
-    for fmt in ("%m/%d/%Y", "%m/%d/%y", "%d-%b-%Y", "%d-%b-%y", "%Y-%m-%d"):
+    for fmt in ("%m/%d/%Y", "%m/%d/%y", "%d-%b-%Y", "%d-%b-%y", "%Y-%m-%d", "%d/%m/%Y"):
         try:
-            return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
+            return datetime.strptime(date_str, fmt).strftime("%d/%m/%Y")
         except ValueError:
             pass
     return None
@@ -64,17 +64,25 @@ class ETradeRollbackBuilder:
         if not csv_content: return
         reader = csv.DictReader(io.StringIO(csv_content.strip()))
         for row in reader:
+            # Skip summary rows or empty rows
             rt = row.get("Record Type", "").strip().lower()
-            if rt == "summary" or not rt: continue
+            if rt == "summary": continue
 
-            symbol = row.get("Symbol", "").strip()
-            buy_date = parse_date(row.get("Date Acquired", ""))
+            symbol = row.get("Symbol", "").strip() or row.get("Ticker", "").strip()
+            if not symbol: continue
             
-            if not symbol or not buy_date: continue
+            buy_date = parse_date(row.get("Date Acquired", ""))
+            if not buy_date: continue
             
             # CRITICAL: Ignore shares acquired AFTER the target year.
             try:
-                buy_year = int(buy_date.split("-")[0])
+                if "/" in buy_date:
+                    year_part = buy_date.split("/")[-1]
+                    buy_year = int(year_part)
+                    if buy_year < 100: buy_year += 2000 # Handle 2-digit year if it slips through
+                else:
+                    buy_year = int(buy_date.split("-")[0])
+                    
                 if buy_year > self.target_year: continue
             except:
                 continue
@@ -90,21 +98,35 @@ class ETradeRollbackBuilder:
         if not csv_content: return
         reader = csv.DictReader(io.StringIO(csv_content.strip()))
         for row in reader:
-            # FIX: Do not rely on 'Record Type'. 
-            # If there is a Date Sold, it is a sale transaction.
+            # Skip summary rows
+            if row.get("Record Type", "").strip().lower() == "summary": continue
+
             raw_sell_date = row.get("Date Sold", "")
             if not raw_sell_date or str(raw_sell_date).strip() in ("--", "NA", "N/A", ""): 
                 continue
 
-            symbol = row.get("Symbol", "").strip()
+            symbol = row.get("Symbol", "").strip() or row.get("Ticker", "").strip()
+            if not symbol: continue
+
             buy_date = parse_date(row.get("Date Acquired", ""))
             sell_date = parse_date(raw_sell_date)
             
-            if not symbol or not buy_date or not sell_date: continue
+            if not buy_date or not sell_date: continue
 
             try:
-                buy_year = int(buy_date.split("-")[0])
-                sell_year = int(sell_date.split("-")[0])
+                if "/" in buy_date:
+                    by = int(buy_date.split("/")[-1])
+                    if by < 100: by += 2000
+                    buy_year = by
+                else:
+                    buy_year = int(buy_date.split("-")[0])
+
+                if "/" in sell_date:
+                    sy = int(sell_date.split("/")[-1])
+                    if sy < 100: sy += 2000
+                    sell_year = sy
+                else:
+                    sell_year = int(sell_date.split("-")[0])
 
                 # CRITICAL: Ignore shares acquired AFTER the target year
                 # CRITICAL: Ignore shares sold BEFORE the target year

@@ -10,7 +10,7 @@ Provides: company info, historical prices, dividend data.
 import logging
 import json
 import sqlite3
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from config import COUNTRY_CODES, DATA_DIR
 
 logger = logging.getLogger(__name__)
@@ -180,7 +180,7 @@ def get_historical_prices(ticker: str, start_date: str, end_date: str) -> list:
         prices = []
         for idx, row in hist.iterrows():
             prices.append({
-                "date": idx.strftime("%Y-%m-%d"),
+                "date": idx.strftime("%d/%m/%Y"),
                 "close": round(float(row["Close"]), 4),
             })
             
@@ -235,19 +235,33 @@ def get_dividends(ticker: str, year: int) -> list:
                         # Clean amount (remove '$')
                         amt_str = str(row['amount']).replace('$', '').strip()
 
-                        # Normalize payment date to YYYY-MM-DD
+                        # Normalize payment date to DD/MM/YYYY
                         pay_date_raw = str(row['paymentDate'])
-                        if '/' in pay_date_raw:
-                            m, d, y = pay_date_raw.split('/')
-                            pay_date_str = f"{y}-{m.zfill(2)}-{d.zfill(2)}"
-                        else:
-                            pay_date_str = pay_date_raw
+                        try:
+                            if '/' in pay_date_raw:
+                                m, d, y = pay_date_raw.split('/')
+                                pay_date_dt = date(int(y), int(m), int(d))
+                            else:
+                                pay_date_dt = date.fromisoformat(pay_date_raw)
+                        except Exception:
+                            logger.warning(f"Invalid payment date: {pay_date_raw}")
+                            continue
 
-                        # Normalize ex date to YYYY-MM-DD
-                        if '/' in ex_date_str:
-                            m, d, y = ex_date_str.split('/')
-                            ex_date_norm = f"{y}-{m.zfill(2)}-{d.zfill(2)}"
-                        else:
+                        # Feature 3: Only fetch a dividend if payment date is less than current date
+                        if pay_date_dt >= date.today():
+                            continue
+                        
+                        pay_date_str = pay_date_dt.strftime("%d/%m/%Y")
+
+                        # Normalize ex date to DD/MM/YYYY
+                        try:
+                            if '/' in ex_date_str:
+                                m, d, y = ex_date_str.split('/')
+                                ex_date_dt = date(int(y), int(m), int(d))
+                            else:
+                                ex_date_dt = date.fromisoformat(ex_date_str)
+                            ex_date_norm = ex_date_dt.strftime("%d/%m/%Y")
+                        except Exception:
                             ex_date_norm = ex_date_str
 
                         year_divs.append({
@@ -268,7 +282,11 @@ def get_dividends(ticker: str, year: int) -> list:
             if not divs.empty:
                 for idx, amount in divs.items():
                     if idx.year == year:
-                        ex_date_str = idx.strftime("%Y-%m-%d")
+                        # Feature 3: Only fetch a dividend if payment date (fallback: ex_date) is less than current date
+                        if idx.date() >= date.today():
+                            continue
+                        
+                        ex_date_str = idx.strftime("%d/%m/%Y")
                         year_divs.append({
                             "ex_date": ex_date_str,
                             "payment_date": ex_date_str,
@@ -312,7 +330,7 @@ def get_yearly_max_price(ticker: str, year: int) -> dict:
 
         max_idx = hist["Close"].idxmax()
         max_price = round(float(hist.loc[max_idx, "Close"]), 4)
-        max_date = max_idx.strftime("%Y-%m-%d")
+        max_date = max_idx.strftime("%d/%m/%Y")
         
         res = {"max_price": max_price, "max_price_date": max_date}
         
@@ -332,7 +350,18 @@ def get_price_on_date(ticker: str, target_date: str) -> float:
     If the market was closed, returns the most recent close before that date.
     """
     yahoo_ticker = resolve_yahoo_ticker(ticker)
-    cache_key = f"price_on_date:{yahoo_ticker.upper()}:{target_date}"
+
+    # Standardize target_date for processing
+    try:
+        if '/' in target_date:
+            d = datetime.strptime(target_date, "%d/%m/%Y").date()
+        else:
+            d = date.fromisoformat(target_date)
+        iso_date = d.isoformat()
+    except Exception:
+        return None
+
+    cache_key = f"price_on_date:{yahoo_ticker.upper()}:{iso_date}"
     
     cached = get_cached_val(cache_key)
     if cached is not None:
@@ -341,7 +370,6 @@ def get_price_on_date(ticker: str, target_date: str) -> float:
     try:
         t = _get_yf().Ticker(yahoo_ticker)
         # Fetch a small window around the target date
-        d = date.fromisoformat(target_date)
         start = (d - timedelta(days=10)).isoformat()
         end = (d + timedelta(days=1)).isoformat()
         hist = t.history(start=start, end=end, auto_adjust=False)
@@ -352,7 +380,7 @@ def get_price_on_date(ticker: str, target_date: str) -> float:
         price = None
         # Find the closest date <= target_date
         for idx in reversed(hist.index):
-            if idx.strftime("%Y-%m-%d") <= target_date:
+            if idx.strftime("%Y-%m-%d") <= iso_date:
                 price = round(float(hist.loc[idx, "Close"]), 4)
                 break
 

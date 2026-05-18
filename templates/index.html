@@ -130,6 +130,7 @@
 
                 <!-- Misc -->
                 <div class="btn-group">
+                    <button id="findBtn" class="btn btn-sm btn-outline" title="Find in App (Ctrl+F)">🔍 Find</button>
                     <button id="themeToggleBtn" class="btn btn-sm btn-outline theme-toggle-btn" title="Toggle dark/light theme">
                         <span class="theme-icon-sun">☀️</span>
                         <span class="theme-icon-moon">🌙</span>
@@ -588,11 +589,28 @@
                 <table style="width:100%; margin-top: 12px;">
                     <tbody>
                         <tr><td style="padding:8px;"><kbd>Ctrl+S</kbd></td><td>Save portfolio</td></tr>
+                        <tr><td style="padding:8px;"><kbd>Ctrl+F</kbd></td><td>Find in App</td></tr>
                         <tr><td style="padding:8px;"><kbd>Ctrl+Z</kbd></td><td>Undo</td></tr>
                         <tr><td style="padding:8px;"><kbd>Ctrl+Shift+Z</kbd></td><td>Redo</td></tr>
                         <tr><td style="padding:8px;"><kbd>?</kbd></td><td>Show this cheatsheet</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Search Modal -->
+        <div id="searchModal" class="modal-backdrop hidden" onclick="if(event.target===this) this.classList.add('hidden')">
+            <div class="modal-box" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>🔍 Find in App</h2>
+                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('searchModal').classList.add('hidden')">✕</button>
+                </div>
+                <div style="margin-top: 16px;">
+                    <div class="input-group">
+                        <input type="text" id="searchInput" placeholder="Search for text, tickers, dates..." autocomplete="off" style="width: 100%;">
+                    </div>
+                    <div id="searchResults" style="margin-top: 12px; max-height: 300px; overflow-y: auto;"></div>
+                </div>
             </div>
         </div>
 

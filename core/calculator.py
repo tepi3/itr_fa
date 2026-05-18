@@ -10,7 +10,7 @@ All calculated fields support manual overrides.
 """
 
 import logging
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Optional
 
 from core.sbi_rates import get_sbi_tt_rate
@@ -20,14 +20,27 @@ logger = logging.getLogger(__name__)
 
 
 def _parse_date(date_str: str) -> date:
-    """Parse YYYY-MM-DD date string."""
-    return date.fromisoformat(date_str)
+    """Parse dd/mm/yyyy date string."""
+    if not date_str:
+        raise ValueError("Date string is empty")
+    try:
+        return datetime.strptime(date_str, "%d/%m/%Y").date()
+    except ValueError:
+        try:
+            return date.fromisoformat(date_str)
+        except ValueError:
+            raise ValueError(f"Invalid date format: {date_str}. Expected dd/mm/yyyy")
 
 
 def _format_date_display(date_str: str) -> str:
-    """Convert YYYY-MM-DD to DD/MM/YYYY for display."""
-    d = _parse_date(date_str)
-    return d.strftime("%d/%m/%Y")
+    """Ensure date is in DD/MM/YYYY for display."""
+    if "/" in date_str:
+        return date_str
+    try:
+        d = date.fromisoformat(date_str)
+        return d.strftime("%d/%m/%Y")
+    except ValueError:
+        return date_str
 
 
 def _get_rate_value(d: date, overrides: dict, use_event_date: bool = False) -> tuple:

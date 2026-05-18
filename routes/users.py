@@ -83,13 +83,13 @@ def api_setup_demo():
           "lots": [
             {
               "id": "lot_aapl_2021",
-              "buy_date": "2021-04-12",
+              "buy_date": "12/04/2021",
               "quantity": 50.0,
               "buy_price": 131.24,
               "sells": [
                 {
                   "id": "sell_aapl_2025",
-                  "sell_date": "2025-03-10",
+                  "sell_date": "10/03/2025",
                   "quantity": 30.0,
                   "sell_price": 178.50
                 }
@@ -97,13 +97,13 @@ def api_setup_demo():
             },
             {
               "id": "lot_aapl_2022",
-              "buy_date": "2022-08-25",
+              "buy_date": "25/08/2022",
               "quantity": 40.0,
               "buy_price": 168.40,
               "sells": [
                 {
                   "id": "sell_aapl_2025_2",
-                  "sell_date": "2025-08-14",
+                  "sell_date": "14/08/2025",
                   "quantity": 20.0,
                   "sell_price": 192.30
                 }
@@ -129,13 +129,13 @@ def api_setup_demo():
           "lots": [
             {
               "id": "lot_tsla_2021",
-              "buy_date": "2021-11-05",
+              "buy_date": "05/11/2021",
               "quantity": 25.0,
               "buy_price": 386.57,
               "sells": [
                 {
                   "id": "sell_tsla_2025",
-                  "sell_date": "2025-06-20",
+                  "sell_date": "20/06/2025",
                   "quantity": 15.0,
                   "sell_price": 255.40
                 }
@@ -143,7 +143,7 @@ def api_setup_demo():
             },
             {
               "id": "lot_tsla_2022",
-              "buy_date": "2022-05-18",
+              "buy_date": "18/05/2022",
               "quantity": 30.0,
               "buy_price": 236.40,
               "sells": []
@@ -168,13 +168,13 @@ def api_setup_demo():
           "lots": [
             {
               "id": "lot_nvda_2021",
-              "buy_date": "2021-07-22",
+              "buy_date": "22/07/2021",
               "quantity": 100.0,
               "buy_price": 19.50,
               "sells": [
                 {
                   "id": "sell_nvda_2025",
-                  "sell_date": "2025-02-17",
+                  "sell_date": "17/02/2025",
                   "quantity": 50.0,
                   "sell_price": 135.20
                 }
@@ -182,7 +182,7 @@ def api_setup_demo():
             },
             {
               "id": "lot_nvda_2022",
-              "buy_date": "2022-10-14",
+              "buy_date": "14/10/2022",
               "quantity": 80.0,
               "buy_price": 11.20,
               "sells": []

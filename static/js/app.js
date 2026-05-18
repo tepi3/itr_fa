@@ -377,11 +377,13 @@ function clearCalculatedSections() {
 }
 
 // ===== Initialization =====
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    startSmoothProgress("Initialising FA Desk...", 1.5);
+    
     initYearSelectors();
     initFYYearSelector();
     bindEvents();
-    initUserSelection();
+    await initUserSelection();
     initSellHelper();
     initTutorial();
     initQuickJump();
@@ -394,6 +396,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Auto-save draft every 30 seconds
     setInterval(autoSaveDraft, 30000);
+
+    await hideLoading();
 });
 
 async function sendHeartbeat() {
@@ -508,10 +512,18 @@ function bindEvents() {
             e.preventDefault();
             savePortfolio();
         }
+        if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+            e.preventDefault();
+            document.getElementById("searchModal").classList.remove("hidden");
+            document.getElementById("searchInput").focus();
+        }
         if (e.key === "?" && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
             document.getElementById("shortcutsModal").classList.toggle("hidden");
         }
     });
+
+    // Theme toggle
+    document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
 
     // Collapse All / Expand All
     document.getElementById("collapseAllBtn").addEventListener("click", () => {
@@ -545,8 +557,14 @@ function bindEvents() {
         });
     });
 
-    // Theme toggle
-    document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
+    document.getElementById("findBtn").addEventListener("click", () => {
+        document.getElementById("searchModal").classList.remove("hidden");
+        document.getElementById("searchInput").focus();
+    });
+
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+        performGlobalSearch(e.target.value);
+    });
 
     // Stock filter
     document.getElementById("stockFilterInput").addEventListener("input", filterStockCards);
@@ -577,7 +595,7 @@ async function initUserSelection() {
         } catch (e) {
             showToast("Error creating user", "error");
         }
-        hideLoading();
+        await hideLoading();
     });
 
     document.getElementById("tryDummyBtn").addEventListener("click", async () => {
@@ -598,7 +616,7 @@ async function initUserSelection() {
             console.error("Demo setup error", e);
             showToast("Error setting up demo profile", "error");
         } finally {
-            hideLoading();
+            await hideLoading();
         }
     });
     
@@ -666,7 +684,7 @@ function renderUserList(users) {
                 
                 if (resp.success) await fetchUsers();
                 else showToast(resp.error || "Failed to rename", "error");
-                hideLoading();
+                await hideLoading();
             }
         });
         
@@ -678,7 +696,7 @@ function renderUserList(users) {
                 const resp = await fetch(`/api/users/${encodeURIComponent(username)}`, { method: "DELETE" }).then(r => r.json());
                 if (resp.success) await fetchUsers();
                 else showToast(resp.error || "Failed to delete", "error");
-                hideLoading();
+                await hideLoading();
             }
         });
         
@@ -850,8 +868,19 @@ function showLoading(text = "Loading...", percent = null) {
     }
 }
 
-function hideLoading() {
-    document.getElementById("loadingOverlay").classList.add("hidden");
+async function hideLoading() {
+    const overlay = document.getElementById("loadingOverlay");
+    const fill = overlay.querySelector(".progress-bar-fill");
+    
+    if (fill && !overlay.classList.contains("hidden")) {
+        // Animate to 100%
+        fill.style.transition = "width 0.3s ease-in-out";
+        fill.style.width = "100%";
+        // Wait for animation to finish
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    overlay.classList.add("hidden");
     stopSmoothProgress();
     if (_loadingMsgInterval) { clearInterval(_loadingMsgInterval); _loadingMsgInterval = null; }
     const bar = document.querySelector("#loadingOverlay .progress-bar-container");
@@ -900,7 +929,7 @@ async function clearStockCache() {
         console.error("Failed to clear stock cache", e);
         showToast("Error clearing stock data cache", "error");
     } finally {
-        hideLoading();
+        await hideLoading();
     }
 }
 
@@ -922,7 +951,7 @@ async function lookupStock() {
         const info = await apiPost("/api/lookup-stock", { ticker });
 
         if (!info.success) {
-            hideLoading();
+            await hideLoading();
             return showToast(`Could not find ${ticker}: ${info.error || "Unknown error"}`, "error");
         }
 
@@ -968,14 +997,14 @@ async function lookupStock() {
             }
         } catch (e) { console.warn("Failed to fetch dividends", e); }
 
-        hideLoading();
+        await hideLoading();
         state.portfolio.stocks.push(stock);
         renderStockCard(stock);
         updateCalcButtonVisibility();
         document.getElementById("tickerInput").value = "";
         showToast(`Added ${info.display_name}`, "success");
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Error looking up ${ticker}: ${e.message}`, "error");
     }
 }
@@ -1229,7 +1258,7 @@ function renderStockCard(stock) {
     // Render existing lots, sells, and dividends
     stock.lots.forEach(lot => {
         if (lot.buy_date) {
-            const buyYear = new Date(lot.buy_date).getFullYear();
+            const buyYear = parseAppDate(lot.buy_date).getFullYear();
             if (buyYear > state.portfolio.calendar_year) return;
         }
         renderLotRow(card, stock, lot);
@@ -1284,7 +1313,7 @@ function renderLotRow(card, stock, lot) {
     tr.dataset.lotId = lot.id;
 
     tr.innerHTML = `
-        <td><input type="date" class="lot-date" value="${lot.buy_date}"></td>
+        <td><input type="text" class="lot-date" value="${lot.buy_date}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" class="lot-qty" value="${lot.quantity}" step="any" min="0" placeholder="0"></td>
         <td>
             <div class="price-input-group">
@@ -1399,7 +1428,7 @@ function renderSellRow(card, stock, lot, sell) {
     tr.innerHTML = `
         <td><select class="sell-lot-select">${lotOptions}</select></td>
         <td class="sell-buy-price">${buyPrice}</td>
-        <td><input type="date" class="sell-date" value="${sell.sell_date}"></td>
+        <td><input type="text" class="sell-date" value="${sell.sell_date}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" class="sell-qty" value="${sell.quantity}" step="any" min="0" placeholder="0"></td>
         <td><input type="number" class="sell-price" value="${sell.sell_price}" step="0.01" min="0" placeholder="0.00"></td>
         <td class="sell-pl-container"></td>
@@ -1494,8 +1523,8 @@ function renderDividendRow(card, stock, div) {
     tr.dataset.divId = div.id;
 
     tr.innerHTML = `
-        <td><input type="date" class="div-date" value="${div.ex_date}"></td>
-        <td><input type="date" class="div-pay-date" value="${div.payment_date || ""}"></td>
+        <td><input type="text" class="div-date" value="${div.ex_date}" placeholder="DD/MM/YYYY"></td>
+        <td><input type="text" class="div-pay-date" value="${div.payment_date || ""}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" class="div-amount" value="${div.amount}" step="any" min="0" placeholder="0.00"></td>
         <td><button class="btn btn-sm btn-danger remove-div-btn">✕</button></td>
     `;
@@ -1674,7 +1703,7 @@ async function calculateAll() {
         saveCalcResultsForYoY();
         renderYoYComparison();
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Error: ${e.message}`, "error");
     }
 }
@@ -1795,7 +1824,7 @@ function showImportReview(transactions, label) {
         } catch (e) {
             showToast("Merge failed: " + e.message, "error");
         } finally {
-            hideLoading();
+            await hideLoading();
         }
     };
 }
@@ -1902,7 +1931,7 @@ async function importEtradeDocs() {
         const resp = await fetch("/api/upload-etrade", { method: "POST", body: fd });
         const result = await resp.json();
         
-        hideLoading();
+        await hideLoading();
         if (result.success) {
             closeEtradeModal();
             if (result.transactions && result.transactions.length > 0) {
@@ -1914,7 +1943,7 @@ async function importEtradeDocs() {
             showToast("E*TRADE import error: " + result.error, "error");
         }
     } catch (err) {
-        hideLoading();
+        await hideLoading();
         showToast("E*TRADE upload failed: " + err.message, "error");
     }
 }
@@ -1953,7 +1982,7 @@ async function importIbkrDocs() {
     } catch (err) {
         showToast("IBKR upload failed: " + err.message, "error");
     } finally {
-        hideLoading();
+        await hideLoading();
     }
 }
 
@@ -2577,7 +2606,7 @@ function collectSbiRates(rows, taxYears = null) {
         tr.dataset.rateDate = rateDate;
         tr.innerHTML = `
             <td>${label}</td>
-            <td>${rateDate}</td>
+            <td>${formatAppDate(parseAppDate(rateDate))}</td>
             <td class="editable-rate" data-date="${rateDate}" title="Click to edit rate">
                 <span class="rate-val">₹${rate.toFixed(4)}</span>
                 <span class="edit-icon">✏️</span>
@@ -2665,7 +2694,7 @@ async function savePortfolio() {
             body: JSON.stringify(state.portfolio),
         }).then(r => r.json());
         
-        hideLoading();
+        await hideLoading();
 
         if (result.success) {
             markClean();
@@ -2675,7 +2704,7 @@ async function savePortfolio() {
             showToast(`Save failed: ${result.error}`, "error");
         }
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Save error: ${e.message}`, "error");
     }
 }
@@ -2688,7 +2717,7 @@ async function loadPortfolio() {
 
     try {
         const result = await apiGet(`/api/load?year=${year}&username=${encodeURIComponent(state.username)}`);
-        hideLoading();
+        await hideLoading();
 
         if (!result.success) {
             return showToast(result.error || `No saved data for CY${year}`, "warning");
@@ -2706,7 +2735,7 @@ async function loadPortfolio() {
         showToast(`Loaded portfolio for CY${year}`, "success");
         if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Load error: ${e.message}`, "error");
     }
 }
@@ -2908,7 +2937,7 @@ async function fetchSbiRates() {
     showLoading("Downloading SBI USD rates from GitHub...");
     try {
         const result = await apiPost("/api/fetch-sbi-rates");
-        hideLoading();
+        await hideLoading();
         if (result.success) {
             let msg = `Fetched ${result.updated} USD rates`;
             if (result.locked_years && result.locked_years.length > 0) {
@@ -2919,7 +2948,7 @@ async function fetchSbiRates() {
             showToast(result.error || "Failed to fetch rates", "error");
         }
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Error fetching SBI rates: ${e.message}`, "error");
     }
 }
@@ -2939,7 +2968,7 @@ async function importPreviousYear() {
                 source_year: sourceYear,
             })
         }).then(r => r.json());
-        hideLoading();
+        await hideLoading();
 
         if (!result.success) {
             return showToast(result.error || `No data for CY${sourceYear}`, "warning");
@@ -2959,7 +2988,7 @@ async function importPreviousYear() {
     } catch (e) {
         showToast(`Import error: ${e.message}`, "error");
     } finally {
-        hideLoading();
+        await hideLoading();
     }
 }
 
@@ -3058,7 +3087,7 @@ async function exportCSV() {
         const content = await resp.text();
         const filename = `Schedule_FA_A3_CY${state.portfolio.calendar_year}.csv`;
         
-        hideLoading();
+        await hideLoading();
         const result = await saveFileRobustly(content, filename, 'CSV File', 'text/csv', '.csv');
         
         if (result.success) {
@@ -3068,7 +3097,7 @@ async function exportCSV() {
             showToast(`Save error: ${result.error}`, "error");
         }
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Export error: ${e.message}`, "error");
     }
 }
@@ -3214,7 +3243,7 @@ async function autoLoadForYear(year) {
             showToast(`Loaded saved portfolio for CY${year}`, "success");
             clearDraft(state.username, year);
             if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
-            hideLoading();
+            await hideLoading();
             return;
         }
 
@@ -3235,14 +3264,14 @@ async function autoLoadForYear(year) {
             updateDashboard();
             showToast(`Imported ${state.portfolio.stocks.length} stock(s) from CY${sourceYear}`, "info");
             if (state.portfolio.stocks.length > 0) await fetchRuntimeDataForAllStocks();
-            hideLoading();
+            await hideLoading();
             return;
         }
 
         // Check for localStorage draft
         const draft = checkForDraft(state.username, year);
         if (draft && draft.portfolio && draft.portfolio.stocks && draft.portfolio.stocks.length > 0) {
-            hideLoading();
+            await hideLoading();
             const ago = Math.round((Date.now() - draft.timestamp) / 60000);
             if (confirm(`Found unsaved draft from ${ago} min ago with ${draft.portfolio.stocks.length} stock(s). Restore it?`)) {
                 state.portfolio = draft.portfolio;
@@ -3268,10 +3297,10 @@ async function autoLoadForYear(year) {
         updateCalcButtonVisibility();
         clearCalculatedSections();
         updateDashboard();
-        hideLoading();
+        await hideLoading();
         showToast(`No data found for CY${year}. Starting fresh.`, "info");
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Error: ${e.message}`, "error");
     }
 }
@@ -3757,7 +3786,7 @@ function shImportLots() {
             if (!lot.buy_date || !lot.quantity) continue;
             
             // Only show lots acquired on or before the selected calendar year
-            const buyYear = new Date(lot.buy_date).getFullYear();
+            const buyYear = parseAppDate(lot.buy_date).getFullYear();
             if (buyYear > state.portfolio.calendar_year) continue;
 
             // Compute available qty (initial − all actual sells)
@@ -3808,14 +3837,14 @@ function shAddRow(lotIdx = 0) {
     const tr = document.createElement("tr");
     tr.dataset.rowId = rowId;
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatAppDate(new Date());
 
     tr.innerHTML = `
         <td>
             <select class="sh-lot-select">${shLotOptions(lotIdx)}</select>
         </td>
         <td class="sh-sell-buy-price" style="font-size:0.8rem;color:var(--text-muted);font-variant-numeric:tabular-nums;white-space:nowrap;"></td>
-        <td><input type="date" class="sh-sell-date" value="${today}"></td>
+        <td><input type="text" class="sh-sell-date" value="${today}" placeholder="DD/MM/YYYY"></td>
         <td>
             <div class="price-input-group">
                 <input type="number" class="sh-sell-qty" placeholder="0" step="any" min="0" style="width:70px;">
@@ -3859,8 +3888,8 @@ function shAddRow(lotIdx = 0) {
             badge.textContent = "—";
             return;
         }
-        const buyD = new Date(lot.buy_date);
-        const sellD = new Date(sellDateVal);
+        const buyD = parseAppDate(lot.buy_date);
+        const sellD = parseAppDate(sellDateVal);
         const days = Math.round((sellD - buyD) / 86400000);
         const isLT = days >= 730;
         const price = parseFloat(tr.querySelector(".sh-sell-price").value) || 0;
@@ -4014,11 +4043,11 @@ async function shRunSimulation() {
             sbi_rate_overrides: state.portfolio.sbi_rate_overrides || {},
             simulated_sells: simSells,
         });
-        hideLoading();
+        await hideLoading();
         if (!result.success) return showToast(`Simulation error: ${result.error}`, "error");
         shRenderResults(result);
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Error: ${e.message}`, "error");
     }
 }
@@ -4242,7 +4271,7 @@ async function fetchAllDividends() {
             }
         } catch (e) { console.warn(`Dividend fetch failed for ${ticker}`, e); }
     }
-    hideLoading();
+    await hideLoading();
     showToast(`Fetched ${total} total dividend(s) across all stocks`, "success");
 }
 
@@ -4270,12 +4299,12 @@ async function fetchConsolidatedTaxSummary() {
             username: state.username,
             current_portfolio: state.portfolio
         });
-        hideLoading();
+        await hideLoading();
         if (!result.success) return showToast(result.error || "Failed", "error");
         renderConsolidatedTaxSummary(result.consolidated);
         document.getElementById("consolidatedFYBlocks").scrollIntoView({ behavior: "smooth" });
     } catch (e) {
-        hideLoading();
+        await hideLoading();
         showToast(`Error: ${e.message}`, "error");
     }
 }
@@ -4888,7 +4917,7 @@ function updateDashboard() {
                 totalUnrealizedGainUSD += (closingUSD - costBasisRemainingUSD);
 
                 if (row.acquire_date_raw) {
-                    const acquireDate = new Date(row.acquire_date_raw);
+                    const acquireDate = parseAppDate(row.acquire_date_raw);
                     const holdingDays = (refDate - acquireDate) / (1000 * 60 * 60 * 24);
                     if (holdingDays >= 730) {
                         ltcgUnrealized += gain;
@@ -5341,4 +5370,117 @@ function jumpToStockSection(ticker, sectionClass, targetId) {
     // Highlight pulse on the target
     highlightTarget.classList.add("highlight-pulse");
     setTimeout(() => highlightTarget.classList.remove("highlight-pulse"), 2000);
+}
+
+// ===== Date Helpers (Universal Format: DD/MM/YYYY) =====
+function parseAppDate(dateStr) {
+    if (!dateStr) return null;
+    if (dateStr.includes("/")) {
+        const parts = dateStr.split("/");
+        if (parts.length === 3) {
+            const [d, m, y] = parts;
+            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        }
+    }
+    // Fallback for YYYY-MM-DD
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    return null;
+}
+
+function formatAppDate(dateObj) {
+    if (!dateObj || isNaN(dateObj.getTime())) return "";
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const y = dateObj.getFullYear();
+    return `${d}/${m}/${y}`;
+}
+
+// ===== Global Search =====
+function performGlobalSearch(query) {
+    const resultsContainer = document.getElementById("searchResults");
+    resultsContainer.innerHTML = "";
+    if (!query || query.length < 2) return;
+
+    const q = query.toLowerCase();
+    const results = [];
+
+    // Search in stocks
+    state.portfolio.stocks.forEach(stock => {
+        const ticker = stock.ticker.toLowerCase();
+        const name = (stock.company_info?.name || "").toLowerCase();
+        
+        if (ticker.includes(q) || name.includes(q)) {
+            results.push({
+                type: "Stock",
+                title: `${stock.ticker} — ${stock.company_info?.name || "Unknown"}`,
+                id: stock.id,
+                stockTicker: stock.ticker,
+                section: "stock-card"
+            });
+        }
+
+        // Search in lots
+        stock.lots.forEach(lot => {
+            if (lot.buy_date.includes(query) || (lot.buy_price && lot.buy_price.toString().includes(query))) {
+                results.push({
+                    type: "Lot",
+                    title: `Lot: ${stock.ticker} bought on ${lot.buy_date}`,
+                    id: lot.id,
+                    stockTicker: stock.ticker,
+                    section: "lots-section"
+                });
+            }
+
+            // Search in sells
+            (lot.sells || []).forEach(sell => {
+                if (sell.sell_date.includes(query) || (sell.sell_price && sell.sell_price.toString().includes(query))) {
+                    results.push({
+                        type: "Sell",
+                        title: `Sell: ${stock.ticker} sold on ${sell.sell_date}`,
+                        id: sell.id,
+                        stockTicker: stock.ticker,
+                        section: "sells-section"
+                    });
+                }
+            });
+        });
+
+        // Search in dividends
+        (stock.dividends || []).forEach(div => {
+            if ((div.ex_date && div.ex_date.includes(query)) || (div.payment_date && div.payment_date.includes(query))) {
+                results.push({
+                    type: "Dividend",
+                    title: `Dividend: ${stock.ticker} ex-date ${div.ex_date}`,
+                    id: div.id,
+                    stockTicker: stock.ticker,
+                    section: "dividends-section"
+                });
+            }
+        });
+    });
+
+    if (results.length === 0) {
+        resultsContainer.innerHTML = '<div class="hint" style="text-align:center;padding:12px;">No matches found</div>';
+        return;
+    }
+
+    results.forEach(res => {
+        const div = document.createElement("div");
+        div.className = "search-result-item";
+        div.style.padding = "10px";
+        div.style.borderBottom = "1px solid var(--border)";
+        div.style.cursor = "pointer";
+        div.innerHTML = `
+            <div style="font-size:0.75rem; color:var(--accent); font-weight:700; text-transform:uppercase;">${res.type}</div>
+            <div style="font-weight:500;">${res.title}</div>
+        `;
+        div.onclick = () => {
+            document.getElementById("searchModal").classList.add("hidden");
+            // Switch to A3 tab if not there
+            switchTab('a3');
+            jumpToStockSection(res.stockTicker, res.section, res.id);
+        };
+        resultsContainer.appendChild(div);
+    });
 }

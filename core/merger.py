@@ -4,6 +4,15 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+def _sort_key(tx):
+    d_str = tx["date"]
+    try:
+        if "/" in d_str:
+            return datetime.strptime(d_str, "%d/%m/%Y")
+        return datetime.fromisoformat(d_str)
+    except:
+        return d_str
+
 def apply_transactions(portfolio: dict, transactions: list) -> dict:
     """
     Applies a list of transactions to an existing portfolio.
@@ -16,7 +25,7 @@ def apply_transactions(portfolio: dict, transactions: list) -> dict:
     stocks_dict = {s["ticker"]: s for s in portfolio.get("stocks", [])}
     
     # Sort transactions chronologically
-    transactions.sort(key=lambda x: x["date"])
+    transactions.sort(key=_sort_key)
 
     for tx in transactions:
         sym = tx["symbol"]

@@ -7,15 +7,15 @@ from core.utils import tax_round
 logger = logging.getLogger(__name__)
 
 def parse_date(date_val) -> str:
-    """Parse common CSV/Excel date formats into YYYY-MM-DD."""
+    """Parse common CSV/Excel date formats into dd/mm/yyyy."""
     if isinstance(date_val, datetime):
-        return date_val.strftime("%Y-%m-%d")
+        return date_val.strftime("%d/%m/%Y")
     if not date_val:
         return None
     date_str = str(date_val).strip().split(" ")[0]
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%d-%b-%Y", "%d-%b-%y"):
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%d-%b-%Y", "%d-%b-%y", "%d/%m/%Y"):
         try:
-            return datetime.strptime(date_str, fmt).strftime("%Y-%m-%d")
+            return datetime.strptime(date_str, fmt).strftime("%d/%m/%Y")
         except ValueError:
             pass
     return None
@@ -33,7 +33,6 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
     Parses an IBKR CSV and extracts transactions.
     """
     calendar_year = int(portfolio.get("calendar_year", 9999))
-    cutoff = f"{calendar_year}-12-31"
 
     rows = []
     if filename.endswith('.csv'):
@@ -86,12 +85,22 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
         if not date_val:
             continue
 
-        if date_val > cutoff:
-            skipped_count += 1
+        # Convert back to date object to check year
+        try:
+            if "/" in date_val:
+                d_obj = datetime.strptime(date_val, "%d/%m/%Y").date()
+            else:
+                d_obj = datetime.fromisoformat(date_val).date()
+            
+            if d_obj.year > calendar_year:
+                skipped_count += 1
+                continue
+        except:
             continue
 
         try:
-            qty = tax_round(float(str(row[qty_idx]).replace(",", "")), 2)
+            # Use higher precision for quantity (fractional shares)
+            qty = tax_round(float(str(row[qty_idx]).replace(",", "")), 6)
             if qty <= 0:
                 continue
             price = tax_round(float(str(row[price_idx]).replace("$", "").replace(",", "")), 2)

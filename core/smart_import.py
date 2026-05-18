@@ -1,6 +1,16 @@
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+def _sort_key(tx):
+    d_str = tx["date"]
+    try:
+        if "/" in d_str:
+            return datetime.strptime(d_str, "%d/%m/%Y")
+        return datetime.fromisoformat(d_str)
+    except:
+        return d_str
 
 def group_and_deduplicate_transactions(transactions: list, portfolio: dict) -> list:
     """
@@ -94,5 +104,5 @@ def group_and_deduplicate_transactions(transactions: list, portfolio: dict) -> l
              result.append(tx)
 
     # Sort chronologically
-    result.sort(key=lambda x: x["date"])
+    result.sort(key=_sort_key)
     return result

@@ -11,7 +11,7 @@ from core.stock_data import (
     has_dividends, get_yearly_max_price, get_live_price,
     get_historical_prices, clear_stock_cache
 )
-from datetime import date as dt_date, timedelta
+from datetime import date as dt_date, timedelta, datetime
 
 logger = logging.getLogger(__name__)
 market_bp = Blueprint("market", __name__)
@@ -46,9 +46,12 @@ def api_sbi_rate():
     if not date_str:
         return jsonify({"error": "date parameter is required"}), 400
     try:
-        d = dt_date.fromisoformat(date_str)
+        if "/" in date_str:
+            d = datetime.strptime(date_str, "%d/%m/%Y").date()
+        else:
+            d = dt_date.fromisoformat(date_str)
     except ValueError:
-        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+        return jsonify({"error": "Invalid date format. Use dd/mm/yyyy"}), 400
     result = get_sbi_tt_rate(d)
     return jsonify(result)
 
