@@ -13,6 +13,9 @@ ENV/
 data/
 *.xlsx
 test_export.xlsx
+out.json
+server.log
+tests/test_export.csv
 
 # macOS
 .DS_Store
