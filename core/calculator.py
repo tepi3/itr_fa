@@ -360,7 +360,7 @@ def calculate_sale_proceeds(
 
     buy_price = float(lot.get("buy_price", 0))
     buy_date = _parse_date(lot["buy_date"])
-    buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True)
+    buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=False)
 
     for sell in lot.get("sells", []):
         sell_date = _parse_date(sell["sell_date"])
@@ -371,7 +371,7 @@ def calculate_sale_proceeds(
         sell_qty = float(sell["quantity"])
         sell_id = sell.get("id")
 
-        rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True)
+        rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=False)
         if rate is None:
             sale_entries.append({
                 "sell_id": sell_id,
@@ -1058,8 +1058,7 @@ def calculate_current_balance(portfolio: dict) -> dict:
 
     today = date_cls.today()
     # Price as of today (most recent trading day ≤ today).
-    # TTBR: _get_rate_value(today) resolves to the last working day of the
-    # previous month per ITR rules — exactly the right convention.
+    # TTBR: use_event_date=True to get the last available rate in cache for current year.
     snapshot_date = today
 
     stock_totals = {}  # entity_name -> total_balance_inr
@@ -1076,8 +1075,8 @@ def calculate_current_balance(portfolio: dict) -> dict:
             logger.warning(f"No price for {yahoo_ticker} on {snapshot_date}")
             continue
 
-        # Get SBI TT rate for snapshot date
-        rate, _, _ = _get_rate_value(snapshot_date, sbi_overrides)
+        # Get SBI TT rate for snapshot date (latest in cache)
+        rate, _, _ = _get_rate_value(snapshot_date, sbi_overrides, use_event_date=True)
         if rate is None:
             logger.warning(f"No SBI rate for {snapshot_date}")
             continue

@@ -14,6 +14,7 @@ const state = {
     },
     calculatedRows: [],
     sbiRatesUsed: [],
+    taxYears: null,
     isDirty: false, // Track unsaved changes
 };
 
@@ -2019,6 +2020,7 @@ function renderResultsTable(rows) {
         stockProceedsTotal += (row.sale_proceeds || 0);
 
         const tr = document.createElement("tr");
+        tr.dataset.lotId = row.lot_id;
 
         // Columns 1-7 (text)
         const textCols = [
@@ -2600,12 +2602,14 @@ function collectSbiRates(rows, taxYears = null) {
         });
     }
 
+    state.sbiRatesUsed = [];
     allEntries.forEach(entry => {
         const { label, rate, rateDate, source } = entry;
         if (!rate || !rateDate) return;
         const key = `${label}_${rateDate}`;
         if (seenRates.has(key)) return;
         seenRates.add(key);
+        state.sbiRatesUsed.push(entry);
 
         const src = source || 'cache';
         const statusClass = src === 'override' ? 'override' : src === 'cache' ? 'cached' : 'missing';
@@ -3319,6 +3323,7 @@ async function fetchTaxYearSummary() {
     try {
         const result = await apiPost("/api/tax-year-summary", state.portfolio);
         if (result.success && result.tax_years) {
+            state.taxYears = result.tax_years;
             renderTaxYearSummary(result.tax_years);
             renderTaxValidationTable(result.tax_years);
             // Refresh SBI rates to include those used in tax summary (e.g. Rule 115)
@@ -3360,7 +3365,7 @@ function renderTaxYearSummary(taxYears) {
         const hasData = Object.values(ty.totals).some(b => b.total > 0);
 
         const block = document.createElement("div");
-        block.className = "ty-block";
+        block.className = "tax-block";
         block.style.cssText = "margin-bottom:40px;";
 
         // ── Tax year header ──────────────────────────────────────────────
@@ -3425,6 +3430,7 @@ function renderTaxYearSummary(taxYears) {
             const stockData = ty.stocks[ticker];
 
             const sHeaderRow = document.createElement("tr");
+            sHeaderRow.dataset.ticker = ticker;
             const sHeaderTd = document.createElement("td");
             sHeaderTd.colSpan = 7;
             sHeaderTd.style.cssText = [
@@ -5412,6 +5418,36 @@ function formatAppDate(dateObj) {
     return `${d}/${m}/${y}`;
 }
 
+function jumpToSection(sectionId, targetSelector = null) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+
+    // Show section if hidden
+    section.classList.remove("hidden");
+
+    // Expand if collapsible
+    const content = section.querySelector(".collapsible-content");
+    if (content && content.classList.contains("collapsed")) {
+        toggleSection(content.id);
+    }
+
+    let target = section;
+    if (targetSelector) {
+        const found = section.querySelector(targetSelector);
+        if (found) target = found;
+    }
+
+    // Scroll to it
+    const header = document.getElementById("appHeader");
+    const headerHeight = header ? header.offsetHeight : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
+    window.scrollTo({ top, behavior: "smooth" });
+
+    // Highlight
+    target.classList.add("highlight-pulse");
+    setTimeout(() => target.classList.remove("highlight-pulse"), 2000);
+}
+
 // ===== Global Search =====
 function performGlobalSearch(query) {
     const resultsContainer = document.getElementById("searchResults");
@@ -5421,81 +5457,129 @@ function performGlobalSearch(query) {
     const q = query.toLowerCase();
     const results = [];
 
-    // Search in stocks
+    // 1. Search in stocks (Editor Tab)
     state.portfolio.stocks.forEach(stock => {
         const ticker = stock.ticker.toLowerCase();
         const name = (stock.company_info?.name || "").toLowerCase();
-        
+
         if (ticker.includes(q) || name.includes(q)) {
             results.push({
                 type: "Stock",
                 title: `${stock.ticker} — ${stock.company_info?.name || "Unknown"}`,
-                id: stock.id,
-                stockTicker: stock.ticker,
-                section: "stock-card"
+                handler: () => { switchTab('a3'); jumpToStockSection(stock.ticker, 'stock-card'); }
             });
         }
 
-        // Search in lots
         stock.lots.forEach(lot => {
-            if (lot.buy_date.includes(query) || (lot.buy_price && lot.buy_price.toString().includes(query))) {
+            const formattedDate = lot.buy_date ? formatAppDate(parseAppDate(lot.buy_date)) : "";
+            if (formattedDate.includes(query) || (lot.buy_price && lot.buy_price.toString().includes(query))) {
                 results.push({
                     type: "Lot",
-                    title: `Lot: ${stock.ticker} bought on ${lot.buy_date}`,
-                    id: lot.id,
-                    stockTicker: stock.ticker,
-                    section: "lots-section"
+                    title: `Lot: ${stock.ticker} bought on ${formattedDate}`,
+                    handler: () => { switchTab('a3'); jumpToStockSection(stock.ticker, 'lots-section', lot.id); }
                 });
             }
 
-            // Search in sells
             (lot.sells || []).forEach(sell => {
-                if (sell.sell_date.includes(query) || (sell.sell_price && sell.sell_price.toString().includes(query))) {
+                const formattedDate = sell.sell_date ? formatAppDate(parseAppDate(sell.sell_date)) : "";
+                if (formattedDate.includes(query) || (sell.sell_price && sell.sell_price.toString().includes(query))) {
                     results.push({
                         type: "Sell",
-                        title: `Sell: ${stock.ticker} sold on ${sell.sell_date}`,
-                        id: sell.id,
-                        stockTicker: stock.ticker,
-                        section: "sells-section"
+                        title: `Sell: ${stock.ticker} sold on ${formattedDate}`,
+                        handler: () => { switchTab('a3'); jumpToStockSection(stock.ticker, 'sells-section', sell.id); }
                     });
                 }
             });
         });
 
-        // Search in dividends
         (stock.dividends || []).forEach(div => {
-            if ((div.ex_date && div.ex_date.includes(query)) || (div.payment_date && div.payment_date.includes(query))) {
+            const formattedExDate = div.ex_date ? formatAppDate(parseAppDate(div.ex_date)) : "";
+            const formattedPayDate = div.payment_date ? formatAppDate(parseAppDate(div.payment_date)) : "";
+            if (formattedExDate.includes(query) || formattedPayDate.includes(query)) {
                 results.push({
                     type: "Dividend",
-                    title: `Dividend: ${stock.ticker} ex-date ${div.ex_date}`,
-                    id: div.id,
-                    stockTicker: stock.ticker,
-                    section: "dividends-section"
+                    title: `Dividend: ${stock.ticker} ex-date ${formattedExDate}`,
+                    handler: () => { switchTab('a3'); jumpToStockSection(stock.ticker, 'dividends-section', div.id); }
                 });
             }
         });
     });
+
+    // 2. Search in FA Report (Calculated Rows)
+    state.calculatedRows.forEach(row => {
+        const ticker = (row.ticker || row.entity_name || "").toLowerCase();
+        if (ticker.includes(q)) {
+            results.push({
+                type: "FA Report",
+                title: `Report Row: ${row.entity_name} (${row.ticker || 'N/A'})`,
+                handler: () => { switchTab('a3'); jumpToSection('resultsSection', `tr[data-lot-id="${row.lot_id}"]`); }
+            });
+        }
+        // Search in validation breakdown
+        const details = row.calculation_details || {};
+        if (details.peak?.peak_date?.includes(query)) {
+             results.push({
+                type: "Validation",
+                title: `Peak Date Match: ${row.entity_name} on ${formatAppDate(parseAppDate(details.peak.peak_date))}`,
+                handler: () => { switchTab('a3'); jumpToSection('validateA3Section', `#val-${row.lot_id}-peak_value`); }
+            });
+        }
+    });
+
+    // 3. Search in SBI Rates Used
+    state.sbiRatesUsed.forEach(entry => {
+        const label = entry.label.toLowerCase();
+        const formattedDate = entry.rateDate ? formatAppDate(parseAppDate(entry.rateDate)) : "";
+        if (label.includes(q) || formattedDate.includes(query)) {
+            results.push({
+                type: "SBI Rate",
+                title: `${entry.label} (Rate Date: ${formattedDate})`,
+                handler: () => { switchTab('a3'); jumpToSection('sbiRatesSection', `tr[data-rate-date="${entry.rateDate}"]`); }
+            });
+        }
+    });
+
+    // 4. Search in Tax Statement
+    if (state.taxYears) {
+        ["prev", "curr"].forEach(tyKey => {
+            const ty = state.taxYears[tyKey];
+            Object.keys(ty.stocks).forEach(ticker => {
+                if (ticker.toLowerCase().includes(q)) {
+                    results.push({
+                        type: "Tax",
+                        title: `Tax Summary: ${ticker} (${ty.label})`,
+                        handler: () => { switchTab('a3'); jumpToSection('taxYearSection', `tr[data-ticker="${ticker}"]`); }
+                    });
+                }
+            });
+        });
+    }
 
     if (results.length === 0) {
         resultsContainer.innerHTML = '<div class="hint" style="text-align:center;padding:12px;">No matches found</div>';
         return;
     }
 
-    results.forEach(res => {
+    // Dedup and limit
+    const seen = new Set();
+    const uniqueResults = results.filter(r => {
+        const key = `${r.type}:${r.title}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    }).slice(0, 20);
+
+    uniqueResults.forEach(res => {
         const div = document.createElement("div");
         div.className = "search-result-item";
-        div.style.padding = "10px";
-        div.style.borderBottom = "1px solid var(--border)";
-        div.style.cursor = "pointer";
+        div.style.cssText = "padding:10px; border-bottom:1px solid var(--border); cursor:pointer;";
         div.innerHTML = `
             <div style="font-size:0.75rem; color:var(--accent); font-weight:700; text-transform:uppercase;">${res.type}</div>
             <div style="font-weight:500;">${res.title}</div>
         `;
         div.onclick = () => {
             document.getElementById("searchModal").classList.add("hidden");
-            // Switch to A3 tab if not there
-            switchTab('a3');
-            jumpToStockSection(res.stockTicker, res.section, res.id);
+            res.handler();
         };
         resultsContainer.appendChild(div);
     });
