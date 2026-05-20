@@ -1371,6 +1371,16 @@ function renderLotRow(card, stock, lot) {
         <td><button class="btn btn-sm btn-danger remove-lot-btn">${CROSS_SVG}</button></td>
     `;
 
+    // Initialize date picker
+    initDatePicker(tr.querySelector(".lot-date"), {
+        onChange: (selectedDates, dateStr) => {
+            pushUndoSnapshot("Edit Lot Date");
+            lot.buy_date = dateStr;
+            updateSellLotOptions(card, stock);
+            validateSellQuantities(stock, lot);
+        }
+    });
+
     // Bind changes
     tr.querySelectorAll("input").forEach(input => {
         input.addEventListener("change", () => {
@@ -1482,6 +1492,15 @@ function renderSellRow(card, stock, lot, sell) {
         <td><button class="btn btn-sm btn-danger remove-sell-btn">${CROSS_SVG}</button></td>
     `;
 
+    // Initialize date picker
+    initDatePicker(tr.querySelector(".sell-date"), {
+        onChange: (selectedDates, dateStr) => {
+            pushUndoSnapshot(`Edit Sell Date (${stock.ticker})`);
+            sell.sell_date = dateStr;
+            validateSellQuantities(stock, lot);
+        }
+    });
+
     // Bind changes
     tr.querySelectorAll("input").forEach(input => {
         input.addEventListener("change", () => {
@@ -1582,6 +1601,25 @@ function renderDividendRow(card, stock, div) {
 
     const exDateInput = tr.querySelector(".div-date");
     const payDateInput = tr.querySelector(".div-pay-date");
+
+    // Initialize date pickers
+    initDatePicker(exDateInput, {
+        onChange: (selectedDates, dateStr) => {
+            pushUndoSnapshot("Edit Dividend Ex-Date");
+            div.ex_date = dateStr;
+            // Auto-fill payment date if it's empty
+            if (!payDateInput.value) {
+                payDateInput._flatpickr.setDate(dateStr);
+                div.payment_date = dateStr;
+            }
+        }
+    });
+    initDatePicker(payDateInput, {
+        onChange: (selectedDates, dateStr) => {
+            pushUndoSnapshot("Edit Dividend Payment Date");
+            div.payment_date = dateStr;
+        }
+    });
 
     tr.querySelectorAll("input").forEach(input => {
         input.addEventListener("change", () => {
@@ -3970,6 +4008,17 @@ function shAddRow(lotIdx = 0) {
         <td><button class="btn btn-sm btn-danger sh-remove-btn">${CROSS_SVG}</button></td>
     `;
 
+    // Initialize date picker
+    initDatePicker(tr.querySelector(".sh-sell-date"), {
+        onChange: (selectedDates, dateStr) => {
+            const row = simState.sells.find(s => s.rowId === rowId);
+            if (row) {
+                row.sell_date = dateStr;
+                shUpdateHoldingBadge(tr);
+            }
+        }
+    });
+
     // Update buy price helper
     const updateBuyPrice = () => {
         const lotI = parseInt(tr.querySelector(".sh-lot-select").value);
@@ -5655,6 +5704,15 @@ function formatAppDate(dateObj) {
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');
     const y = dateObj.getFullYear();
     return `${d}/${m}/${y}`;
+}
+
+function initDatePicker(element, options = {}) {
+    if (!window.flatpickr) return;
+    return flatpickr(element, {
+        dateFormat: "d/m/Y",
+        allowInput: true,
+        ...options
+    });
 }
 
 function jumpToSection(sectionId, targetSelector = null) {
