@@ -4732,20 +4732,31 @@ async function renderAssetPieChart(rows) {
         const endAngle = startAngle + sliceAngle;
         const color = colors[idx % colors.length];
 
-        const x1 = centerX + radius * Math.cos(startAngle);
-        const y1 = centerY + radius * Math.sin(startAngle);
-        let x2 = centerX + radius * Math.cos(endAngle);
-        let y2 = centerY + radius * Math.sin(endAngle);
+        const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+        const innerRadius = radius * 0.58;
 
-        // If slice is nearly a full circle, SVG arc fails. Adjust slightly.
+        const x1_out = centerX + radius * Math.cos(startAngle);
+        const y1_out = centerY + radius * Math.sin(startAngle);
+        let x2_out = centerX + radius * Math.cos(endAngle);
+        let y2_out = centerY + radius * Math.sin(endAngle);
+
+        const x1_in = centerX + innerRadius * Math.cos(startAngle);
+        const y1_in = centerY + innerRadius * Math.sin(startAngle);
+        let x2_in = centerX + innerRadius * Math.cos(endAngle);
+        let y2_in = centerY + innerRadius * Math.sin(endAngle);
+
+        // Adjust for full circle case
         if (sliceAngle >= 2 * Math.PI - 0.001) {
-            x2 -= 0.01;
+            x2_out -= 0.01;
+            x2_in -= 0.01;
         }
 
-        const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
-
-        // Draw outlined slice (transparent fill, stroke with theme color)
-        svgContent += `<path d="M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z" 
+        // Draw true donut segment (outlined)
+        svgContent += `<path d="M ${x1_out} ${y1_out} 
+                             A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2_out} ${y2_out} 
+                             L ${x2_in} ${y2_in} 
+                             A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x1_in} ${y1_in} 
+                             Z" 
                             fill="transparent" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" />`;
 
         startAngle = endAngle;
@@ -4763,12 +4774,7 @@ async function renderAssetPieChart(rows) {
         legendContainer.appendChild(item);
     });
 
-    // Draw donut hole (optional, but looks premium)
-    const donutRadius = radius * 0.55;
-    const bgColor = "var(--bg-secondary)";
     const textColor = "var(--text-primary)";
-
-    svgContent += `<circle cx="${centerX}" cy="${centerY}" r="${donutRadius}" fill="${bgColor}" />`;
 
     // Text in center
     svgContent += `
