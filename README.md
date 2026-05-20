@@ -236,5 +236,7 @@ Visualize how your foreign portfolio is distributed across stocks as of December
 
 ---
 
+![Total Downloads](https://img.shields.io/github/downloads/tepi3/itr_fa/total?style=for-the-badge&color=6366f1)
+
 **Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.**
 *Author: Piyush Tewari (tepi3)*
