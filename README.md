@@ -199,7 +199,7 @@ Expand any stock card to view its complete composition: detailed acquisition lot
 ![Expanded Stock Cards](docs/screenshots/02c_stock_cards.png)
 
 #### Portfolio Metrics Overview
-Monitor the performance of your entire portfolio at a glance with clean, dedicated dashboard metric cards showing total cost, current value, total dividends, and net unrealized gains.
+After generating the FA Report, the dashboard metrics update to reflect calculated values — total assets at cost, current market value, total dividends received, and net unrealized gains/losses across your entire portfolio.
 ![Portfolio Metrics Overview](docs/screenshots/02b_dashboard_summary.png)
 
 ### 3. Schedule FA Section A3 Report
@@ -226,9 +226,13 @@ Simulate hypothetical sales based on your current holdings, fetch live intraday 
 Generate a unified tax statement combining multiple calendar years to perfectly align with Indian Financial Years.
 ![Tax Statement](docs/screenshots/08_tax_statement.png)
 
-### 8. Historical SBI TT Rates Manager
-View, edit, or lock historical monthly SBI TT Buying rates dating back to 2000.
-![SBI Rates](docs/screenshots/09_monthly_rates.png)
+### 8. SBI TT Rates Used in Calculation
+Every exchange rate applied during report generation is listed in full — stock by stock, event by event (Buy, Peak, Closing, Dividend, Sale) — with the exact rate date and source. Click any rate to override it inline.
+![SBI Rates Used](docs/screenshots/09_sbi_rates_used.png)
+
+### 9. End-of-Year Asset Allocation
+Visualize how your foreign portfolio is distributed across stocks as of December 31st with an interactive donut chart showing INR values and percentage breakdown.
+![Asset Pie Chart](docs/screenshots/10_asset_pie_chart.png)
 
 ---
 
