@@ -87,7 +87,7 @@ python3 app.py
 ### SBI Rates & Currency
 - **Dual-Rate Logic** — Automatically applies the correct SBI TT Buying Rate based on context:
   - **Schedule FA (A3)**: Uses the rate as of the **actual date of the event** (Buy, Peak, Closing, Dividend, or Sale) with a 10-day automatic walk-back for weekends and holidays.
-  - **Tax Calculation (CG/Dividends)**: Uses the rate on the **last working day of the preceding month** (as per Rule 115).
+  - **Tax Calculation (CG/Dividends)**: Uses the rate on the **last day of the preceding month** (as per Rule 115). If the rate for the last day is not available, the nearest available rate before that is used.
 - **Interactive Rate Overrides** — Click any rate in the "SBI TT Rates Used in Calculation" table at the bottom of the report to edit it inline. Edits are persisted globally to the cache.
 - **USD-Only SBI TT rates** — Auto-fetches from a community-maintained GitHub archive.
 - **Rate Locking** — Lock rates for a specific year to prevent automatic fetches from overwriting your manual edits.
@@ -147,7 +147,7 @@ python3 app.py
 ## Data Sources
 
 - **Stock data**: [Yahoo Finance](https://finance.yahoo.com) via `yfinance` (free, no login).
-- **SBI TT rates**: [sbi-fx-ratekeeper](https://github.com/sahilgupta/sbi-fx-ratekeeper) on GitHub (free).
+- **SBI TT rates**: [sbi-fx-ratekeeper](https://github.com/sahilgupta/sbi-fx-ratekeeper) on GitHub (free, MIT License).
 
 ## Files
 

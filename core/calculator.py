@@ -209,7 +209,7 @@ def calculate_closing_balance(
 ) -> dict:
     """
     Calculate column 10: Closing balance (₹).
-    = dec31_close_price × remaining_qty × TTBR(last_working_day_of_year)
+    = dec31_close_price × remaining_qty × TTBR(last_day_of_year)
     """
     dec31 = date(calendar_year, 12, 31)
     today = date.today()
@@ -992,7 +992,7 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 ty_key = _get_tax_year_key(pay_date, calendar_year)
                 qkey = _get_quarter_key(pay_date, ty_key)
 
-                # Rate for Tax Summary (Rule 115: Last working day of prev month)
+                # Rate for Tax Summary (Rule 115: Last day of prev month)
                 rate, rate_date, source = _get_rate_value(pay_date, sbi_overrides, use_event_date=False)
                 if rate is None:
                     continue

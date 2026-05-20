@@ -115,16 +115,13 @@ def refresh_cache():
     return updated
 
 
-def get_last_working_day_prev_month(d: date) -> date:
+def get_last_day_prev_month(d: date) -> date:
     """
-    Get the last working day (Mon-Fri) of the month PRECEDING date d.
-    Example: d = 2024-08-20 → last working day of July 2024
+    Get the last day of the month PRECEDING date d.
+    Example: d = 2024-08-20 → last day of July 2024 (2024-07-31)
     """
     first_of_month = d.replace(day=1)
     last_of_prev = first_of_month - timedelta(days=1)
-    # Walk backward to skip weekends
-    while last_of_prev.weekday() >= 5:  # 5=Saturday, 6=Sunday
-        last_of_prev -= timedelta(days=1)
     return last_of_prev
 
 
@@ -135,7 +132,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
     Args:
         d: The transaction/event date
         overrides: dict of manual overrides { "YYYY-MM-DD_USD": rate }
-        use_event_date: If True, use rate on date 'd'. If False, use last working day of prev month.
+        use_event_date: If True, use rate on date 'd'. If False, use last day of prev month.
 
     Returns:
         dict with keys: rate, rate_date, source ("cache", "override", "not_found")
@@ -143,7 +140,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
     if use_event_date:
         rate_date = d
     else:
-        rate_date = get_last_working_day_prev_month(d)
+        rate_date = get_last_day_prev_month(d)
 
     # Check manual overrides first
     override_key = f"{rate_date.isoformat()}_USD"
@@ -204,7 +201,7 @@ def get_monthly_rates(year: int, overrides: dict = None) -> list:
     """
     Get the SBI TT rate applicable for each month of the given calendar year.
 
-    For a transaction in month M, we use the rate on last working day of month M-1.
+    For a transaction in month M, we use the rate on last day of month M-1.
     So for Jan transactions, we use Dec (previous year) rate, etc.
 
     Returns list of 12 dicts:
