@@ -819,7 +819,6 @@ tr:hover td {
 .editable-rate {
     cursor: pointer;
     position: relative;
-    transition: background 0.2s;
     padding-right: 20px !important;
 }
 
@@ -2223,6 +2222,7 @@ kbd {
 
 .about-close-btn {
     min-width: 100px;
+    justify-content: center;
 }
 
 /* ===== Validate A3 Cross-Links ===== */

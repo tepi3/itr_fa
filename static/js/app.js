@@ -384,10 +384,9 @@ function clearCalculatedSections() {
     const summarySection = document.getElementById("stockSummarySection");
     if (summarySection) summarySection.classList.add("hidden");
     
-    const pieCanvas = document.getElementById("assetPieChart");
-    if (pieCanvas) {
-        const ctx = pieCanvas.getContext("2d");
-        ctx.clearRect(0, 0, pieCanvas.width, pieCanvas.height);
+    const pieContainer = document.getElementById("assetPieChart");
+    if (pieContainer) {
+       pieContainer.innerHTML = "";
     }
     const pieLegend = document.getElementById("assetPieChartLegend");
     if (pieLegend) pieLegend.innerHTML = "";
@@ -4645,17 +4644,16 @@ function shRenderLotsReference() {
 
 // ===== Pie Chart =====
 async function renderAssetPieChart(rows) {
-    const canvas = document.getElementById("assetPieChart");
+    const container = document.getElementById("assetPieChart");
     const legendContainer = document.getElementById("assetPieChartLegend");
     const chartTitleEl = document.getElementById("assetPieChartTitle");
-    if (!canvas || !legendContainer) return;
+    if (!container || !legendContainer) return;
 
     const section = document.getElementById("assetPieChartSection");
     if (section) section.classList.remove("hidden");
 
-    const ctx = canvas.getContext("2d");
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = 400;
+    const height = 400;
     const centerX = width / 2;
     const centerY = height / 2;
     const radius = Math.min(centerX, centerY) - 10;
@@ -4707,76 +4705,81 @@ async function renderAssetPieChart(rows) {
     // Update section title
     if (chartTitleEl) chartTitleEl.innerHTML = `${PIE_CHART_SVG}${chartLabel} (INR)`;
 
-    ctx.clearRect(0, 0, width, height);
+    container.innerHTML = "";
     legendContainer.innerHTML = "";
 
     if (totalAssets === 0) {
-        ctx.fillStyle = "var(--text-muted)";
-        ctx.font = "14px Inter";
-        ctx.textAlign = "center";
-        ctx.fillText("No assets to display", centerX, centerY);
+        container.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center; width:100%;">No assets to display</div>';
         return;
     }
 
     // Sort by value descending
     const sortedStocks = Object.entries(stockTotals).sort((a, b) => b[1] - a[1]);
     
-    // Vibrant color palette
+    // Vibrant color palette matching app theme
     const colors = [
-        "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+        "var(--accent)", "var(--success)", "var(--warning)", "var(--danger)", "#8b5cf6",
         "#ec4899", "#06b6d4", "#f97316", "#14b8a6", "#6366f1"
     ];
 
+    let svgContent = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="max-width:100%; height:auto;">`;
     let startAngle = -0.5 * Math.PI; // Start at top
 
     sortedStocks.forEach(([entity, value], idx) => {
         if (value <= 0) return;
 
         const sliceAngle = (value / totalAssets) * 2 * Math.PI;
+        const endAngle = startAngle + sliceAngle;
         const color = colors[idx % colors.length];
 
-        // Draw slice
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
+        const x1 = centerX + radius * Math.cos(startAngle);
+        const y1 = centerY + radius * Math.sin(startAngle);
+        let x2 = centerX + radius * Math.cos(endAngle);
+        let y2 = centerY + radius * Math.sin(endAngle);
 
-        // Add small border between slices for aesthetics
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "var(--bg-secondary)";
-        ctx.stroke();
+        // If slice is nearly a full circle, SVG arc fails. Adjust slightly.
+        if (sliceAngle >= 2 * Math.PI - 0.001) {
+            x2 -= 0.01;
+        }
 
-        startAngle += sliceAngle;
+        const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+
+        // Draw outlined slice (transparent fill, stroke with theme color)
+        svgContent += `<path d="M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z" 
+                            fill="transparent" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" />`;
+
+        startAngle = endAngle;
 
         // Build legend
         const pct = ((value / totalAssets) * 100).toFixed(1);
         const item = document.createElement("div");
         item.className = "pie-legend-item";
         item.innerHTML = `
-            <div class="pie-legend-swatch" style="background-color: ${color};"></div>
+            <div class="pie-legend-swatch" style="border: 2px solid ${color}; background: transparent;"></div>
             <div class="pie-legend-label">${entity}</div>
-            <div class="pie-legend-value">₹${value.toLocaleString("en-IN")}</div>
+            <div class="pie-legend-value">₹${Math.round(value).toLocaleString("en-IN")}</div>
             <div class="pie-legend-pct">${pct}%</div>
         `;
         legendContainer.appendChild(item);
     });
 
     // Draw donut hole (optional, but looks premium)
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius * 0.55, 0, 2 * Math.PI);
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--bg-secondary").trim();
-    ctx.fill();
+    const donutRadius = radius * 0.55;
+    const bgColor = "var(--bg-secondary)";
+    const textColor = "var(--text-primary)";
+
+    svgContent += `<circle cx="${centerX}" cy="${centerY}" r="${donutRadius}" fill="${bgColor}" />`;
 
     // Text in center
-    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--text-primary").trim();
-    ctx.font = "bold 16px Inter";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("Total Assets", centerX, centerY - 10);
-    ctx.font = "bold 18px Inter";
-    ctx.fillText(`₹${totalAssets.toLocaleString("en-IN")}`, centerX, centerY + 12);
+    svgContent += `
+        <text x="${centerX}" y="${centerY - 10}" text-anchor="middle" dominant-baseline="middle" 
+              fill="${textColor}" style="font-family: var(--font), sans-serif; font-size: 16px; font-weight: bold;">Total Assets</text>
+        <text x="${centerX}" y="${centerY + 12}" text-anchor="middle" dominant-baseline="middle" 
+              fill="${textColor}" style="font-family: var(--font), sans-serif; font-size: 18px; font-weight: bold;">₹${Math.round(totalAssets).toLocaleString("en-IN")}</text>
+    `;
+
+    svgContent += `</svg>`;
+    container.innerHTML = svgContent;
 }
 
 // ===== Tutorial System =====
