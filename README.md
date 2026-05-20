@@ -14,6 +14,14 @@ On launch, select or create your profile, choose your calendar year, or quickly 
 Track your foreign assets (such as US stocks and ETFs) with live Yahoo Finance prices and dynamic portfolio stat cards.
 ![Portfolio Dashboard](docs/screenshots/02_portfolio_dashboard.png)
 
+#### Detailed Stock Holdings (Acquisition Lots, Sells, and Dividends)
+Expand any stock card to view its complete composition: detailed acquisition lots, recorded sell transactions, and historical dividend payments mapped precisely to payment dates.
+![Expanded Stock Cards](docs/screenshots/02c_stock_cards.png)
+
+#### Portfolio Metrics Overview
+Monitor the performance of your entire portfolio at a glance with clean, dedicated dashboard metric cards showing total cost, current value, total dividends, and net unrealized gains.
+![Portfolio Metrics Overview](docs/screenshots/02b_dashboard_summary.png)
+
 ### 3. Schedule FA Section A3 Report
 Generate your Schedule FA Section A3 report converted to Indian Rupees (₹) using exact date-of-event SBI TT buying rates.
 ![FA Report Preview](docs/screenshots/03_fa_report_preview.png)
@@ -25,6 +33,10 @@ Verify every single converted rupee with a crystal-clear mathematical audit trai
 ### 5. ITR Capital Gains & Dividend Summary
 Automatically map your capital gains (STCG/LTCG) and dividends into Indian Tax Years (April–March) and quarterly advance-tax buckets.
 ![ITR Summary](docs/screenshots/05_capital_gains_summary.png)
+
+#### Capital Gains & Dividend Audit Trail (Validate Tax Summary)
+Gain absolute clarity on your tax calculations with a step-by-step math breakdown for both Capital Gains and Dividend Tax schedules, including matching details and exchange rates under Rule 115.
+![Validate Tax Details](docs/screenshots/06_validate_tax_details.png)
 
 ### 6. Sell Simulator & Tax Impact Simulator
 Simulate hypothetical sales based on your current holdings, fetch live intraday prices, and preview STCG/LTCG tax impacts before executing trades.
