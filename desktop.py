@@ -233,25 +233,7 @@ def get_splash_html():
     </html>
     """
 
-def load_settings():
-    """Load app settings from file."""
-    if os.path.exists(SETTINGS_FILE):
-        try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {}
-
-def save_settings(settings):
-    """Save app settings to file."""
-    try:
-        current = load_settings()
-        current.update(settings)
-        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(current, f, indent=4)
-    except Exception as e:
-        logger.error(f"Failed to save settings: {e}")
+from core.utils import load_app_settings as load_settings, save_app_settings as save_settings
 
 def run_tray_icon(state, on_open=None, on_quit=None):
     """Run a system tray icon. Callbacks override default behavior."""

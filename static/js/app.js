@@ -565,6 +565,7 @@ function bindEvents() {
     document.getElementById("lockRatesBtn").addEventListener("click", toggleLockRates);
     document.getElementById("clearSbiBtn").addEventListener("click", clearSbiOverrides);
     document.getElementById("clearCacheBtn").addEventListener("click", clearStockCache);
+    document.getElementById("deleteAllDataBtn").addEventListener("click", deleteAllData);
     document.getElementById("undoBtn").addEventListener("click", undo);
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
@@ -1028,7 +1029,7 @@ function clearSbiOverrides() {
 
 async function clearStockCache() {
     if (!confirm("Are you sure you want to clear the local stock data cache? All historical stock info and dividend data will be cleared, forcing fresh queries from Yahoo Finance on your next live fetch.")) return;
-    
+
     showLoading("Clearing stock data cache...");
     try {
         const res = await apiPost("/api/clear-stock-cache");
@@ -1045,6 +1046,31 @@ async function clearStockCache() {
     }
 }
 
+async function deleteAllData() {
+    const msg = "DANGER: This will delete ALL application data, including all saved portfolios, profiles, cached SBI rates, and settings. This action cannot be undone.\n\nAre you sure you want to proceed?";
+    if (!confirm(msg)) return;
+
+    const confirm2 = "Final confirmation: Delete EVERYTHING in ~/.fa_desk_data?";
+    if (!confirm(confirm2)) return;
+
+    showLoading("Deleting all app data...");
+    try {
+        const res = await apiPost("/api/tools/delete-all-data");
+        if (res.success) {
+            showToast("All data deleted. The app will now reload.", "success");
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showToast("Failed to delete all data: " + (res.error || "Unknown error"), "error");
+        }
+    } catch (e) {
+        console.error("Failed to delete all data", e);
+        showToast("Error deleting all data", "error");
+    } finally {
+        await hideLoading();
+    }
+}
 
 
 // ===== Stock Lookup =====
@@ -5261,10 +5287,16 @@ function toggleTheme() {
     const current = root.dataset.theme || "dark";
     const next = current === "dark" ? "light" : "dark";
     root.dataset.theme = next;
+    
     try { localStorage.setItem("fa_desk_theme", next); } catch(e) {}
+    
+    // Persist to settings.json
+    apiPost("/api/settings", { theme: next }).catch(e => console.error("Failed to save theme to settings", e));
 }
 
 function restoreTheme() {
+    // Priority: 1. localStorage (fastest, client-side) 
+    // Server-side theme from index.html is already applied to root.dataset.theme
     try {
         const saved = localStorage.getItem("fa_desk_theme");
         if (saved) {

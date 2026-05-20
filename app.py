@@ -141,7 +141,59 @@ def init_flask_app():
     @state.app.route("/")
     def index():
         """Serve the main UI page."""
-        return render_template("index.html")
+        from core.utils import load_app_settings
+        settings = load_app_settings()
+        theme = settings.get("theme", "dark")
+        return render_template("index.html", theme=theme)
+
+    @state.app.route("/api/settings", methods=["GET", "POST"])
+    def manage_settings():
+        """Get or update application settings."""
+        from core.utils import load_app_settings, save_app_settings
+        
+        if request.method == "POST":
+            try:
+                new_settings = request.get_json()
+                save_app_settings(new_settings)
+                return {"success": True}
+            except Exception as e:
+                logger.error(f"Error saving settings: {e}")
+                return {"success": False, "error": str(e)}, 500
+        else:
+            try:
+                settings = load_app_settings()
+                return {"success": True, "settings": settings}
+            except Exception as e:
+                logger.error(f"Error reading settings: {e}")
+                return {"success": False, "error": str(e)}, 500
+
+    @state.app.route("/api/tools/delete-all-data", methods=["POST"])
+    def delete_all_data():
+        """Delete all application data including portfolios, cache, and settings."""
+        from config import DATA_DIR
+        import shutil
+        try:
+            if DATA_DIR.exists():
+                # Delete everything inside the directory EXCEPT the lock file
+                # which might be open and locked by the current process (Windows compatibility)
+                for item in DATA_DIR.iterdir():
+                    if item.name == "app.lock":
+                        continue
+                    try:
+                        if item.is_dir():
+                            shutil.rmtree(item)
+                        else:
+                            item.unlink()
+                    except Exception as e:
+                        logger.warning(f"Could not delete {item}: {e}")
+                
+                # Re-create required subdirectories
+                (DATA_DIR / "portfolios").mkdir(exist_ok=True)
+                return {"success": True}
+            return {"success": False, "error": "Data directory not found"}
+        except Exception as e:
+            logger.error(f"Error deleting data: {e}")
+            return {"success": False, "error": str(e)}, 500
 
     @state.app.route("/api/version")
     def get_version():
@@ -152,13 +204,10 @@ def init_flask_app():
     @state.app.route("/api/disclaimer", methods=["GET"])
     def check_disclaimer():
         """Check if the user has already accepted the disclaimer."""
-        from config import SETTINGS_FILE
+        from core.utils import load_app_settings
         try:
-            if SETTINGS_FILE.exists():
-                import json
-                with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                    settings = json.load(f)
-                    return {"success": True, "accepted": settings.get("disclaimer_accepted", False)}
+            settings = load_app_settings()
+            return {"success": True, "accepted": settings.get("disclaimer_accepted", False)}
         except Exception as e:
             logger.error(f"Error reading settings: {e}")
         return {"success": True, "accepted": False}
@@ -166,20 +215,9 @@ def init_flask_app():
     @state.app.route("/api/disclaimer/accept", methods=["POST"])
     def accept_disclaimer():
         """Record that the user has accepted the disclaimer."""
-        from config import SETTINGS_FILE
+        from core.utils import save_app_settings
         try:
-            import json
-            settings = {}
-            if SETTINGS_FILE.exists():
-                with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                    try:
-                        settings = json.load(f)
-                    except json.JSONDecodeError:
-                        pass
-            
-            settings["disclaimer_accepted"] = True
-            with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-                json.dump(settings, f, indent=2)
+            save_app_settings({"disclaimer_accepted": True})
             return {"success": True}
         except Exception as e:
             logger.error(f"Error saving settings: {e}")

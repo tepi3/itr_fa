@@ -1,10 +1,43 @@
 import logging
 import shutil
 import decimal
+import json
+import os
+import sys
 from pathlib import Path
-from config import PORTFOLIOS_DIR
+from config import PORTFOLIOS_DIR, SETTINGS_FILE
 
 logger = logging.getLogger(__name__)
+
+def load_app_settings():
+    """Load application settings from SETTINGS_FILE."""
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.debug(f"Failed to load settings: {e}")
+    return {}
+
+def save_app_settings(settings):
+    """Save application settings with atomic write to prevent corruption."""
+    try:
+        current = load_app_settings()
+        current.update(settings)
+        
+        # Write to temporary file then rename (atomic)
+        tmp_file = SETTINGS_FILE.with_suffix(".tmp")
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(current, f, indent=4)
+        
+        if sys.platform == 'win32':
+            # On Windows, rename fails if target exists
+            if SETTINGS_FILE.exists():
+                SETTINGS_FILE.unlink()
+        
+        tmp_file.replace(SETTINGS_FILE)
+    except Exception as e:
+        logger.error(f"Failed to save settings: {e}")
 
 def tax_round(value, places=2) -> float:
     """Round value for tax purposes using ROUND_HALF_UP logic."""
