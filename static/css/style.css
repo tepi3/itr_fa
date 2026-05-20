@@ -2341,3 +2341,67 @@ kbd {
     filter: brightness(1.1);
 }
 
+
+/* ===== Flatpickr Theme Support ===== */
+.flatpickr-calendar {
+    font-family: var(--font) !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-lg) !important;
+    color: var(--text-primary) !important;
+}
+.flatpickr-day {
+    color: var(--text-primary) !important;
+}
+.flatpickr-day:hover {
+    background: var(--bg-hover) !important;
+}
+.flatpickr-day.selected {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: white !important;
+}
+.flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover {
+    color: var(--text-muted) !important;
+}
+.flatpickr-months .flatpickr-month,
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    fill: var(--text-primary) !important;
+}
+.flatpickr-current-month .flatpickr-monthDropdown-month {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+.flatpickr-weekday {
+    color: var(--text-secondary) !important;
+}
+.flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month {
+    fill: var(--text-primary) !important;
+}
+.flatpickr-calendar.arrowTop:after { border-bottom-color: var(--bg-secondary) !important; }
+.flatpickr-calendar.arrowTop:before { border-bottom-color: var(--border) !important; }
+
+/* ===== Header Buttons (Help & Quit) ===== */
+.btn-help {
+    background: var(--accent-light) !important;
+    color: var(--accent) !important;
+    border: 1px solid var(--accent) !important;
+}
+.btn-help:hover {
+    background: var(--accent) !important;
+    color: white !important;
+}
+
+.btn-quit {
+    color: var(--danger) !important;
+    border: 1px solid var(--danger) !important;
+    background: var(--danger-light) !important;
+}
+.btn-quit:hover {
+    background: var(--danger) !important;
+    color: white !important;
+}
+
