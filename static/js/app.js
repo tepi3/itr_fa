@@ -412,8 +412,71 @@ function clearCalculatedSections() {
     }
 }
 
+async function checkDisclaimer() {
+    return new Promise(async (resolve) => {
+        try {
+            const res = await fetch("/api/disclaimer");
+            const data = await res.json();
+            if (data.success && data.accepted) {
+                document.getElementById("disclaimerModal").classList.add("hidden");
+                resolve();
+                return;
+            }
+        } catch (e) {
+            if (localStorage.getItem("disclaimerAccepted")) {
+                document.getElementById("disclaimerModal").classList.add("hidden");
+                resolve();
+                return;
+            }
+        }
+
+        const modal = document.getElementById("disclaimerModal");
+        if (!modal) {
+            resolve();
+            return;
+        }
+        
+        modal.classList.remove("hidden");
+        
+        document.getElementById("acceptDisclaimerBtn").addEventListener("click", async () => {
+            try {
+                await fetch("/api/disclaimer/accept", { method: "POST" });
+            } catch (e) {
+                console.error("Failed to save disclaimer acceptance to server:", e);
+            }
+            localStorage.setItem("disclaimerAccepted", "true");
+            
+            // Switch to success state
+            document.getElementById("disclaimerInitialState").classList.add("hidden");
+            document.getElementById("disclaimerSuccessState").classList.remove("hidden");
+        });
+
+        document.getElementById("getStartedBtn").addEventListener("click", () => {
+            modal.classList.add("hidden");
+            resolve();
+        });
+        
+        document.getElementById("declineDisclaimerBtn").addEventListener("click", async () => {
+            try {
+                await fetch("/api/shutdown", { method: "POST" });
+            } catch (e) {
+                // Expected to fail as server terminates
+            }
+            document.body.innerHTML = `
+                <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background-color:var(--bg-primary);color:var(--text-primary);font-family:'Inter', sans-serif;padding:20px;text-align:center;">
+                    <h1 style="font-size:2rem;margin-bottom:16px;">🛑 Access Denied</h1>
+                    <p style="font-size:1.1rem;color:var(--text-secondary);">You must accept the disclaimer to use this application.</p>
+                    <p style="font-size:1.1rem;color:var(--text-muted);margin-top:8px;">The application session has ended.</p>
+                </div>`;
+            try { window.close(); } catch(e) {}
+            // No resolve() here, app stays in terminated state
+        });
+    });
+}
+
 // ===== Initialization =====
 document.addEventListener("DOMContentLoaded", async () => {
+    await checkDisclaimer();
     startSmoothProgress("Initialising FA Desk...", 1.5);
     
     initYearSelectors();
@@ -5567,7 +5630,21 @@ async function openAboutModal() {
     const modal = document.getElementById("aboutModal");
     const badge = document.getElementById("aboutVersionBadge");
     const resultEl = document.getElementById("updateResult");
-    
+    const thankYouEl = document.getElementById("aboutThankYou");
+
+    // Show thank you message if disclaimer accepted
+    try {
+        const res = await fetch("/api/disclaimer");
+        const data = await res.json();
+        if (data.success && data.accepted) {
+            thankYouEl.classList.remove("hidden");
+        } else {
+            thankYouEl.classList.add("hidden");
+        }
+    } catch (e) {
+        thankYouEl.classList.add("hidden");
+    }
+
     // Fetch current version
     try {
         const res = await fetch("/api/version");

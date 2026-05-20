@@ -1,3 +1,8 @@
+# Important Notice & Disclaimer
+**This is an independent, open-source utility tool to assist with ITR data organization. It is not official tax software, and the author is not a Chartered Accountant.**
+
+**This tool is provided "as is" without any guarantees of accuracy. Users are entirely responsible for manually verifying all calculations before submitting returns. By using this tool, you agree that the author is not liable for any filing errors, penalties, or financial losses.**
+
 # FA Desk - Foreign Assets ITR Helper
 
 A local web tool to automate filling Section A3 (Foreign Equity & Debt Interest) of Schedule FA in Indian Income Tax Return.
@@ -236,7 +241,7 @@ Visualize how your foreign portfolio is distributed across stocks as of December
 
 ---
 
-![Total Downloads](https://img.shields.io/github/downloads/tepi3/itr_fa/total?style=for-the-badge&color=6366f1)
+![Downloads](https://img.shields.io/github/downloads/tepi3/itr_fa/total?style=for-the-badge&color=6366f1)
 
 **Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.**
 *Author: Piyush Tewari (tepi3)*

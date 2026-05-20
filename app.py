@@ -149,6 +149,42 @@ def init_flask_app():
         from config import APP_VERSION
         return {"success": True, "version": APP_VERSION}
 
+    @state.app.route("/api/disclaimer", methods=["GET"])
+    def check_disclaimer():
+        """Check if the user has already accepted the disclaimer."""
+        from config import SETTINGS_FILE
+        try:
+            if SETTINGS_FILE.exists():
+                import json
+                with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                    settings = json.load(f)
+                    return {"success": True, "accepted": settings.get("disclaimer_accepted", False)}
+        except Exception as e:
+            logger.error(f"Error reading settings: {e}")
+        return {"success": True, "accepted": False}
+
+    @state.app.route("/api/disclaimer/accept", methods=["POST"])
+    def accept_disclaimer():
+        """Record that the user has accepted the disclaimer."""
+        from config import SETTINGS_FILE
+        try:
+            import json
+            settings = {}
+            if SETTINGS_FILE.exists():
+                with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                    try:
+                        settings = json.load(f)
+                    except json.JSONDecodeError:
+                        pass
+            
+            settings["disclaimer_accepted"] = True
+            with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+                json.dump(settings, f, indent=2)
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error saving settings: {e}")
+            return {"success": False, "error": str(e)}, 500
+
     @state.app.route("/api/save-native", methods=["POST"])
     def save_native():
         """Trigger a native save file dialog using pywebview."""

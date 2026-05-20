@@ -61,6 +61,14 @@
                 </button>
             </div>
         </div>
+
+        <!-- Login Screen Disclaimer -->
+        <div style="max-width: 500px; margin-top: 24px; color: var(--text-muted); font-size: 0.75rem; text-align: center; line-height: 1.5; padding: 0 20px;">
+            <strong style="display: block; margin-bottom: 4px; color: var(--text-secondary);">Important Notice & Disclaimer</strong>
+            This is an independent, open-source utility tool to assist with ITR data organization. It is not official tax software, and the author is not a Chartered Accountant.
+            <br><br>
+            This tool is provided "as is" without any guarantees of accuracy. Users are entirely responsible for manually verifying all calculations before submitting returns. By logging in, you agree that the author is not liable for any filing errors, penalties, or financial losses.
+        </div>
     </div>
 
     <!-- Header -->
@@ -1131,6 +1139,22 @@
                     <button id="checkUpdateBtn" class="btn btn-sm btn-outline" onclick="checkForUpdate()"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Check for Updates</button>
                     <div id="updateResult" class="about-update-result hidden"></div>
                 </div>
+
+                <!-- Disclaimer in About -->
+                <div style="margin-top: 20px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: left;">
+                    <div id="aboutThankYou" class="hidden" style="margin-bottom: 12px; padding: 8px; background: rgba(var(--success-rgb, 34, 197, 94), 0.1); border-radius: 6px; border: 1px solid var(--success); display: flex; align-items: center; gap: 8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span style="font-size: 0.75rem; color: var(--success); font-weight: 600;">Thank you for accepting our terms.</span>
+                    </div>
+                    <strong style="display: block; font-size: 0.8rem; color: var(--warning); margin-bottom: 6px;">Important Notice & Disclaimer</strong>
+                    <p style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
+                        This is an independent, open-source utility tool to assist with ITR data organization. It is not official tax software, and the author is not a Chartered Accountant.
+                    </p>
+                    <p style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.4;">
+                        This tool is provided "as is" without any guarantees of accuracy. Users are entirely responsible for manually verifying all calculations before submitting returns. By using this tool, you agree that the author is not liable for any filing errors, penalties, or financial losses.
+                    </p>
+                </div>
+
                 <div class="about-divider"></div>
                 <div class="about-meta">
                     <p>© 2026 Piyush Tewari (tepi3). All rights reserved.</p>
@@ -1141,6 +1165,46 @@
         </div>
     </div>
     <!-- ===== END About Modal ===== -->
+
+    <!-- ===== First-Time Disclaimer Acceptance Modal ===== -->
+    <div id="disclaimerModal" class="modal-backdrop hidden" style="z-index: 11000;">
+        <div class="modal-box" style="max-width: 500px;">
+            <!-- Initial Acceptance State -->
+            <div id="disclaimerInitialState">
+                <div class="modal-header">
+                    <h2 style="margin:0; color: var(--warning);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Important Notice & Disclaimer</h2>
+                </div>
+                <div style="margin-top: 16px; font-size: 0.9rem; line-height: 1.6; color: var(--text-primary);">
+                    <p style="margin-bottom: 12px;">
+                        This is an independent, open-source utility tool to assist with ITR data organization. It is not official tax software, and the author is not a Chartered Accountant.
+                    </p>
+                    <p style="margin-bottom: 12px; font-weight: 500; color: var(--text-secondary);">
+                        This tool is provided "as is" without any guarantees of accuracy. Users are entirely responsible for manually verifying all calculations before submitting returns.
+                    </p>
+                    <p style="padding: 12px; background: var(--bg-tertiary); border-radius: 8px; font-size: 0.85rem; border-left: 4px solid var(--warning);">
+                        By clicking <strong>"I Accept"</strong>, you agree that the author is not liable for any filing errors, penalties, or financial losses incurred through the use of this tool.
+                    </p>
+                </div>
+                <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+                    <button id="declineDisclaimerBtn" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Decline & Close</button>
+                    <button id="acceptDisclaimerBtn" class="btn btn-primary">I Accept & Continue</button>
+                </div>
+            </div>
+
+            <!-- Success State -->
+            <div id="disclaimerSuccessState" class="hidden" style="text-align: center; padding: 20px 0;">
+                <div style="width: 64px; height: 64px; background: rgba(var(--success-rgb, 34, 197, 94), 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; border: 2px solid var(--success);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h2 style="margin: 0 0 12px; color: var(--text-primary);">Thank You!</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem; line-height: 1.5;">
+                    Thank you for accepting our terms and conditions.<br>You can now proceed to use FA Desk.
+                </p>
+                <button id="getStartedBtn" class="btn btn-primary" style="width: 100%; padding: 14px; font-weight: 600; font-size: 1rem;">Get Started</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END First-Time Disclaimer Acceptance Modal ===== -->
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/app.js?v=13"></script>
