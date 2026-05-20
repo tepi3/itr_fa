@@ -135,6 +135,9 @@ python3 app.py
 |----------|--------|
 | `Ctrl+Z` / `⌘+Z` | Undo |
 | `Ctrl+Shift+Z` / `⌘+Shift+Z` | Redo |
+| `Ctrl+S` / `⌘+S` | Save Portfolio |
+| `Ctrl+F` / `⌘+F` | Quick Search / Find |
+| `?` | Toggle Keyboard Shortcuts Help Modal |
 
 ## Data Sources
 
