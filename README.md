@@ -34,16 +34,16 @@ Because this app is currently unsigned, macOS will block it upon first launch. P
 
 The app will now open normally with a double-click.
 
-### ✨ Onboarding Demo Profile (No Setup Required!)
+### Onboarding Demo Profile (No Setup Required!)
 
 If you want to quickly test the application's capabilities without importing or manually typing transaction data:
 1. Launch the app (either standalone or via Python).
-2. On the welcome/user selection screen, click the **✨ Try with Demo Profile (CY2025)** button.
+2. On the welcome/user selection screen, click the **Try with Demo Profile (CY2025)** button.
 3. This will instantly initialize a profile named `DemoUser` and load a highly realistic pre-configured portfolio featuring:
    - **Apple Inc. (AAPL)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
    - **Tesla, Inc. (TSLA)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
    - **NVIDIA Corporation (NVDA)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
-4. You can immediately click **⚡ Calculate A3 Values** to watch the progressive loader run, test validation audit details, view consolidated reports, simulate sells, and export formatted CSV sheets!
+4. You can immediately click **Generate FA Report** to watch the progressive loader run, test validation audit details, view consolidated reports, simulate sells, and export formatted CSV sheets!
 
 ### Option 2: Run via Python (For Developers)
 
@@ -91,8 +91,8 @@ python3 app.py
 ### Dividends
 - **Dividend Auto-Fetch** — Automatically fetches dividend events for the current year when importing data or adding stocks.
 - **Exact Payment Dates** — Fetches precise historical payment dates from Nasdaq. This ensures the correct monthly SBI rate is automatically used for tax calculation as per Rule 115, eliminating the need for manual verification.
-- **Per-Stock Fetch Dividends** — Re-fetch dividend data for any individual stock with a single click (🔄 button per stock card).
-- **Batch Fetch All Dividends** — Refresh dividend data for all stocks at once from the header (💰 Fetch All Dividends).
+- **Per-Stock Fetch Dividends** — Re-fetch dividend data for any individual stock with a single click (Fetch Dividends button per stock card).
+- **Batch Fetch All Dividends** — Refresh dividend data for all stocks at once from the header (Fetch All Dividends).
 
 ### Tax Computation
 - **Schedule FA A3 Calculator** — Computes all 12 portal columns: Initial Value, Peak Value, Closing Balance, Dividends, and Sale Proceeds — all converted to ₹.
@@ -109,23 +109,24 @@ python3 app.py
 - **Portfolio Lots Reference** — View all acquisition lots from your current portfolio in a read-only reference table while building simulated sells.
 
 ### Productivity
-- **Undo / Redo** — Undo any portfolio change (add/remove stock, lot, sell, dividend) with ↩ Undo or **Ctrl+Z** (⌘+Z on Mac). Redo with ↪ Redo or **Ctrl+Shift+Z**. Supports up to 50 levels.
+- **Undo / Redo** — Undo any portfolio change (add/remove stock, lot, sell, dividend) with Undo or **Ctrl+Z** (⌘+Z on Mac). Redo with Redo or **Ctrl+Shift+Z**. Supports up to 50 levels.
 - **Save / Open Anywhere** — Use the "Save As" and "Open..." buttons to download your portfolio JSON to any external folder on your computer, or load it from any directory, in addition to the built-in server-side Save/Load.
 - **Unsaved Changes Indicator** — A pulsing dot on the Save button warns you about unsaved portfolio modifications.
-- **Interactive Tutorial** — Click ❓ Help to launch a guided step-by-step walkthrough of every feature with spotlight highlights.
+- **Interactive Tutorial** — Click Help to launch a guided step-by-step walkthrough of every feature with spotlight highlights.
+- **Inline Help** — Click the ? icons next to section headers for quick context-sensitive help.
 - **CSV Export** — Generate ready-to-use `.csv` reports strictly matching the ITR portal's Schedule FA A3 template.
 
 ## Workflow
 
 1.  **Select User & Year** — Choose an existing profile or create a new one. The app will automatically try to load your portfolio or import holdings from the previous year.
-2.  **Fetch SBI Rates** — Click "⬇ Fetch SBI Rates" button (if rates are missing for your year).
-3.  **Import Data (Optional)** — Click "📁 Upload ETRADE Docs" to import holdings and/or sell transactions, or use "📥 Import Prev Year" to bring over holdings from a previous year's save.
+2.  **Fetch SBI Rates** — Click "Fetch SBI Rates" button (if rates are missing for your year).
+3.  **Import Data (Optional)** — Click "Upload ETRADE Docs" to import holdings and/or sell transactions, or use "Import Prev Year" to bring over holdings from a previous year's save.
 4.  **Add Stocks/Lots Manually** — Enter ticker symbols and add acquisition lots (date, quantity, price) or sells as needed.
-5.  **Fetch Dividends** — Click "💰 Fetch All Dividends" to pull exact historical data (Ex-Date, Payment Date, and Amount) from Nasdaq.
-6.  **Calculate** — Click "⚡ Calculate A3 Values" to compute all 12 portal columns.
+5.  **Fetch Dividends** — Click "Fetch All Dividends" to pull exact historical data (Ex-Date, Payment Date, and Amount) from Nasdaq.
+6.  **Calculate** — Click "Generate FA Report" to compute all 12 portal columns.
 7.  **Review Tax Summary** — Review the ITR Tax Year Summary with LTCG/STCG netting, or generate a Consolidated FY Statement.
-8.  **Export** — Click "📥 Export CSV" to download the formatted file for tax filing.
-9.  **Save** — Click "💾 Save" to store your portfolio locally for future use.
+8.  **Export** — Click "Export CSV" to download the formatted file for tax filing.
+9.  **Save** — Click "Save" to store your portfolio locally for future use.
 
 ## Keyboard Shortcuts
 

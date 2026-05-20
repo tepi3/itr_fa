@@ -1282,6 +1282,31 @@ tr:hover td {
     border-color: transparent;
 }
 
+.btn-help-inline {
+    background: none;
+    border: none;
+    padding: 2px;
+    margin-left: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.btn-help-inline:hover {
+    opacity: 1;
+    color: var(--accent);
+    background: rgba(var(--accent-rgb, 99, 102, 241), 0.1);
+}
+
+.btn-help-inline svg {
+    display: block;
+}
+
 /* ===== Tutorial Overlay ===== */
 .tutorial-overlay {
     position: fixed;

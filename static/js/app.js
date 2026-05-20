@@ -19,26 +19,38 @@ const state = {
 };
 
 // ===== SVG Constants =====
-const CHEVRON_DOWN_SVG = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="6 9 12 15 18 9"></polyline></svg>Details`;
-const CHEVRON_RIGHT_SVG = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="9 18 15 12 9 6"></polyline></svg>Details`;
+const CHEVRON_DOWN_SVG = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><polyline points="6 9 12 15 18 9"></polyline></svg>Details`;
+const CHEVRON_RIGHT_SVG = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><polyline points="9 18 15 12 9 6"></polyline></svg>Details`;
 const CROSS_SVG = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-const FETCH_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Fetch`;
-const LIVE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M7.7 16.3c-2.3-2.3-2.3-6 0-8.3M16.3 8c2.3 2.3 2.3 6 0 8.3M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"></path></svg>Live`;
+const FETCH_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Fetch`;
+const LIVE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M7.7 16.3c-2.3-2.3-2.3-6 0-8.3M16.3 8c2.3 2.3 2.3 6 0 8.3M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"></path></svg>Live`;
 const EDIT_PENCIL_SVG = `<svg class="edit-svg" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
 const TRASH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-const FETCH_LOADING_HTML = `<svg class="btn-icon spin" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>Fetching…`;
-const FETCH_DIVS_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Fetch Dividends`;
-const FETCH_DETAILS_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Fetch Details`;
-const LOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Lock Year`;
-const UNLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>Unlock Year`;
-const SAVE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Save`;
+const FETCH_LOADING_HTML = `<svg class="btn-icon spin" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>Fetching…`;
+const FETCH_DIVS_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Fetch Dividends`;
+const FETCH_DETAILS_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Fetch Details`;
+const LOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Lock Year`;
+const UNLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>Unlock Year`;
+const SAVE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Save`;
 const BADGE_LOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
-const BADGE_CHECK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-const BADGE_WARN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
-const CHECK_UPDATE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Check for Updates`;
-const CHECK_LOADING_HTML = `<svg class="btn-icon spin" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>Checking...`;
+const BADGE_CHECK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+const BADGE_WARN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+const CHECK_UPDATE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Check for Updates`;
+const CHECK_LOADING_HTML = `<svg class="btn-icon spin" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>Checking...`;
 const TUTORIAL_NEXT_HTML = `Next<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; display: inline-block; vertical-align: middle;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
 const TUTORIAL_FINISH_HTML = `Finish<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; display: inline-block; vertical-align: middle;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+const UNDO_SVG_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>`;
+const REDO_SVG_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg>`;
+const INFO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+const USER_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+const SEARCH_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+const PIE_CHART_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>`;
+
+const BOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle; filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"></polygon><polygon points="12 22.08 21 17.08 21 6.92 12 12 12 22.08"></polygon><polygon points="12 12 21 6.92 12 1.83 3 6.92 12 12"></polygon></svg>`;
+const BRIEFCASE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle; filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`;
+const TREND_UP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle; filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
+const CURRENCY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle; filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`;
 
 let _navSource = null;
 let _backToSourceTimeout = null;
@@ -123,7 +135,7 @@ function hideCalcTooltip() {
 function buildTooltipHTML(details, type) {
     if (!details) return "";
     
-    const clickHint = `<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;border-top:1px dashed var(--border);padding-top:4px;text-align:center;font-weight:normal;">💡 Click to view breakdown</div>`;
+    const clickHint = `<div style="font-size:0.65rem;color:var(--text-muted);margin-top:6px;border-top:1px dashed var(--border);padding-top:4px;text-align:center;font-weight:normal;">${INFO_SVG} Click to view breakdown</div>`;
 
     if (Array.isArray(details)) {
         if (details.length === 0) return "";
@@ -666,7 +678,7 @@ function renderUserList(users) {
     if (users.length === 0) {
         list.innerHTML = `
             <div style="text-align:center;padding:18px 12px;">
-                <div style="font-size:2rem;margin-bottom:8px;">👤</div>
+                <div style="font-size:2rem;margin-bottom:8px;">${USER_ICON_SVG}</div>
                 <div style="font-weight:600;color:var(--text-primary);margin-bottom:6px;">No users found</div>
                 <div style="color:var(--text-muted);font-size:0.875rem;">
                     Use the form below to create your first user profile before continuing.
@@ -2531,7 +2543,7 @@ function enableCellEdit(td, row, fieldKey) {
         }
 
         const displayVal = formatINR(row[fieldKey]);
-        td.innerHTML = `<span class="val-link" title="Click to view calculation breakdown">${displayVal}</span><span class="edit-icon" title="Click to manually override value">✏️</span>`;
+        td.innerHTML = `<span class="val-link" title="Click to view calculation breakdown">${displayVal}</span><span class="edit-icon" title="Click to manually override value">${EDIT_PENCIL_SVG}</span>`;
         
         // Re-bind jump listener
         td.querySelector(".val-link").addEventListener("click", (e) => {
@@ -2569,7 +2581,7 @@ function enableCellEdit(td, row, fieldKey) {
     });
     input.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
-            td.innerHTML = `${formatINR(row[fieldKey])}<span class="edit-icon">✏️</span>`;
+            td.innerHTML = `${formatINR(row[fieldKey])}<span class="edit-icon"> ${EDIT_PENCIL_SVG}</span>`;
         }
     });
 }
@@ -2698,7 +2710,7 @@ function collectSbiRates(rows, taxYears = null) {
             <td>${formatAppDate(parseAppDate(rateDate))}</td>
             <td class="editable-rate" data-date="${rateDate}" title="Click to edit rate">
                 <span class="rate-val">₹${rate.toFixed(4)}</span>
-                <span class="edit-icon">✏️</span>
+                <span class="edit-icon"> ${EDIT_PENCIL_SVG}</span>
             </td>
             <td><span class="rate-status ${statusClass}">${src}</span></td>
         `;
@@ -3251,10 +3263,10 @@ async function loadMonthlyRates() {
         // Update lock button state
         const lockBtn = document.getElementById("lockRatesBtn");
         if (data.locked) {
-            lockBtn.textContent = "🔓 Unlock Year";
+            lockBtn.innerHTML = UNLOCK_SVG;
             lockBtn.classList.add("locked");
         } else {
-            lockBtn.textContent = "🔒 Lock Year";
+            lockBtn.innerHTML = LOCK_SVG;
             lockBtn.classList.remove("locked");
         }
 
@@ -3271,9 +3283,9 @@ async function loadMonthlyRates() {
                     <input type="number" class="monthly-rate-input" step="0.01" value="${rateVal}"
                            placeholder="Enter ₹ rate" data-rate-date="${r.rate_date}" ${isLocked ? 'disabled' : ''}>
                 </td>
-                <td><span class="rate-status ${statusClass}">${statusLabel}${isLocked ? ' 🔒' : ''}</span></td>
+                <td><span class="rate-status ${statusClass}">${statusLabel}${isLocked ? BADGE_LOCK_SVG : ''}</span></td>
                 <td><button class="btn btn-sm btn-primary save-rate-btn" data-rate-date="${r.rate_date}"
-                    ${isLocked ? 'disabled' : ''}>💾 Save</button></td>
+                    ${isLocked ? 'disabled' : ''}>${SAVE_BTN_HTML}</button></td>
             `;
             // Save button handler
             tr.querySelector(".save-rate-btn").addEventListener("click", async () => {
@@ -3522,7 +3534,7 @@ function renderTaxYearSummary(taxYears) {
                 "font-weight:700;color:var(--text-main);font-size:0.88rem;",
                 "border-top:" + (sIdx > 0 ? "2px solid var(--border)" : "none") + ";"
             ].join("");
-            sHeaderTd.innerHTML = `<span style="opacity:0.4;margin-right:6px;">◆</span>${ticker} <span class="validate-crosslink" style="font-size:0.75rem;margin-left:8px;" title="Jump to ${ticker} calculation breakdown" onclick="scrollToSection('validateTaxSection')">🔍</span>`;
+            sHeaderTd.innerHTML = `<span style="opacity:0.4;margin-right:6px;">◆</span>${ticker} <span class="validate-crosslink" style="font-size:0.75rem;margin-left:8px;" title="Jump to ${ticker} calculation breakdown" onclick="scrollToSection('validateTaxSection')">${SEARCH_ICON_SVG}</span>`;
             sHeaderRow.appendChild(sHeaderTd);
             tbody.appendChild(sHeaderRow);
 
@@ -3952,11 +3964,11 @@ function shAddRow(lotIdx = 0) {
         <td>
             <div class="price-input-group">
                 <input type="number" class="sh-sell-price" placeholder="e.g. 135.50" step="any" min="0" style="min-width:110px;">
-                <button class="btn btn-sm btn-fetch-price sh-fetch-price-btn" title="Fetch current live price">📡 Live</button>
+                <button class="btn btn-sm btn-fetch-price sh-fetch-price-btn" title="Fetch current live price">${LIVE_BTN_HTML}</button>
             </div>
         </td>
         <td><span class="sh-holding-badge neutral">—</span></td>
-        <td><button class="btn btn-sm btn-danger sh-remove-btn">✕</button></td>
+        <td><button class="btn btn-sm btn-danger sh-remove-btn">${CROSS_SVG}</button></td>
     `;
 
     // Update buy price helper
@@ -4051,7 +4063,7 @@ function shAddRow(lotIdx = 0) {
         if (!lot) return showToast("Select a lot first", "warning");
         const btn = tr.querySelector(".sh-fetch-price-btn");
         btn.disabled = true;
-        btn.textContent = "⏳";
+        btn.innerHTML = FETCH_LOADING_HTML;
         try {
             const res = await apiGet(`/api/live-price?ticker=${encodeURIComponent(lot.yahoo_ticker)}`);
             if (res.price != null) {
@@ -4069,7 +4081,7 @@ function shAddRow(lotIdx = 0) {
             showToast(`Fetch error: ${e.message}`, "error");
         } finally {
             btn.disabled = false;
-            btn.textContent = "📡 Live";
+            btn.innerHTML = LIVE_BTN_HTML;
         }
     });
 
@@ -4277,7 +4289,7 @@ async function fetchDividendsForStock(card, stock) {
     const year = state.portfolio.calendar_year;
     const btn = card.querySelector(".fetch-dividends-btn");
     btn.disabled = true;
-    btn.textContent = "⏳ Fetching…";
+    btn.innerHTML = FETCH_LOADING_HTML;
     try {
         const data = await apiGet(`/api/dividends?ticker=${encodeURIComponent(ticker)}&year=${year}`);
         pushUndoSnapshot(`Fetch Dividends (${stock.ticker})`);
@@ -4300,7 +4312,7 @@ async function fetchDividendsForStock(card, stock) {
         showToast(`Failed to fetch dividends for ${stock.ticker}: ${e.message}`, "error");
     } finally {
         btn.disabled = false;
-        btn.textContent = "🔄 Fetch Dividends";
+        btn.innerHTML = FETCH_DIVS_BTN_HTML;
     }
 }
 
@@ -4308,7 +4320,7 @@ async function fetchCompanyDetailsForStock(card, stock) {
     const ticker = stock.ticker;
     const btn = card.querySelector(".fetch-company-details-btn");
     btn.disabled = true;
-    btn.textContent = "⏳ Fetching…";
+    btn.innerHTML = FETCH_LOADING_HTML;
     try {
         const info = await apiPost("/api/lookup-stock", { ticker });
         if (!info.success) {
@@ -4336,7 +4348,7 @@ async function fetchCompanyDetailsForStock(card, stock) {
         showToast(`Failed to fetch details for ${ticker}: ${e.message}`, "error");
     } finally {
         btn.disabled = false;
-        btn.textContent = "🔄 Fetch Details";
+        btn.innerHTML = FETCH_DETAILS_BTN_HTML;
     }
 }
 
@@ -4693,7 +4705,7 @@ async function renderAssetPieChart(rows) {
     }
 
     // Update section title
-    if (chartTitleEl) chartTitleEl.textContent = `🧩 ${chartLabel} (INR)`;
+    if (chartTitleEl) chartTitleEl.innerHTML = `${PIE_CHART_SVG}${chartLabel} (INR)`;
 
     ctx.clearRect(0, 0, width, height);
     legendContainer.innerHTML = "";
@@ -4774,9 +4786,9 @@ const tutorialStepsA3 = [
     { selector: "#manageMenu", title: "Manage Menu", desc: "Year-level operations like importing from the previous year or clearing the current session's data." },
     { selector: "#viewMenu", title: "View Menu", desc: "Customize your display by collapsing/expanding all stock cards, or view your session's Action History." },
     { selector: "#saveBtn", title: "Quick Save", desc: "Save your current work to the server. The pulsing blue dot indicates unsaved changes." },
-    { selector: "#undoBtn", title: "Undo / Redo", desc: "Mistakes are easy to fix! Use ↩ to undo any action (or Ctrl+Z) and ↪ to redo. We track up to 50 actions." },
+    { selector: "#undoBtn", title: "Undo / Redo", desc: `Mistakes are easy to fix! Use ${UNDO_SVG_ICON} to undo any action (or Ctrl+Z) and ${REDO_SVG_ICON} to redo. We track up to 50 actions.` },
     { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., QCOM, NVDA, VWRA) and click Lookup to add it to your portfolio. Tickers for non-US exchanges are auto-resolved." },
-    { selector: ".add-lot-btn", title: "Acquisition Lots", desc: "Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the 📈 Fetch button to auto-fill the closing price." },
+    { selector: ".add-lot-btn", title: "Acquisition Lots", desc: `Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the ${TREND_UP_SVG} Fetch button to auto-fill the closing price.` },
     { selector: ".add-sell-btn", title: "Sell Transactions", desc: "Record any sell transactions against a specific lot. The tool uses FIFO matching and tracks partial sells." },
     { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Fetch exact dividend data (including Payment Dates) from Nasdaq for the calendar year. This ensures accurate Rule 115 calculations without manual date entry." },
     { selector: "#calcFab", title: "Generate FA Report", desc: "Click the floating button to compute all 12 columns of Schedule FA Section A3, including initial value, peak value, closing balance, dividends, and sale proceeds — all in ₹ using SBI TT rates." },
@@ -4920,18 +4932,18 @@ function updateDashboard() {
     if (dash.querySelector(".skeleton-stat-grid")) {
         dash.innerHTML = `
             <div class="dash-stat">
-                <span class="dash-icon">📦</span>
+                <span class="dash-icon">${BOX_SVG}</span>
                 <span class="dash-value"><span id="dashStockCount">0</span><span style="font-size: 0.6em; color: var(--text-muted); margin: 0 4px;">/</span><span id="dashLotCount">0</span></span>
                 <span class="dash-label">Stocks / Lots</span>
             </div>
             <div class="dash-stat">
-                <span class="dash-icon">💰</span>
+                <span class="dash-icon">${BRIEFCASE_SVG}</span>
                 <span class="dash-value" id="dashTotalAssets">—</span>
                 <div id="dashTotalAssetsUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
                 <span class="dash-label">Total Assets</span>
             </div>
             <div class="dash-stat">
-                <span class="dash-icon">📈</span>
+                <span class="dash-icon">${TREND_UP_SVG}</span>
                 <span class="dash-value" id="dashUnrealizedGain">—</span>
                 <div id="dashUnrealizedUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
                 <div id="dashUnrealizedBreakdown" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; font-weight: 500;">
@@ -4941,7 +4953,7 @@ function updateDashboard() {
                 <span class="dash-label">Unrealized G/L</span>
             </div>
             <div class="dash-stat">
-                <span class="dash-icon">💵</span>
+                <span class="dash-icon">${CURRENCY_SVG}</span>
                 <span class="dash-value" id="dashTotalDividends">—</span>
                 <div id="dashTotalDividendsUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
                 <span class="dash-label">Total Dividends</span>
@@ -5497,7 +5509,7 @@ async function checkForUpdate() {
     const resultEl = document.getElementById("updateResult");
     
     btn.disabled = true;
-    btn.textContent = "⏳ Checking...";
+    btn.innerHTML = CHECK_LOADING_HTML;
     resultEl.classList.add("hidden");
     
     try {
@@ -5514,7 +5526,7 @@ async function checkForUpdate() {
             resultEl.innerHTML = `New version <strong>v${data.latest_version}</strong> is available! <a href="${data.release_url}" target="_blank" rel="noopener">Download →</a>`;
         } else {
             resultEl.className = "about-update-result up-to-date";
-            resultEl.textContent = `✅ You're on the latest version (v${data.current_version})`;
+            resultEl.innerHTML = `<span style="color:var(--success); vertical-align:middle; display:inline-flex; align-items:center; gap:4px;">${BADGE_CHECK_SVG} You're on the latest version (v${data.current_version})</span>`;
         }
     } catch (e) {
         resultEl.classList.remove("hidden");
@@ -5522,7 +5534,7 @@ async function checkForUpdate() {
         resultEl.textContent = `Update check failed: ${e.message}`;
     } finally {
         btn.disabled = false;
-        btn.textContent = "🔄 Check for Updates";
+        btn.innerHTML = CHECK_UPDATE_BTN_HTML;
     }
 }
 
