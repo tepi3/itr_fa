@@ -2,6 +2,42 @@
 
 A local web tool to automate filling Section A3 (Foreign Equity & Debt Interest) of Schedule FA in Indian Income Tax Return.
 
+## Visual Walkthrough & Features
+
+Here is a preview of the key features and modern dark-mode user interface of FA Desk:
+
+### 1. Profile & Tax Year Selection
+On launch, select or create your profile, choose your calendar year, or quickly explore the app using the pre-configured onboarding Demo Profile.
+![Profile Selection](docs/screenshots/01_profile_selection.png)
+
+### 2. Portfolio Dashboard & Stock Cards
+Track your foreign assets (such as US stocks and ETFs) with live Yahoo Finance prices and dynamic portfolio stat cards.
+![Portfolio Dashboard](docs/screenshots/02_portfolio_dashboard.png)
+
+### 3. Schedule FA Section A3 Report
+Generate your Schedule FA Section A3 report converted to Indian Rupees (₹) using exact date-of-event SBI TT buying rates.
+![FA Report Preview](docs/screenshots/03_fa_report_preview.png)
+
+### 4. Calculation Audit Trail (Validate A3)
+Verify every single converted rupee with a crystal-clear mathematical audit trail showing the precise exchange rates and parameters used.
+![Validate A3 Calculation](docs/screenshots/04_validate_a3.png)
+
+### 5. ITR Capital Gains & Dividend Summary
+Automatically map your capital gains (STCG/LTCG) and dividends into Indian Tax Years (April–March) and quarterly advance-tax buckets.
+![ITR Summary](docs/screenshots/05_capital_gains_summary.png)
+
+### 6. Sell Simulator & Tax Impact Simulator
+Simulate hypothetical sales based on your current holdings, fetch live intraday prices, and preview STCG/LTCG tax impacts before executing trades.
+![Sell Simulator](docs/screenshots/07_sell_simulator.png)
+
+### 7. Consolidated Tax Statement
+Generate a unified tax statement combining multiple calendar years to perfectly align with Indian Financial Years.
+![Tax Statement](docs/screenshots/08_tax_statement.png)
+
+### 8. Historical SBI TT Rates Manager
+View, edit, or lock historical monthly SBI TT Buying rates dating back to 2000.
+![SBI Rates](docs/screenshots/09_monthly_rates.png)
+
 ## Quick Start
 
 ### Option 1: Download the Portable App (Easiest)
