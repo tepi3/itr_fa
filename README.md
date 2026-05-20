@@ -151,6 +151,7 @@ python3 app.py
 - **Interactive Tutorial** — Click Help to launch a guided step-by-step walkthrough of every feature with spotlight highlights.
 - **Inline Help** — Click the ? icons next to section headers for quick context-sensitive help.
 - **CSV Export** — Generate ready-to-use `.csv` reports strictly matching the ITR portal's Schedule FA A3 template.
+- **Resolution Scale / UI Density** — Toggle between **Compact**, **Standard**, and **Zoomed** modes directly from the header dropdown menu. This dynamically resizes font sizes and spacing to fit large reports on high-DPI displays (2K/4K) or increase visibility on small screens. Your preference is persisted automatically across sessions.
 
 ## Workflow
 
