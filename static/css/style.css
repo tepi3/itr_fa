@@ -199,8 +199,8 @@ body {
     position: relative;
     overflow: hidden;
     width: 32px;
-    height: 30px;
-    padding: 0; /* Override btn-sm padding */
+    height: 32px;
+    padding: 0 !important;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -209,32 +209,88 @@ body {
 .theme-icon-sun, .theme-icon-moon {
     position: absolute;
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 0.95rem; /* Slightly smaller than 1.1rem */
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 16px;
+    height: 16px;
 }
 
 /* Dark Theme (Moon Visible) */
 :root[data-theme="dark"] .theme-icon-moon {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0) rotate(0deg) scale(1);
     opacity: 1;
 }
 
 :root[data-theme="dark"] .theme-icon-sun {
-    transform: translateY(20px) rotate(90deg);
+    transform: translateY(20px) rotate(90deg) scale(0.5);
     opacity: 0;
 }
 
 /* Light Theme (Sun Visible) */
 :root[data-theme="light"] .theme-icon-sun {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0) rotate(0deg) scale(1);
     opacity: 1;
 }
 
 :root[data-theme="light"] .theme-icon-moon {
-    transform: translateY(-20px) rotate(-90deg);
+    transform: translateY(-20px) rotate(-90deg) scale(0.5);
     opacity: 0;
+}
+
+/* Premium Icon Buttons */
+.btn-icon-square {
+    width: 32px;
+    height: 32px;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    transition: var(--transition);
+    position: relative;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.btn-icon-square svg {
+    width: 16px;
+    height: 16px;
+    transition: var(--transition);
+}
+
+/* Hover effects with subtle glowing drop-shadows */
+.btn-icon-square:hover {
+    transform: translateY(-1px);
+    border-color: var(--accent) !important;
+    color: var(--accent);
+    background: var(--accent-light) !important;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+}
+
+/* Specific styling for the Shutdown/Quit button */
+#quitAppBtn.btn-icon-square {
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    color: rgba(239, 68, 68, 0.85);
+}
+
+#quitAppBtn.btn-icon-square:hover {
+    border-color: var(--danger) !important;
+    color: #ffffff;
+    background: var(--danger-light) !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+#quitAppBtn.btn-icon-square svg {
+    color: var(--danger);
+    transition: var(--transition);
+}
+
+#quitAppBtn.btn-icon-square:hover svg {
+    color: #ffffff;
+    transform: scale(1.05);
 }
 
 /* ===== Buttons ===== */

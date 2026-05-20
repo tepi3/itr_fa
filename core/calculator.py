@@ -298,7 +298,7 @@ def calculate_dividends(
         amount = float(div["amount"])
 
         # Skip if lot didn't exist yet (Qualification is on Ex-Date)
-        if buy_date > ex_date:
+        if buy_date >= ex_date:
             continue
 
         # Calculate qty held on ex_date
@@ -968,7 +968,7 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                     continue
 
                 # Skip if lot didn't exist yet on ex_date
-                if buy_date > ex_date:
+                if buy_date >= ex_date:
                     continue
 
                 # Calculate qty held on ex_date

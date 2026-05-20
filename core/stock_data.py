@@ -388,7 +388,7 @@ def get_price_on_date(ticker: str, target_date: str) -> float:
             price = round(float(hist.iloc[-1]["Close"]), 4)
             
         # Cache permanently if target_date is in the past
-        if price is not None and target_date < date.today().isoformat():
+        if price is not None and iso_date < date.today().isoformat():
             set_cached_val(cache_key, price)
             
         return price

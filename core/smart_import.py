@@ -9,8 +9,8 @@ def _sort_key(tx):
         if "/" in d_str:
             return datetime.strptime(d_str, "%d/%m/%Y")
         return datetime.fromisoformat(d_str)
-    except:
-        return d_str
+    except Exception:
+        return datetime.min
 
 def group_and_deduplicate_transactions(transactions: list, portfolio: dict) -> list:
     """

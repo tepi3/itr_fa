@@ -18,6 +18,28 @@ const state = {
     isDirty: false, // Track unsaved changes
 };
 
+// ===== SVG Constants =====
+const CHEVRON_DOWN_SVG = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="6 9 12 15 18 9"></polyline></svg>Details`;
+const CHEVRON_RIGHT_SVG = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="9 18 15 12 9 6"></polyline></svg>Details`;
+const CROSS_SVG = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+const FETCH_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Fetch`;
+const LIVE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M19.1 4.9c3.9 3.9 3.9 10.3 0 14.2M7.7 16.3c-2.3-2.3-2.3-6 0-8.3M16.3 8c2.3 2.3 2.3 6 0 8.3M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"></path></svg>Live`;
+const EDIT_PENCIL_SVG = `<svg class="edit-svg" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
+const TRASH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+const FETCH_LOADING_HTML = `<svg class="btn-icon spin" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>Fetching…`;
+const FETCH_DIVS_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Fetch Dividends`;
+const FETCH_DETAILS_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Fetch Details`;
+const LOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Lock Year`;
+const UNLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>Unlock Year`;
+const SAVE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Save`;
+const BADGE_LOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+const BADGE_CHECK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+const BADGE_WARN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+const CHECK_UPDATE_BTN_HTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Check for Updates`;
+const CHECK_LOADING_HTML = `<svg class="btn-icon spin" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>Checking...`;
+const TUTORIAL_NEXT_HTML = `Next<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; display: inline-block; vertical-align: middle;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+const TUTORIAL_FINISH_HTML = `Finish<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; display: inline-block; vertical-align: middle;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
 let _navSource = null;
 let _backToSourceTimeout = null;
 function showBackToSource(sourceEl, label) {
@@ -71,22 +93,25 @@ function showCalcTooltip(e, contentHTML) {
     let left = x;
     let top = y + padding;
 
-    // Apply immediate position to prevent flicker
+    // Position immediately to prevent 1-frame layout flash
     tooltipEl.style.left = left + "px";
     tooltipEl.style.top = top + "px";
 
-    // Adjust in animation frame once dimensions are known
-    requestAnimationFrame(() => {
-        const rect = tooltipEl.getBoundingClientRect();
-        if (left + rect.width > window.innerWidth) {
-            left = window.innerWidth - rect.width - padding;
-        }
-        if (top + rect.height > window.innerHeight) {
-            top = y - rect.height - padding;
-        }
-        tooltipEl.style.left = left + "px";
-        tooltipEl.style.top = top + "px";
-    });
+    // Synchronous bounds check (dimensions available since element is visible)
+    const rect = tooltipEl.getBoundingClientRect();
+    if (left + rect.width > window.innerWidth) {
+        left = window.innerWidth - rect.width - padding;
+    }
+    if (top + rect.height > window.innerHeight) {
+        top = y - rect.height - padding;
+    }
+
+    // Safety clamps to prevent off-screen overflow on narrow viewports
+    left = Math.max(10, left);
+    top = Math.max(10, top);
+
+    tooltipEl.style.left = left + "px";
+    tooltipEl.style.top = top + "px";
 }
 
 function hideCalcTooltip() {
@@ -530,7 +555,7 @@ function bindEvents() {
         document.querySelectorAll(".stock-card-body").forEach(body => {
             body.classList.remove("expanded");
             const btn = body.closest(".stock-card").querySelector(".toggle-details-btn");
-            if (btn) btn.textContent = "▶ Details";
+            if (btn) btn.innerHTML = CHEVRON_RIGHT_SVG;
         });
         document.querySelectorAll(".collapsible-content").forEach(el => {
             el.classList.add("collapsed");
@@ -545,7 +570,7 @@ function bindEvents() {
         document.querySelectorAll(".stock-card-body").forEach(body => {
             body.classList.add("expanded");
             const btn = body.closest(".stock-card").querySelector(".toggle-details-btn");
-            if (btn) btn.textContent = "▼ Details";
+            if (btn) btn.innerHTML = CHEVRON_DOWN_SVG;
         });
         document.querySelectorAll(".collapsible-content").forEach(el => {
             el.classList.remove("collapsed");
@@ -658,8 +683,8 @@ function renderUserList(users) {
         item.innerHTML = `
             <div class="user-name" style="flex-grow: 1;">${username}</div>
             <div class="user-actions" style="display: flex; gap: 8px;">
-                <button type="button" class="btn btn-sm btn-outline rename-user-btn" title="Rename" style="padding:4px 8px;">✏️</button>
-                <button type="button" class="btn btn-sm btn-outline delete-user-btn" title="Delete" style="padding:4px 8px; border-color:var(--danger); color:var(--danger);">🗑️</button>
+                <button type="button" class="btn btn-sm btn-outline rename-user-btn" title="Rename" style="padding:4px 8px; display:inline-flex; align-items:center; justify-content:center;">${EDIT_PENCIL_SVG}</button>
+                <button type="button" class="btn btn-sm btn-outline delete-user-btn" title="Delete" style="padding:4px 8px; border-color:var(--danger); color:var(--danger); display:inline-flex; align-items:center; justify-content:center;">${TRASH_SVG}</button>
             </div>
         `;
         
@@ -785,8 +810,13 @@ function showToast(message, type = "info", duration = 4000) {
     const container = document.getElementById("toastContainer");
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
-    const icons = { success: "✅", error: "❌", info: "ℹ️", warning: "⚠️" };
-    toast.innerHTML = `<span>${icons[type] || ""}</span><span>${message}</span>`;
+    const icons = {
+        success: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-success, #10B981)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:6px;"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+        error: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-danger, #EF4444)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+        info: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #6366F1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:6px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
+        warning: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-warning, #F59E0B)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:6px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`
+    };
+    toast.innerHTML = `<div style="display:flex; align-items:center;">${icons[type] || ""}<span>${message}</span></div>`;
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.animation = "slideOut 0.3s ease forwards";
@@ -1036,6 +1066,12 @@ function initTickerHover(el, ticker) {
         if (rect.left + 320 > window.innerWidth) {
             popup.style.left = (window.innerWidth - 330) + "px";
         }
+
+        // Ensure popup doesn't clip below viewport bottom
+        const popupHeight = popupRect.height || 200; // fallback estimate
+        if (rect.bottom + 8 + popupHeight > window.innerHeight) {
+            popup.style.top = (rect.top - popupHeight - 8) + "px";
+        }
         
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1222,7 +1258,7 @@ function renderStockCard(stock) {
     card.querySelector(".toggle-details-btn").addEventListener("click", (e) => {
         const body = card.querySelector(".stock-card-body");
         const isExpanded = body.classList.toggle("expanded");
-        e.target.textContent = isExpanded ? "▼ Details" : "▶ Details";
+        e.currentTarget.innerHTML = isExpanded ? CHEVRON_DOWN_SVG : CHEVRON_RIGHT_SVG;
     });
 
     // Remove stock
@@ -1318,10 +1354,10 @@ function renderLotRow(card, stock, lot) {
         <td>
             <div class="price-input-group">
                 <input type="number" class="lot-price" value="${lot.buy_price}" step="any" min="0" placeholder="0.00">
-                <button class="btn btn-sm btn-fetch-price fetch-close-price-btn" title="Fetch closing price for this date">📈 Fetch</button>
+                <button class="btn btn-sm btn-fetch-price fetch-close-price-btn" title="Fetch closing price for this date">${FETCH_BTN_HTML}</button>
             </div>
         </td>
-        <td><button class="btn btn-sm btn-danger remove-lot-btn">✕</button></td>
+        <td><button class="btn btn-sm btn-danger remove-lot-btn">${CROSS_SVG}</button></td>
     `;
 
     // Bind changes
@@ -1344,7 +1380,7 @@ function renderLotRow(card, stock, lot) {
         const ticker = stock.yahoo_ticker || stock.ticker;
         const btn = tr.querySelector(".fetch-close-price-btn");
         btn.disabled = true;
-        btn.textContent = "⏳ Fetching…";
+        btn.innerHTML = FETCH_LOADING_HTML;
 
         try {
             const result = await apiGet(`/api/stock-price?ticker=${encodeURIComponent(ticker)}&date=${dateVal}`);
@@ -1360,7 +1396,7 @@ function renderLotRow(card, stock, lot) {
             showToast(`Failed to fetch price: ${e.message}`, "error");
         } finally {
             btn.disabled = false;
-            btn.textContent = "📈 Fetch";
+            btn.innerHTML = FETCH_BTN_HTML;
         }
     });
 
@@ -1432,7 +1468,7 @@ function renderSellRow(card, stock, lot, sell) {
         <td><input type="number" class="sell-qty" value="${sell.quantity}" step="any" min="0" placeholder="0"></td>
         <td><input type="number" class="sell-price" value="${sell.sell_price}" step="0.01" min="0" placeholder="0.00"></td>
         <td class="sell-gl-container"></td>
-        <td><button class="btn btn-sm btn-danger remove-sell-btn">✕</button></td>
+        <td><button class="btn btn-sm btn-danger remove-sell-btn">${CROSS_SVG}</button></td>
     `;
 
     // Bind changes
@@ -1530,7 +1566,7 @@ function renderDividendRow(card, stock, div) {
         <td><input type="text" class="div-date" value="${formattedExDate}" placeholder="DD/MM/YYYY"></td>
         <td><input type="text" class="div-pay-date" value="${formattedPayDate}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" class="div-amount" value="${div.amount}" step="any" min="0" placeholder="0.00"></td>
-        <td><button class="btn btn-sm btn-danger remove-div-btn">✕</button></td>
+        <td><button class="btn btn-sm btn-danger remove-div-btn">${CROSS_SVG}</button></td>
     `;
 
     const exDateInput = tr.querySelector(".div-date");
@@ -2058,7 +2094,7 @@ function renderResultsTable(rows) {
             const val = field.val != null ? Math.round(field.val) : 0;
             const textVal = val > 0 ? formatINR(val) : "0";
             
-            td.innerHTML = `<span class="val-link">${textVal}</span><span class="edit-icon" title="Click to manually override value">✏️</span>`;
+            td.innerHTML = `<span class="val-link">${textVal}</span><span class="edit-icon" title="Click to manually override value">${EDIT_PENCIL_SVG}</span>`;
             
             td.dataset.lotId = row.lot_id;
             td.dataset.field = field.key;
@@ -5294,6 +5330,135 @@ function addYearChangeGuard() {
 }
 
 // ===== About Modal =====
+let aboutGlobeAnimationId = null;
+
+function startAboutGlobe() {
+    const canvas = document.getElementById('aboutGlobeCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2, R = 42;
+    let angle = 0;
+
+    // Hub nodes on the globe surface (lat, lon in radians)
+    const hubs = [
+        { lat: 0.7, lon: 0.3 },
+        { lat: -0.4, lon: 1.8 },
+        { lat: 0.2, lon: -1.2 },
+        { lat: -0.6, lon: 3.0 },
+        { lat: 0.5, lon: -2.5 },
+        { lat: -0.1, lon: 0.9 },
+    ];
+
+    function project(lat, lon) {
+        const x = R * Math.cos(lat) * Math.sin(lon + angle);
+        const y = R * Math.sin(lat);
+        const z = R * Math.cos(lat) * Math.cos(lon + angle);
+        return { x: cx + x, y: cy - y, z: z };
+    }
+
+    if (aboutGlobeAnimationId) {
+        cancelAnimationFrame(aboutGlobeAnimationId);
+    }
+
+    function draw() {
+        if (document.getElementById('aboutModal').classList.contains('hidden')) {
+            aboutGlobeAnimationId = null;
+            return;
+        }
+        ctx.clearRect(0, 0, W, H);
+
+        // Outer orbital glow
+        ctx.beginPath();
+        ctx.arc(cx, cy, R + 6, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(99, 102, 241, 0.18)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Outer glow shadow
+        ctx.beginPath();
+        ctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
+        ctx.shadowColor = 'rgba(99, 102, 241, 0.45)';
+        ctx.shadowBlur = 18;
+        ctx.strokeStyle = 'rgba(99, 102, 241, 0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Longitude lines
+        const lonSteps = 12;
+        for (let i = 0; i < lonSteps; i++) {
+            const lon = (i / lonSteps) * Math.PI * 2;
+            ctx.beginPath();
+            for (let j = 0; j <= 40; j++) {
+                const lat = (j / 40) * Math.PI - Math.PI / 2;
+                const p = project(lat, lon);
+                if (j === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            const midP = project(0, lon);
+            const midDepth = (midP.z + R) / (2 * R);
+            if (midDepth > 0.5) {
+                ctx.strokeStyle = 'rgba(99, 102, 241, ' + (0.15 + midDepth * 0.55) + ')';
+                ctx.lineWidth = 0.8;
+            } else {
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.12)';
+                ctx.lineWidth = 0.5;
+            }
+            ctx.stroke();
+        }
+
+        // Latitude lines
+        const latSteps = 7;
+        for (let i = 1; i < latSteps; i++) {
+            const lat = (i / latSteps) * Math.PI - Math.PI / 2;
+            ctx.beginPath();
+            for (let j = 0; j <= 60; j++) {
+                const lon = (j / 60) * Math.PI * 2;
+                const p = project(lat, lon);
+                if (j === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            const testP = project(lat, -angle);
+            const depthL = (testP.z + R) / (2 * R);
+            if (depthL > 0.5) {
+                ctx.strokeStyle = 'rgba(99, 102, 241, ' + (0.12 + depthL * 0.45) + ')';
+                ctx.lineWidth = 0.6;
+            } else {
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.12)';
+                ctx.lineWidth = 0.4;
+            }
+            ctx.stroke();
+        }
+
+        // Hub nodes
+        hubs.forEach(function(hub) {
+            const p = project(hub.lat, hub.lon);
+            const depth = (p.z + R) / (2 * R);
+            if (depth > 0.45) {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(167, 139, 250, 0.3)';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#a78bfa';
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+                ctx.fill();
+            }
+        });
+
+        angle += 0.012;
+        aboutGlobeAnimationId = requestAnimationFrame(draw);
+    }
+
+    draw();
+}
+
 async function openAboutModal() {
     const modal = document.getElementById("aboutModal");
     const badge = document.getElementById("aboutVersionBadge");
@@ -5316,10 +5481,15 @@ async function openAboutModal() {
     resultEl.innerHTML = "";
     
     modal.classList.remove("hidden");
+    startAboutGlobe();
 }
 
 function closeAboutModal() {
     document.getElementById("aboutModal").classList.add("hidden");
+    if (aboutGlobeAnimationId) {
+        cancelAnimationFrame(aboutGlobeAnimationId);
+        aboutGlobeAnimationId = null;
+    }
 }
 
 async function checkForUpdate() {

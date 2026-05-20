@@ -40,64 +40,34 @@ def get_splash_html():
         <style>
             body {{
                 margin: 0; padding: 0; overflow: hidden;
-                background: #0f0f1a; color: white;
+                background: radial-gradient(circle at center, #0f1117 0%, #0b0b14 100%);
+                color: white;
                 font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
                 display: flex; flex-direction: column; align-items: center; justify-content: center;
                 height: 100vh; width: 100vw;
                 border-top: 4px solid #6366f1; box-sizing: border-box;
             }}
-            .icon {{ font-size: 52px; margin-bottom: 15px; }}
             .title {{ font-size: 32px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }}
             .subtitle {{ color: #94a3b8; font-size: 15px; margin: 8px 0 25px 0; }}
             .loading-text {{ color: #6366f1; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }}
             .progress-container {{ width: 280px; height: 6px; background: #1e1e38; border-radius: 10px; overflow: hidden; }}
             .progress-bar {{ width: 0%; height: 100%; background: #6366f1; border-radius: 10px; transition: width 0.3s ease; }}
             .version {{ margin-top: 20px; color: #475569; font-size: 10px; font-weight: 500; }}
-            
+
             @keyframes pulse {{
                 0% {{ opacity: 0.6; }}
                 50% {{ opacity: 1; }}
                 100% {{ opacity: 0.6; }}
             }}
             .loading-text {{ animation: pulse 1.5s infinite ease-in-out; }}
-            
-            .globe-container {{
-                position: relative;
-                width: 60px;
-                height: 60px;
-                border-radius: 50%;
-                overflow: hidden;
-                margin-bottom: 20px;
-                background: #1e1e38;
-                box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
-            }}
-            .globe-content {{
-                display: flex;
-                font-size: 60px;
-                line-height: 60px;
-                white-space: nowrap;
-                animation: slide 3s linear infinite;
-                cursor: default;
-                user-select: none;
-            }}
-            .globe-overlay {{
-                position: absolute;
-                top: 0; left: 0; width: 100%; height: 100%;
-                background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 40%, rgba(0,0,0,0.4) 100%);
-                border-radius: 50%;
-                pointer-events: none;
-            }}
-            @keyframes slide {{
-                from {{ transform: translateX(0); }}
-                to {{ transform: translateX(-64px); }}
+
+            #globeCanvas {{
+                margin-bottom: 18px;
             }}
         </style>
     </head>
     <body>
-        <div class="globe-container">
-            <div class="globe-content">🌐🌐</div>
-            <div class="globe-overlay"></div>
-        </div>
+        <canvas id="globeCanvas" width="120" height="120"></canvas>
         <h1 class="title">FA Desk</h1>
         <p class="subtitle">Foreign Assets ITR Helper</p>
         <div class="loading-text" id="status">Starting up...</div>
@@ -107,10 +77,134 @@ def get_splash_html():
         <div class="version">Version {APP_VERSION}</div>
 
         <script>
+            // ---- 3D Wireframe Globe ----
+            (function() {{
+                const canvas = document.getElementById('globeCanvas');
+                const ctx = canvas.getContext('2d');
+                const W = canvas.width, H = canvas.height;
+                const cx = W / 2, cy = H / 2, R = 42;
+                let angle = 0;
+
+                // Hub nodes on the globe surface (lat, lon in radians)
+                const hubs = [
+                    {{ lat: 0.7, lon: 0.3 }},
+                    {{ lat: -0.4, lon: 1.8 }},
+                    {{ lat: 0.2, lon: -1.2 }},
+                    {{ lat: -0.6, lon: 3.0 }},
+                    {{ lat: 0.5, lon: -2.5 }},
+                    {{ lat: -0.1, lon: 0.9 }},
+                ];
+
+                function project(lat, lon) {{
+                    const x = R * Math.cos(lat) * Math.sin(lon + angle);
+                    const y = R * Math.sin(lat);
+                    const z = R * Math.cos(lat) * Math.cos(lon + angle);
+                    return {{ x: cx + x, y: cy - y, z: z }};
+                }}
+
+                function draw() {{
+                    ctx.clearRect(0, 0, W, H);
+
+                    // Outer orbital glow
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, R + 6, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(99, 102, 241, 0.18)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Outer glow shadow
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
+                    ctx.shadowColor = 'rgba(99, 102, 241, 0.45)';
+                    ctx.shadowBlur = 18;
+                    ctx.strokeStyle = 'rgba(99, 102, 241, 0.08)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // Longitude lines
+                    const lonSteps = 12;
+                    for (let i = 0; i < lonSteps; i++) {{
+                        const lon = (i / lonSteps) * Math.PI * 2;
+                        ctx.beginPath();
+                        for (let j = 0; j <= 40; j++) {{
+                            const lat = (j / 40) * Math.PI - Math.PI / 2;
+                            const p = project(lat, lon);
+                            const depth = (p.z + R) / (2 * R);
+                            if (j === 0) ctx.moveTo(p.x, p.y);
+                            else ctx.lineTo(p.x, p.y);
+                        }}
+                        // We'll stroke per-segment for depth; simplified: use average depth
+                        const midP = project(0, lon);
+                        const midDepth = (midP.z + R) / (2 * R);
+                        if (midDepth > 0.5) {{
+                            ctx.strokeStyle = 'rgba(99, 102, 241, ' + (0.15 + midDepth * 0.55) + ')';
+                            ctx.lineWidth = 0.8;
+                        }} else {{
+                            ctx.strokeStyle = 'rgba(99, 102, 241, 0.12)';
+                            ctx.lineWidth = 0.5;
+                        }}
+                        ctx.stroke();
+                    }}
+
+                    // Latitude lines
+                    const latSteps = 7;
+                    for (let i = 1; i < latSteps; i++) {{
+                        const lat = (i / latSteps) * Math.PI - Math.PI / 2;
+                        ctx.beginPath();
+                        for (let j = 0; j <= 60; j++) {{
+                            const lon = (j / 60) * Math.PI * 2;
+                            const p = project(lat, lon);
+                            if (j === 0) ctx.moveTo(p.x, p.y);
+                            else ctx.lineTo(p.x, p.y);
+                        }}
+                        const testP = project(lat, -angle);
+                        const depthL = (testP.z + R) / (2 * R);
+                        if (depthL > 0.5) {{
+                            ctx.strokeStyle = 'rgba(99, 102, 241, ' + (0.12 + depthL * 0.45) + ')';
+                            ctx.lineWidth = 0.6;
+                        }} else {{
+                            ctx.strokeStyle = 'rgba(99, 102, 241, 0.12)';
+                            ctx.lineWidth = 0.4;
+                        }}
+                        ctx.stroke();
+                    }}
+
+                    // Hub nodes
+                    hubs.forEach(function(hub) {{
+                        const p = project(hub.lat, hub.lon);
+                        const depth = (p.z + R) / (2 * R);
+                        if (depth > 0.45) {{
+                            // Front-facing: bright violet with halo
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(167, 139, 250, 0.3)';
+                            ctx.fill();
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                            ctx.fillStyle = '#a78bfa';
+                            ctx.fill();
+                        }} else {{
+                            // Back-facing: dimmed
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+                            ctx.fill();
+                        }}
+                    }});
+
+                    angle += 0.012;
+                    requestAnimationFrame(draw);
+                }}
+
+                draw();
+            }})();
+
+            // ---- Progress Bar ----
             let progress = 0;
             const bar = document.getElementById('bar');
             const status = document.getElementById('status');
-            
+
             setTimeout(() => {{
                 progress = 25;
                 bar.style.width = '25%';
@@ -241,7 +335,7 @@ def run_webview_mode(state):
         y=settings.get("y"),
         min_size=(900, 600),
         hidden=True,
-        background_color='#0f0f1a'
+        background_color='#0f1117'
     )
 
     splash_window = webview.create_window(
@@ -251,7 +345,7 @@ def run_webview_mode(state):
         height=300,
         frameless=True,
         on_top=True,
-        background_color='#0f0f1a'
+        background_color='#0b0b14'
     )
 
     def start_main_app():

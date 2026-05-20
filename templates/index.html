@@ -41,7 +41,7 @@
                 <h3>Or Create New User</h3>
                 <div class="new-user-input">
                     <input type="text" id="newUsernameInput" placeholder="Enter username...">
-                    <button type="button" id="createUserBtn" class="btn btn-primary">Create</button>
+                    <button type="button" id="createUserBtn" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>Create</button>
                 </div>
             </div>
 
@@ -52,7 +52,7 @@
 
             <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); text-align: center;">
                 <button type="button" id="tryDummyBtn" class="btn btn-outline" style="border-color: var(--accent); color: var(--accent); font-weight: 600; width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(var(--accent-rgb, 99, 102, 241), 0.05); transition: all 0.2s ease;">
-                    ✨ Try with Demo Profile (CY2025)
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>Try with Demo Profile (CY2025)
                 </button>
             </div>
         </div>
@@ -61,14 +61,17 @@
     <!-- Header -->
     <header id="appHeader" class="hidden">
         <div class="header-left">
-            <h1>🌐 FA Desk</h1>
+            <h1 style="display: inline-flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <span>FA Desk</span>
+            </h1>
             <span class="subtitle">Foreign Assets ITR Helper</span>
         </div>
         <div class="header-right">
             <div class="user-display" style="display: flex; align-items: center; margin-right: 16px;">
-                <span style="font-size: 1.2rem; margin-right: 8px;">👤</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; vertical-align: middle;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <span id="activeUserDisplay" style="font-weight: 600; margin-right: 12px; font-size: 1.1rem; color: var(--accent);">Default</span>
-                <button id="switchUserBtn" class="btn btn-sm btn-outline" title="Switch User">Switch</button>
+                <button id="switchUserBtn" class="btn btn-sm btn-outline" title="Switch User"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Switch</button>
             </div>
             <div class="year-selector">
                 <label for="yearSelect">Calendar Year:</label>
@@ -76,47 +79,105 @@
             </div>
             <div class="header-actions">
                 <!-- Save (Primary) -->
-                <button id="saveBtn" class="btn btn-primary" title="Save current data to server"><span id="unsavedDot" class="unsaved-dot hidden"></span>💾 Save</button>
+                <button id="saveBtn" class="btn btn-primary" title="Save current data to server">
+                    <span id="unsavedDot" class="unsaved-dot hidden"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    <span>Save</span>
+                </button>
 
                 <!-- Portfolio Dropdown -->
                 <div class="dropdown">
-                    <button id="portfolioMenu" class="btn btn-outline dropdown-toggle">📁 Portfolio</button>
+                    <button id="portfolioMenu" class="btn btn-outline dropdown-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        <span>Portfolio</span>
+                    </button>
                     <div class="dropdown-content">
-                        <button id="uploadDocsBtn" class="btn" title="Upload broker files to import portfolio">📄 Upload Broker Docs</button>
-                        <button id="loadBtn" class="btn" title="Load saved data from server">📂 Load Portfolio</button>
-                        <button id="openFileBtn" class="btn" title="Open portfolio JSON file from disk">📑 Open from File...</button>
-                        <button id="saveAsBtn" class="btn" title="Save portfolio to your computer">💾 Save to Disk (As)</button>
+                        <button id="uploadDocsBtn" class="btn" title="Upload broker files to import portfolio">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span>Upload Broker Docs</span>
+                        </button>
+                        <button id="loadBtn" class="btn" title="Load saved data from server">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M2 10h20"></path></svg>
+                            <span>Load Portfolio</span>
+                        </button>
+                        <button id="openFileBtn" class="btn" title="Open portfolio JSON file from disk">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            <span>Open from File...</span>
+                        </button>
+                        <button id="saveAsBtn" class="btn" title="Save portfolio to your computer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            <span>Save to Disk (As)</span>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Tools Dropdown -->
                 <div class="dropdown">
-                    <button id="toolsMenu" class="btn btn-outline dropdown-toggle">⚙️ Tools</button>
+                    <button id="toolsMenu" class="btn btn-outline dropdown-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <span>Tools</span>
+                    </button>
                     <div class="dropdown-content">
-                        <button id="fetchRatesBtn" class="btn" title="Download SBI TT rates">⬇ Fetch SBI Rates</button>
-                        <button id="viewRatesBtn" class="btn" title="View & edit monthly SBI rates">💱 Monthly Rates</button>
-                        <button id="fetchAllDividendsBtn" class="btn" title="Fetch dividends for all stocks in current year">💰 Fetch All Dividends</button>
-                        <button id="clearSbiBtn" class="btn" title="Clear all manual SBI TT rate overrides" style="color:var(--danger);">🗑️ Clear SBI TT Overrides</button>
-                        <button id="clearCacheBtn" class="btn" title="Clear cached historical stock & dividend data" style="color:var(--danger);">🗑️ Clear Stock Cache</button>
+                        <button id="fetchRatesBtn" class="btn" title="Download SBI TT rates">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Fetch SBI Rates</span>
+                        </button>
+                        <button id="viewRatesBtn" class="btn" title="View & edit monthly SBI rates">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            <span>Monthly Rates</span>
+                        </button>
+                        <button id="fetchAllDividendsBtn" class="btn" title="Fetch dividends for all stocks in current year">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="12" y1="10" x2="12" y2="14"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            <span>Fetch All Dividends</span>
+                        </button>
+                        <button id="clearSbiBtn" class="btn" title="Clear all manual SBI TT rate overrides" style="color:var(--danger);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            <span>Clear SBI TT Overrides</span>
+                        </button>
+                        <button id="clearCacheBtn" class="btn" title="Clear cached historical stock & dividend data" style="color:var(--danger);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            <span>Clear Stock Cache</span>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Manage Year Dropdown -->
                 <div class="dropdown">
-                    <button id="manageMenu" class="btn btn-outline dropdown-toggle">🗓️ Manage</button>
+                    <button id="manageMenu" class="btn btn-outline dropdown-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span>Manage</span>
+                    </button>
                     <div class="dropdown-content">
-                        <button id="importPrevBtn" class="btn" title="Import previous year data">📥 Import Prev Year</button>
-                        <button id="clearYearBtn" class="btn" title="Clear all data for current year" style="color:var(--danger);">🗑️ Clear Current Year</button>
+                        <button id="importPrevBtn" class="btn" title="Import previous year data">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="8 12 12 16 16 12"></polyline><line x1="12" y1="8" x2="12" y2="16"></line></svg>
+                            <span>Import Prev Year</span>
+                        </button>
+                        <button id="clearYearBtn" class="btn" title="Clear all data for current year" style="color:var(--danger);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            <span>Clear Current Year</span>
+                        </button>
                     </div>
                 </div>
 
                 <!-- View Dropdown -->
                 <div class="dropdown">
-                    <button id="viewMenu" class="btn btn-outline dropdown-toggle">View</button>
+                    <button id="viewMenu" class="btn btn-outline dropdown-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>View</span>
+                    </button>
                     <div class="dropdown-content">
-                        <button id="collapseAllBtn" class="btn" title="Collapse all stock cards">▶ Collapse All</button>
-                        <button id="expandAllBtn" class="btn" title="Expand all stock cards">▼ Expand All</button>
-                        <button id="historyBtn" class="btn" title="View action history">📜 Action History</button>
+                        <button id="collapseAllBtn" class="btn" title="Collapse all stock cards">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            <span>Collapse All</span>
+                        </button>
+                        <button id="expandAllBtn" class="btn" title="Expand all stock cards">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            <span>Expand All</span>
+                        </button>
+                        <button id="historyBtn" class="btn" title="View action history">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L21 8M21 3v5h-5"></path></svg>
+                            <span>Action History</span>
+                        </button>
                     </div>
                 </div>
 
@@ -124,20 +185,59 @@
 
                 <!-- Undo/Redo (Quick Access) -->
                 <div class="btn-group">
-                    <button id="undoBtn" class="btn btn-sm btn-outline" title="Undo (Ctrl+Z)" disabled>↩</button>
-                    <button id="redoBtn" class="btn btn-sm btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>↪</button>
+                    <button id="undoBtn" class="btn btn-sm btn-outline" title="Undo (Ctrl+Z)" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                    </button>
+                    <button id="redoBtn" class="btn btn-sm btn-outline" title="Redo (Ctrl+Shift+Z)" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path></svg>
+                    </button>
                 </div>
 
                 <!-- Misc -->
                 <div class="btn-group">
-                    <button id="findBtn" class="btn btn-sm btn-outline" title="Find in App (Ctrl+F)">🔍 Find</button>
-                    <button id="themeToggleBtn" class="btn btn-sm btn-outline theme-toggle-btn" title="Toggle dark/light theme">
-                        <span class="theme-icon-sun">☀️</span>
-                        <span class="theme-icon-moon">🌙</span>
+                    <button id="findBtn" class="btn btn-sm btn-outline" title="Find in App (Ctrl+F)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <span>Find</span>
                     </button>
-                    <button id="helpBtn" class="btn btn-sm btn-outline btn-help" title="Show tutorial">❓</button>
-                    <button id="aboutBtn" class="btn btn-sm btn-outline" title="About FA Desk">ℹ️</button>
-                    <button id="quitAppBtn" class="btn btn-sm btn-outline" style="border-color:var(--danger); color:var(--danger);" title="Shut down">🛑</button>
+                    <button id="themeToggleBtn" class="btn btn-sm btn-outline btn-icon-square theme-toggle-btn" title="Toggle dark/light theme">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-sun">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-moon">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                    <button id="helpBtn" class="btn btn-sm btn-outline btn-icon-square btn-help" title="Show tutorial">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </button>
+                    <button id="aboutBtn" class="btn btn-sm btn-outline btn-icon-square" title="About FA Desk">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </button>
+                    <button id="quitAppBtn" class="btn btn-sm btn-outline btn-icon-square btn-quit" title="Shut down">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                            <line x1="12" y1="2" x2="12" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
 
                 <input type="file" id="openFileInput" accept=".json" style="display: none;">
@@ -147,9 +247,15 @@
 
     <!-- Tab Navigation -->
     <nav id="tabNav" class="hidden tab-nav">
-        <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">📋 FA Report</button>
-        <button id="tabSellHelper" class="tab-btn" onclick="switchTab('sellHelper')">🧮 Sell Simulator</button>
-        <button id="tabTaxStatement" class="tab-btn" onclick="switchTab('taxStatement')">📊 Tax Statement</button>
+        <button id="tabA3" class="tab-btn active" onclick="switchTab('a3')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>FA Report
+        </button>
+        <button id="tabSellHelper" class="tab-btn" onclick="switchTab('sellHelper')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="16"></line><line x1="15" y1="22" x2="15" y2="16"></line><line x1="9" y1="16" x2="15" y2="16"></line><path d="M16 8h.01"></path><path d="M12 8h.01"></path><path d="M8 8h.01"></path><path d="M16 12h.01"></path><path d="M12 12h.01"></path><path d="M8 12h.01"></path></svg>Sell Simulator
+        </button>
+        <button id="tabTaxStatement" class="tab-btn" onclick="switchTab('taxStatement')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>Tax Statement
+        </button>
     </nav>
 
     <main id="appMain" class="hidden">
@@ -157,7 +263,7 @@
         <!-- SBI Monthly Rates Manager (always available) -->
         <section id="monthlyRatesSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('monthlyRatesContent')">
-                <h2>💱 SBI TT Buying Rates — Monthly Overview</h2>
+                <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>SBI TT Buying Rates — Monthly Overview</h2>
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="monthlyRatesContent" class="collapsible-content">
@@ -169,8 +275,8 @@
                     <div class="rates-currency-select">
                         <label for="ratesYearSelect">Year:</label>
                         <select id="ratesYearSelect"></select>
-                        <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">↻ Load Rates</button>
-                        <button id="lockRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;">🔒 Lock Year</button>
+                        <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L21 8M21 16a9 9 0 0 1-14.85 3.36L3 18"></path></svg>Load Rates</button>
+                        <button id="lockRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Lock Year</button>
                     </div>
                     <table id="monthlyRatesTable">
                         <thead>
@@ -191,18 +297,18 @@
         <!-- Portfolio Dashboard -->
         <div id="portfolioDashboard" class="portfolio-dashboard hidden">
             <div class="dash-stat">
-                <span class="dash-icon">📦</span>
+                <span class="dash-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"></polygon><polygon points="12 22.08 21 17.08 21 6.92 12 12 12 22.08"></polygon><polygon points="12 12 21 6.92 12 1.83 3 6.92 12 12"></polygon></svg></span>
                 <span class="dash-value"><span id="dashStockCount">0</span><span style="font-size: 0.6em; color: var(--text-muted); margin: 0 4px;">/</span><span id="dashLotCount">0</span></span>
                 <span class="dash-label">Stocks / Lots</span>
             </div>
             <div class="dash-stat">
-                <span class="dash-icon">💰</span>
+                <span class="dash-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></span>
                 <span class="dash-value" id="dashTotalAssets">—</span>
                 <div id="dashTotalAssetsUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
                 <span class="dash-label">Total Assets</span>
             </div>
             <div class="dash-stat">
-                <span class="dash-icon">📈</span>
+                <span class="dash-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
                 <span class="dash-value" id="dashUnrealizedGain">—</span>
                 <div id="dashUnrealizedUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
                 <div id="dashUnrealizedBreakdown" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 8px; font-weight: 500;">
@@ -212,7 +318,7 @@
                 <span class="dash-label">Unrealized G/L</span>
             </div>
             <div class="dash-stat">
-                <span class="dash-icon">💵</span>
+                <span class="dash-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>
                 <span class="dash-value" id="dashTotalDividends">—</span>
                 <div id="dashTotalDividendsUSD" style="font-size: 0.9rem; font-weight: 600; margin-top: -2px; margin-bottom: 4px; color: var(--accent);">$—</div>
                 <span class="dash-label">Total Dividends</span>
@@ -225,7 +331,7 @@
             <div class="add-stock-form">
                 <div class="input-group">
                     <input type="text" id="tickerInput" placeholder="Enter ticker symbol (e.g., QCOM, VWRA)" autocomplete="off">
-                    <button id="lookupBtn" class="btn btn-primary">🔍 Lookup</button>
+                    <button id="lookupBtn" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Lookup</button>
                 </div>
                 <p class="hint">Ticker will be auto-resolved for non-US exchanges (e.g., VWRA → VWRA.L)</p>
             </div>
@@ -243,9 +349,9 @@
         <!-- Results Section -->
         <section id="resultsSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('resultsContent')">
-                <h2>📊 FA Report Preview — Section A3</h2>
+                <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>FA Report Preview — Section A3</h2>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <button id="exportCsvBtn" class="btn btn-primary" onclick="event.stopPropagation();">📥 Export CSV</button>
+                    <button id="exportCsvBtn" class="btn btn-primary" onclick="event.stopPropagation();"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Export CSV</button>
                     <span class="toggle-icon">▼</span>
                 </div>
             </div>
@@ -284,7 +390,7 @@
         <!-- Validate A3 Section -->
         <section id="validateA3Section" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('validateA3Content')">
-                <h2>🔍 Validate A3 — Calculation Breakdown</h2>
+                <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Validate A3 — Calculation Breakdown</h2>
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="validateA3Content" class="collapsible-content">
@@ -314,7 +420,7 @@
         <!-- Per-Stock Dividend Summary -->
         <section id="stockSummarySection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('stockSummaryContent')">
-                <h2>📊 Per-Stock Dividend Summary</h2>
+                <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Per-Stock Dividend Summary</h2>
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="stockSummaryContent" class="collapsible-content">
@@ -335,7 +441,7 @@
         <!-- ITR Tax Year Capital Gains & Dividend Summary -->
         <section id="taxYearSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('taxYearContent')">
-                <h2>📈 ITR Capital Gains &amp; Dividend Summary</h2>
+                <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>ITR Capital Gains &amp; Dividend Summary</h2>
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="taxYearContent" class="collapsible-content">
@@ -356,7 +462,7 @@
         <!-- Validate Capital Gains & Dividends Section -->
         <section id="validateTaxSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('validateTaxContent')">
-                <h2>🔍 Validate Capital Gains & Dividends — Calculation Breakdown</h2>
+                <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Validate Capital Gains &amp; Dividends — Calculation Breakdown</h2>
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="validateTaxContent" class="collapsible-content">
@@ -384,7 +490,7 @@
         <!-- Pie Chart: End-of-Year Assets by Stock -->
         <section id="assetPieChartSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('assetPieChartContent')">
-                <h2 id="assetPieChartTitle">🧩 End-of-Year Assets by Stock (INR)</h2>
+                <h2 id="assetPieChartTitle"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>End-of-Year Assets by Stock (INR)</h2>
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="assetPieChartContent" class="collapsible-content">
@@ -400,7 +506,7 @@
         <!-- SBI Rates Used in Calculation (at bottom, collapsed by default) -->
         <section id="sbiRatesSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('sbiRatesContent')">
-                <h2>📐 SBI TT Rates Used in Calculation</h2>
+                <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>SBI TT Rates Used in Calculation</h2>
                 <span class="toggle-icon">▼</span>
             </div>
             <div id="sbiRatesContent" class="collapsible-content">
@@ -426,7 +532,7 @@
         <!-- ===== TAX STATEMENT PANEL ===== -->
         <div id="taxStatementPanel" class="hidden">
             <section class="card">
-                <h2 style="margin-bottom:4px;">📊 Consolidated Tax Statement (Tax Year Apr–Mar)</h2>
+                <h2 style="margin-bottom:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Consolidated Tax Statement (Tax Year Apr–Mar)</h2>
                 <p class="hint" style="margin-bottom:16px;">
                     Generate a unified tax view for a complete Indian Tax Year (Apr–Mar) by combining data from two calendar year reports.
                     If a calendar year's report is missing, that portion is treated as zero.
@@ -434,7 +540,7 @@
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
                     <label for="fyYearSelect" style="margin-bottom:0;font-weight:500;">Tax Year:</label>
                     <select id="fyYearSelect" style="width:auto;min-width:160px;"></select>
-                    <button id="generateFYBtn" class="btn btn-accent">⚡ Generate Consolidated Statement</button>
+                    <button id="generateFYBtn" class="btn btn-accent"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Generate Consolidated Statement</button>
                 </div>
                 <div id="consolidatedFYBlocks"></div>
             </section>
@@ -446,17 +552,17 @@
             <section class="card" style="margin-bottom:16px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
                     <div>
-                        <h2 style="margin:0 0 4px;">🧮 Sell Simulator — Tax Impact Simulator</h2>
+                        <h2 style="margin:0 0 4px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="16"></line><line x1="15" y1="22" x2="15" y2="16"></line><line x1="9" y1="16" x2="15" y2="16"></line><path d="M16 8h.01"></path><path d="M12 8h.01"></path><path d="M8 8h.01"></path><path d="M16 12h.01"></path><path d="M12 12h.01"></path><path d="M8 12h.01"></path></svg>Sell Simulator — Tax Impact Simulator</h2>
                         <p class="hint" style="margin:0;">Simulate hypothetical sells to preview STCG/LTCG tax impact. <strong>Portfolio is never modified.</strong></p>
                     </div>
-                    <button id="shRefreshBtn" class="btn btn-outline" title="Re-import lots from current portfolio">↻ Refresh Lots</button>
+                    <button id="shRefreshBtn" class="btn btn-outline" title="Re-import lots from current portfolio"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L21 8M21 16a9 9 0 0 1-14.85 3.36L3 18"></path></svg>Refresh Lots</button>
                 </div>
             </section>
 
             <!-- Current Portfolio Lots Reference (read-only) -->
             <section class="card" style="margin-bottom:16px;">
                 <div class="collapsible-header" onclick="toggleSection('shLotsRefContent')">
-                    <h3 style="margin:0;">📦 Current Portfolio Lots (Reference)</h3>
+                    <h3 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"></polygon><polygon points="12 22.08 21 17.08 21 6.92 12 12 12 22.08"></polygon><polygon points="12 12 21 6.92 12 1.83 3 6.92 12 12"></polygon></svg>Current Portfolio Lots (Reference)</h3>
                     <span class="toggle-icon">▼</span>
                 </div>
                 <div id="shLotsRefContent" class="collapsible-content" style="margin-top:12px;">
@@ -487,7 +593,7 @@
             <section class="card">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
                     <h3 style="margin:0;">Simulated Sells</h3>
-                    <button id="shAddRowBtn" class="btn btn-primary btn-sm">➕ Add Sell</button>
+                    <button id="shAddRowBtn" class="btn btn-primary btn-sm"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Sell</button>
                 </div>
                 <div style="overflow-x:auto;">
                     <table id="shSellsTable" style="width:100%;border-collapse:collapse;font-size:0.875rem;">
@@ -505,14 +611,14 @@
                         <tbody id="shSellsBody">
                             <tr id="shEmptyRow">
                                 <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.875rem;">
-                                    No simulated sells yet. Click <strong>➕ Add Sell</strong> to begin.
+                                    No simulated sells yet. Click <strong>Add Sell</strong> to begin.
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <div style="margin-top:16px;text-align:right;">
-                    <button id="shSimulateBtn" class="btn btn-accent btn-large" style="display:none;">⚡ Simulate Tax Impact</button>
+                    <button id="shSimulateBtn" class="btn btn-accent btn-large" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Simulate Tax Impact</button>
                 </div>
             </section>
 
@@ -563,28 +669,28 @@
         <!-- Quick Jump Nav (fixed, above FAB) -->
         <nav id="quickJumpNav" class="quick-jump-nav hidden">
             <div class="qj-title">Jump to</div>
-            <button class="qj-btn" data-target="portfolioDashboard">📊 Dashboard</button>
-            <button class="qj-btn" data-target="addStockSection">➕ Add Stock</button>
-            <button class="qj-btn" data-target="stockCards">📦 Stocks</button>
-            <button class="qj-btn" data-target="resultsSection">📝 Report</button>
-            <button class="qj-btn" data-target="validateA3Section">🔍 Validate A3</button>
-            <button class="qj-btn" data-target="validateTaxSection">📉 Validate Tax</button>
-            <button class="qj-btn" data-target="stockSummarySection">💰 Dividends</button>
-            <button class="qj-btn" data-target="taxYearSection">📈 Tax Summary</button>
-            <button class="qj-btn" data-target="assetPieChartSection">🥧 Assets Chart</button>
-            <button class="qj-btn" data-target="monthlyRatesSection">💱 Monthly Rates</button>
-            <button class="qj-btn" data-target="sbiRatesSection">📉 Used Rates</button>
+            <button class="qj-btn" data-target="portfolioDashboard"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Dashboard</button>
+            <button class="qj-btn" data-target="addStockSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>Add Stock</button>
+            <button class="qj-btn" data-target="stockCards"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"></polygon><polygon points="12 22.08 21 17.08 21 6.92 12 12 12 22.08"></polygon><polygon points="12 12 21 6.92 12 1.83 3 6.92 12 12"></polygon></svg>Stocks</button>
+            <button class="qj-btn" data-target="resultsSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Report</button>
+            <button class="qj-btn" data-target="validateA3Section"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Validate A3</button>
+            <button class="qj-btn" data-target="validateTaxSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Validate Tax</button>
+            <button class="qj-btn" data-target="stockSummarySection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Dividends</button>
+            <button class="qj-btn" data-target="taxYearSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Tax Summary</button>
+            <button class="qj-btn" data-target="assetPieChartSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>Assets Chart</button>
+            <button class="qj-btn" data-target="monthlyRatesSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>Monthly Rates</button>
+            <button class="qj-btn" data-target="sbiRatesSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>Used Rates</button>
         </nav>
 
         <!-- Floating Generate FA Report Button -->
-        <button id="calcFab" class="calc-fab hidden" title="Generate FA Report">⚡ Generate FA Report</button>
+        <button id="calcFab" class="calc-fab hidden" title="Generate FA Report"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Generate FA Report</button>
 
         <!-- Keyboard Shortcuts Modal -->
         <div id="shortcutsModal" class="modal-backdrop hidden" onclick="if(event.target===this) this.classList.add('hidden')">
             <div class="modal-box" style="max-width: 420px;">
                 <div class="modal-header">
-                    <h2>⌨️ Keyboard Shortcuts</h2>
-                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('shortcutsModal').classList.add('hidden')">✕</button>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="6" y1="8" x2="6" y2="8"></line><line x1="10" y1="8" x2="10" y2="8"></line><line x1="14" y1="8" x2="14" y2="8"></line><line x1="18" y1="8" x2="18" y2="8"></line><line x1="6" y1="12" x2="6" y2="12"></line><line x1="10" y1="12" x2="10" y2="12"></line><line x1="14" y1="12" x2="14" y2="12"></line><line x1="18" y1="12" x2="18" y2="12"></line><line x1="7" y1="16" x2="17" y2="16"></line></svg>Keyboard Shortcuts</h2>
+                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('shortcutsModal').classList.add('hidden')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 </div>
                 <table style="width:100%; margin-top: 12px;">
                     <tbody>
@@ -602,8 +708,8 @@
         <div id="searchModal" class="modal-backdrop hidden" onclick="if(event.target===this) this.classList.add('hidden')">
             <div class="modal-box" style="max-width: 500px;">
                 <div class="modal-header">
-                    <h2>🔍 Find in App</h2>
-                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('searchModal').classList.add('hidden')">✕</button>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Find in App</h2>
+                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('searchModal').classList.add('hidden')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 </div>
                 <div style="margin-top: 16px;">
                     <div class="input-group">
@@ -630,12 +736,12 @@
                     <span class="stock-ticker"></span>
                     <span class="stock-name"></span>
                     <span class="stock-peak-badge hidden" title="Yearly max closing price (used for Peak Value calculation)">
-                        📈 <span class="peak-price-label"></span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg><span class="peak-price-label"></span>
                     </span>
                 </div>
                 <div class="stock-card-actions">
-                    <button class="btn btn-sm btn-outline toggle-details-btn">▼ Details</button>
-                    <button class="btn btn-sm btn-danger remove-stock-btn">✕ Remove</button>
+                    <button class="btn btn-sm btn-outline toggle-details-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="6 9 12 15 18 9"></polyline></svg>Details</button>
+                    <button class="btn btn-sm btn-danger remove-stock-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Remove</button>
                 </div>
             </div>
 
@@ -645,7 +751,7 @@
                     <div class="company-info-section">
                         <div class="section-header">
                             <h3>Company Information</h3>
-                            <button class="btn btn-sm btn-outline fetch-company-details-btn" title="Fetch company info from Yahoo Finance and override current values">🔄 Fetch Details</button>
+                            <button class="btn btn-sm btn-outline fetch-company-details-btn" title="Fetch company info from Yahoo Finance and override current values"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Fetch Details</button>
                         </div>
                         <div class="form-grid">
                             <div class="form-field">
@@ -686,9 +792,9 @@
                         <div class="section-header">
                             <h3>Acquisition Lots</h3>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn btn-sm btn-outline import-lots-csv-btn" title="Import lots from CSV file">📂 Import CSV</button>
+                                <button class="btn btn-sm btn-outline import-lots-csv-btn" title="Import lots from CSV file"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M2 10h20"></path></svg>Import CSV</button>
                                 <input type="file" class="import-lots-csv-input" accept=".csv" style="display:none;">
-                                <button class="btn btn-sm btn-primary add-lot-btn">+ Add Lot</button>
+                                <button class="btn btn-sm btn-primary add-lot-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Lot</button>
                             </div>
                         </div>
                         <table class="lots-table">
@@ -708,7 +814,7 @@
                     <div class="sells-section">
                         <div class="section-header">
                             <h3>Sell Transactions</h3>
-                            <button class="btn btn-sm btn-primary add-sell-btn">+ Add Sell</button>
+                            <button class="btn btn-sm btn-primary add-sell-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Sell</button>
                         </div>
                         <table class="sells-table">
                             <thead>
@@ -731,8 +837,8 @@
                         <div class="section-header">
                             <h3>Dividends (in Calendar Year)</h3>
                             <div style="display:flex;gap:6px;">
-                                <button class="btn btn-sm btn-outline fetch-dividends-btn" title="Fetch exact dividends (including Payment Dates) from Nasdaq">🔄 Fetch Dividends</button>
-                                <button class="btn btn-sm btn-primary add-div-btn">+ Add Dividend</button>
+                                <button class="btn btn-sm btn-outline fetch-dividends-btn" title="Fetch exact dividends (including Payment Dates) from Nasdaq"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>Fetch Dividends</button>
+                                <button class="btn btn-sm btn-primary add-div-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Dividend</button>
                             </div>
                         </div>
                         <p class="hint" style="margin-top:-5px; margin-bottom:8px;">Auto-fetched from Nasdaq (includes Payment Dates). You can edit, delete, or add manually.</p>
@@ -757,8 +863,8 @@
     <div id="platformModal" class="modal-backdrop hidden" onclick="if(event.target===this)closePlatformModal()">
         <div class="modal-box" style="max-width: 450px;">
             <div class="modal-header">
-                <h2 style="margin:0;">📁 Upload Docs</h2>
-                <button class="btn btn-sm btn-outline" onclick="closePlatformModal()">✕ Close</button>
+                <h2 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>Upload Docs</h2>
+                <button class="btn btn-sm btn-outline" onclick="closePlatformModal()"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Close</button>
             </div>
             <p class="hint" style="margin:12px 0 20px;">Select your trading platform to continue with the import.</p>
             
@@ -780,14 +886,14 @@
     <div id="etradeUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeEtradeModal()">
         <div class="modal-box">
             <div class="modal-header">
-                <h2 style="margin:0;">📁 Upload ETRADE Docs</h2>
-                <button class="btn btn-sm btn-outline" onclick="closeEtradeModal()">✕ Close</button>
+                <h2 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>Upload E*TRADE Docs</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeEtradeModal()"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Close</button>
             </div>
             <p class="hint" style="margin:12px 0 20px;">Import your E-Trade exports to build the portfolio automatically. Upload one or both files — they'll be merged into a single consolidated portfolio.</p>
 
             <div class="modal-file-row">
                 <div class="modal-file-label">
-                    <span class="modal-file-icon">📈</span>
+                    <span class="modal-file-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
                     <div>
                         <strong>Holdings (ByStatus)</strong>
                         <p class="hint" style="margin:2px 0 0;">Upload expanded doc from selecting holdings on etrade then selecting <strong>View By Status</strong> and downloading expanded file.</p>
@@ -800,7 +906,7 @@
 
             <div class="modal-file-row" style="margin-top:14px;">
                 <div class="modal-file-label">
-                    <span class="modal-file-icon">📉</span>
+                    <span class="modal-file-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline><polyline points="17 18 23 18 23 12"></polyline></svg></span>
                     <div>
                         <strong>Gain & Loss Files <span style="font-weight:400;color:var(--text-muted);">(one or more)</span></strong>
                         <p class="hint" style="margin:2px 0 0;">Upload all G&L expanded files from <strong>target year up to today</strong>. (e.g. 2025 and 2026 G&L).</p>
@@ -813,7 +919,7 @@
 
             <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
                 <button class="btn btn-outline" onclick="closeEtradeModal()">Cancel</button>
-                <button id="etradeImportBtn" class="btn btn-accent">⚡ Import Portfolio</button>
+                <button id="etradeImportBtn" class="btn btn-accent"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Import Portfolio</button>
             </div>
         </div>
     </div>
@@ -823,14 +929,14 @@
     <div id="ibkrUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeIbkrModal()">
         <div class="modal-box">
             <div class="modal-header">
-                <h2 style="margin:0;">📁 Upload IBKR Docs</h2>
-                <button class="btn btn-sm btn-outline" onclick="closeIbkrModal()">✕ Close</button>
+                <h2 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>Upload IBKR Docs</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeIbkrModal()"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Close</button>
             </div>
             <p class="hint" style="margin:12px 0 20px;">Import your IBKR CSV export to build the portfolio automatically.</p>
 
             <div class="modal-file-row">
                 <div class="modal-file-label">
-                    <span class="modal-file-icon">📈</span>
+                    <span class="modal-file-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
                     <div>
                         <strong>Transaction History File</strong>
                         <p class="hint" style="margin:2px 0 0;">IBKR CSV export containing the 'Transaction History' section. Populates stock lots with buy and sell details.</p>
@@ -843,7 +949,7 @@
 
             <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
                 <button class="btn btn-outline" onclick="closeIbkrModal()">Cancel</button>
-                <button id="ibkrImportBtn" class="btn btn-accent">⚡ Import Portfolio</button>
+                <button id="ibkrImportBtn" class="btn btn-accent"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Import Portfolio</button>
             </div>
         </div>
     </div>
@@ -853,8 +959,8 @@
     <div id="importReviewModal" class="modal-backdrop hidden">
         <div class="modal-box large">
             <div class="modal-header">
-                <h2 style="margin:0;">📋 Review Transactions to Import</h2>
-                <button class="btn btn-sm btn-outline" onclick="closeImportReview()">✕ Cancel</button>
+                <h2 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Review Transactions to Import</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeImportReview()"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Cancel</button>
             </div>
             <div class="modal-body" style="padding:16px 0;">
                 <p class="hint" style="margin-bottom:16px;">
@@ -879,7 +985,7 @@
             </div>
             <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
                 <button class="btn btn-outline" onclick="closeImportReview()">Cancel</button>
-                <button id="confirmImportBtn" class="btn btn-accent">✅ Apply to Portfolio</button>
+                <button id="confirmImportBtn" class="btn btn-accent"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="20 6 9 17 4 12"></polyline></svg>Apply to Portfolio</button>
             </div>
         </div>
     </div>
@@ -891,13 +997,13 @@
         <div id="tutorialTooltip" class="tutorial-tooltip">
             <div class="tutorial-tooltip-header">
                 <span id="tutorialStepCounter" class="tutorial-step-counter"></span>
-                <button id="tutorialCloseBtn" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:0.72rem;">✕ Skip</button>
+                <button id="tutorialCloseBtn" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:0.72rem;"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Skip</button>
             </div>
             <h4 id="tutorialTitle" class="tutorial-title"></h4>
             <p id="tutorialDesc" class="tutorial-desc"></p>
             <div class="tutorial-nav">
-                <button id="tutorialPrevBtn" class="btn btn-sm btn-outline">← Prev</button>
-                <button id="tutorialNextBtn" class="btn btn-sm btn-primary">Next →</button>
+                <button id="tutorialPrevBtn" class="btn btn-sm btn-outline"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>Prev</button>
+                <button id="tutorialNextBtn" class="btn btn-sm btn-primary">Next<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; display: inline-block; vertical-align: middle;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
             </div>
         </div>
     </div>
@@ -906,8 +1012,8 @@
     <!-- ===== History Side Panel ===== -->
     <div id="historyPanel" class="side-panel hidden">
         <div class="side-panel-header">
-            <h3>📜 Action History</h3>
-            <button class="btn btn-sm btn-outline" onclick="toggleHistoryPanel()">✕</button>
+            <h3><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L21 8M21 3v5h-5"></path></svg>Action History</h3>
+            <button class="btn btn-sm btn-outline" onclick="toggleHistoryPanel()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
         <div id="historyList" class="side-panel-content">
             <!-- History items will be injected here -->
@@ -936,7 +1042,9 @@
         <div class="modal-box about-modal-box">
             <div class="about-modal-content">
                 <div class="about-accent-bar"></div>
-                <div class="about-icon">🌐</div>
+                <div class="about-icon">
+                    <canvas id="aboutGlobeCanvas" width="120" height="120" style="margin-top: -12px; margin-bottom: -6px; filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.35));"></canvas>
+                </div>
                 <h2 class="about-title">FA Desk</h2>
                 <p class="about-subtitle">Foreign Assets ITR Helper</p>
                 <p class="about-description">

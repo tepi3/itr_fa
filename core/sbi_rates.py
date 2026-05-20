@@ -102,7 +102,7 @@ def refresh_cache():
         except (ValueError, IndexError):
             calc_year = None
             
-        if calc_year in locked_years:
+        if calc_year in locked_years or y in locked_years:
             continue
             
         cache["rates"]["USD"][date_str] = rate
