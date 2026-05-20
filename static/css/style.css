@@ -1,3 +1,19 @@
+/* ===== UI Density / Resolution Scale ===== */
+:root[data-density="compact"] {
+    --ui-scale: 85%;
+}
+:root[data-density="standard"] {
+    --ui-scale: 100%;
+}
+:root[data-density="zoomed"] {
+    --ui-scale: 115%;
+}
+
+html {
+    font-size: var(--ui-scale, 100%);
+    transition: font-size 0.15s ease-in-out;
+}
+
 /* ===== CSS Variables & Reset ===== */
 :root {
     --bg-primary: #0f1117;
@@ -141,6 +157,11 @@ body {
     border: 1px solid var(--border);
     padding: 8px 0;
     flex-direction: column;
+}
+
+.dropdown-content-right {
+    left: auto;
+    right: 0;
 }
 
 /* Bridge the gap between button and menu to prevent flicker */

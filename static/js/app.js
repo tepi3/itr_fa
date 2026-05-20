@@ -424,6 +424,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     initTutorial();
     initQuickJump();
     restoreTheme();
+    restoreDensity();
     addYearChangeGuard();
 
     // Heartbeat to keep server alive (native desktop mode)
@@ -505,6 +506,13 @@ function bindEvents() {
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
     document.getElementById("aboutBtn").addEventListener("click", openAboutModal);
+    
+    // UI Density selector events
+    document.querySelectorAll(".density-option").forEach(btn => {
+        btn.addEventListener("click", () => {
+            setDensity(btn.dataset.density);
+        });
+    });
     document.getElementById("quitAppBtn").addEventListener("click", async () => {
         if (!confirm("Are you sure you want to quit the application? Any unsaved changes will be lost.")) return;
         try {
@@ -5200,6 +5208,32 @@ function restoreTheme() {
             document.documentElement.dataset.theme = saved;
         }
     } catch(e) {}
+}
+
+// ===== UI Density / Resolution Scale =====
+function setDensity(density) {
+    const root = document.documentElement;
+    root.dataset.density = density;
+    try { localStorage.setItem("fa_desk_density", density); } catch(e) {}
+    
+    // Update active class and badges in the dropdown
+    document.querySelectorAll(".density-option").forEach(btn => {
+        const isActive = btn.dataset.density === density;
+        btn.classList.toggle("active", isActive);
+        const badge = btn.querySelector(".density-badge");
+        if (badge) {
+            badge.style.display = isActive ? "inline-block" : "none";
+        }
+    });
+}
+
+function restoreDensity() {
+    try {
+        const saved = localStorage.getItem("fa_desk_density");
+        setDensity(saved || "standard");
+    } catch(e) {
+        setDensity("standard");
+    }
 }
 
 // ===== Auto-Save Draft to localStorage =====
