@@ -433,7 +433,6 @@ body {
     transition: var(--transition);
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden; /* Force table-wrapper to scroll instead of entire card */
 }
 
 .card:hover { border-color: var(--border-light); }
@@ -627,6 +626,8 @@ label {
 
 .stock-card-body > div {
     min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
 }
 
 .stock-card-body.collapsed { display: none; }
@@ -967,6 +968,8 @@ tr:hover td {
 
 .collapsible-content > div {
     min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
 }
 
 .highlight-pulse {
