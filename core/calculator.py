@@ -1062,7 +1062,7 @@ def calculate_current_balance(portfolio: dict) -> dict:
     # TTBR: use_event_date=True to get the last available rate in cache for current year.
     snapshot_date = today
 
-    stock_totals = {}  # entity_name -> total_balance_inr
+    stock_totals = {}  # entity_name -> {"balance_inr": float, "quantity": float}
 
     for stock in portfolio.get("stocks", []):
         ticker = stock["ticker"]
@@ -1083,7 +1083,6 @@ def calculate_current_balance(portfolio: dict) -> dict:
             continue
 
         # Sum remaining qty across all lots as-of snapshot date
-        total_balance_inr = 0.0
         for lot in stock.get("lots", []):
             if not lot.get("buy_date"):
                 continue
@@ -1100,15 +1099,24 @@ def calculate_current_balance(portfolio: dict) -> dict:
             if qty <= 0:
                 continue
 
-            total_balance_inr += price * qty * rate
-
-        if total_balance_inr > 0:
-            stock_totals[entity_name] = stock_totals.get(entity_name, 0.0) + total_balance_inr
+            balance_inr = price * qty * rate
+            if entity_name not in stock_totals:
+                stock_totals[entity_name] = {"balance_inr": 0.0, "quantity": 0.0, "price": price, "rate": rate}
+            
+            stock_totals[entity_name]["balance_inr"] += balance_inr
+            stock_totals[entity_name]["quantity"] += qty
 
     return {
         "snapshot_date": snapshot_date.isoformat(),
         "stock_balances": [
-            {"entity_name": k, "balance_inr": round(v)}
+            {
+                "entity_name": k,
+                "balance_inr": round(v["balance_inr"]),
+                "quantity": round(v["quantity"], 4),
+                "price": v["price"],
+                "rate": v["rate"]
+            }
             for k, v in stock_totals.items()
+            if v["balance_inr"] > 0
         ],
     }

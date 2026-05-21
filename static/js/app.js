@@ -4793,7 +4793,7 @@ async function renderAssetPieChart(rows) {
     const portfolioYear = state.portfolio.calendar_year;
 
     // Aggregate by stock — use current-month snapshot for in-progress years
-    const stockTotals = {};
+    const stockTotals = {}; // entity -> { value: float, qty: float, price: float, rate: float }
     let totalAssets = 0;
     let chartLabel = "End-of-Year Assets (Dec 31)";
 
@@ -4802,8 +4802,16 @@ async function renderAssetPieChart(rows) {
         rows.forEach(row => {
             const entity = row.entity_name;
             const bal = row.closing_balance || 0;
-            if (!stockTotals[entity]) stockTotals[entity] = 0;
-            stockTotals[entity] += bal;
+            const c = row.calculation_details && row.calculation_details.closing;
+            const qty = (c && c.remaining_qty) || 0;
+            const price = (c && c.components && c.components.close_price_dec31) || 0;
+            const rate = (c && c.components && c.components.ttbr) || 0;
+            
+            if (!stockTotals[entity]) stockTotals[entity] = { value: 0, qty: 0, price: 0, rate: 0 };
+            stockTotals[entity].value += bal;
+            stockTotals[entity].qty += qty;
+            stockTotals[entity].price = price; // Latest price in lot list
+            stockTotals[entity].rate = rate;
             totalAssets += bal;
         });
     } else {
@@ -4816,7 +4824,11 @@ async function renderAssetPieChart(rows) {
                 const formatted = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
                 chartLabel = `Assets as of ${formatted}`;
                 result.stock_balances.forEach(item => {
-                    stockTotals[item.entity_name] = (stockTotals[item.entity_name] || 0) + item.balance_inr;
+                    if (!stockTotals[item.entity_name]) stockTotals[item.entity_name] = { value: 0, qty: 0, price: 0, rate: 0 };
+                    stockTotals[item.entity_name].value += item.balance_inr;
+                    stockTotals[item.entity_name].qty += item.quantity || 0;
+                    stockTotals[item.entity_name].price = item.price || 0;
+                    stockTotals[item.entity_name].rate = item.rate || 0;
                     totalAssets += item.balance_inr;
                 });
             }
@@ -4826,8 +4838,12 @@ async function renderAssetPieChart(rows) {
             rows.forEach(row => {
                 const entity = row.entity_name;
                 const bal = row.closing_balance || 0;
-                if (!stockTotals[entity]) stockTotals[entity] = 0;
-                stockTotals[entity] += bal;
+                const c = row.calculation_details && row.calculation_details.closing;
+                const qty = (c && c.remaining_qty) || 0;
+                
+                if (!stockTotals[entity]) stockTotals[entity] = { value: 0, qty: 0, price: 0, rate: 0 };
+                stockTotals[entity].value += bal;
+                stockTotals[entity].qty += qty;
                 totalAssets += bal;
             });
         }
@@ -4845,7 +4861,7 @@ async function renderAssetPieChart(rows) {
     }
 
     // Sort by value descending
-    const sortedStocks = Object.entries(stockTotals).sort((a, b) => b[1] - a[1]);
+    const sortedStocks = Object.entries(stockTotals).sort((a, b) => b[1].value - a[1].value);
     
     // Vibrant color palette matching app theme
     const colors = [
@@ -4856,7 +4872,25 @@ async function renderAssetPieChart(rows) {
     let svgContent = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="max-width:100%; height:auto;">`;
     let startAngle = -0.5 * Math.PI; // Start at top
 
-    sortedStocks.forEach(([entity, value], idx) => {
+    // Create table header
+    legendContainer.innerHTML = `
+        <table class="pie-legend-table">
+            <thead>
+                <tr>
+                    <th>Stock</th>
+                    <th class="text-right">Units</th>
+                    <th class="text-right">Value (USD)</th>
+                    <th class="text-right">Value (INR)</th>
+                    <th class="text-right">%</th>
+                </tr>
+            </thead>
+            <tbody id="pieLegendTableBody"></tbody>
+        </table>
+    `;
+    const tbody = document.getElementById("pieLegendTableBody");
+
+    sortedStocks.forEach(([entity, data], idx) => {
+        const { value, qty, price, rate } = data;
         if (value <= 0) return;
 
         const sliceAngle = (value / totalAssets) * 2 * Math.PI;
@@ -4892,17 +4926,23 @@ async function renderAssetPieChart(rows) {
 
         startAngle = endAngle;
 
-        // Build legend
+        // Build table row
         const pct = ((value / totalAssets) * 100).toFixed(1);
-        const item = document.createElement("div");
-        item.className = "pie-legend-item";
-        item.innerHTML = `
-            <div class="pie-legend-swatch" style="border: 2px solid ${color}; background: transparent;"></div>
-            <div class="pie-legend-label">${entity}</div>
-            <div class="pie-legend-value">₹${Math.round(value).toLocaleString("en-IN")}</div>
-            <div class="pie-legend-pct">${pct}%</div>
+        const valueUsd = qty * price;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="pie-legend-swatch" style="border: 2px solid ${color}; background: transparent; width:10px; height:10px;"></div>
+                    <span style="font-weight:600;">${entity}</span>
+                </div>
+            </td>
+            <td class="text-right" style="font-variant-numeric:tabular-nums;">${qty % 1 === 0 ? qty : qty.toFixed(2)}</td>
+            <td class="text-right" style="font-variant-numeric:tabular-nums;">$${valueUsd.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-right" style="font-weight:700; font-variant-numeric:tabular-nums;">₹${Math.round(value).toLocaleString("en-IN")}</td>
+            <td class="text-right" style="color:var(--text-muted); font-size:0.75rem;">${pct}%</td>
         `;
-        legendContainer.appendChild(item);
+        tbody.appendChild(tr);
     });
 
     const textColor = "var(--text-primary)";

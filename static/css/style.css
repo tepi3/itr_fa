@@ -1526,18 +1526,32 @@ tr:hover td {
 }
 
 .pie-chart-legend {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 200px;
+    flex: 1;
+    min-width: 300px;
 }
 
-.pie-legend-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.pie-legend-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 0.85rem;
-    color: var(--text-primary);
+}
+
+.pie-legend-table th {
+    text-align: left;
+    padding: 8px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+}
+
+.pie-legend-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.pie-legend-table tr:last-child td {
+    border-bottom: none;
 }
 
 .pie-legend-swatch {
@@ -1545,24 +1559,6 @@ tr:hover td {
     height: 14px;
     border-radius: 3px;
     flex-shrink: 0;
-}
-
-.pie-legend-label {
-    font-weight: 600;
-    flex: 1;
-}
-
-.pie-legend-value {
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-secondary);
-}
-
-.pie-legend-pct {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    min-width: 40px;
-    text-align: right;
 }
 
 /* ===== Sell G&L Badges ===== */

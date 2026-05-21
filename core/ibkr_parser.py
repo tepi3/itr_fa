@@ -2,7 +2,7 @@ import io
 import csv
 import logging
 from datetime import datetime
-from core.utils import tax_round
+from core.utils import tax_round, parse_sort_date
 
 logger = logging.getLogger(__name__)
 
@@ -87,10 +87,7 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
 
         # Convert back to date object to check year
         try:
-            if "/" in date_val:
-                d_obj = datetime.strptime(date_val, "%d/%m/%Y").date()
-            else:
-                d_obj = datetime.fromisoformat(date_val).date()
+            d_obj = parse_sort_date(date_val)
             
             if d_obj.year > calendar_year:
                 skipped_count += 1
