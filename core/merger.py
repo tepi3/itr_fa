@@ -1,17 +1,11 @@
 import uuid
 import logging
-from datetime import datetime
+from core.utils import parse_sort_date
 
 logger = logging.getLogger(__name__)
 
 def _sort_key(tx):
-    d_str = tx["date"]
-    try:
-        if "/" in d_str:
-            return datetime.strptime(d_str, "%d/%m/%Y")
-        return datetime.fromisoformat(d_str)
-    except Exception:
-        return datetime.min
+    return parse_sort_date(tx["date"])
 
 def apply_transactions(portfolio: dict, transactions: list) -> dict:
     """
@@ -67,7 +61,7 @@ def apply_transactions(portfolio: dict, transactions: list) -> dict:
                     "buy_price": price,
                     "sells": []
                 })
-            stock["lots"].sort(key=lambda l: l["buy_date"])
+            stock["lots"].sort(key=lambda l: parse_sort_date(l["buy_date"]))
 
         elif t_type == "SELL":
             buy_date = tx.get("buy_date")
@@ -91,7 +85,7 @@ def apply_transactions(portfolio: dict, transactions: list) -> dict:
                         "sells": []
                     }
                     stock["lots"].append(matching_lot)
-                    stock["lots"].sort(key=lambda l: l["buy_date"])
+                    stock["lots"].sort(key=lambda l: parse_sort_date(l["buy_date"]))
                 else:
                     # Ensure lot quantity covers this sell and all existing sells.
                     # This handles cases where a BUY was partial or missing, while 

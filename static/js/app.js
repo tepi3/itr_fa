@@ -1969,21 +1969,6 @@ function showImportReview(transactions, label) {
         }
 
         const selectedTxs = selectedIndices.map(i => proposedTransactions[i]);
-        
-        // E-Trade Pre-processing: Holdings only give unsold shares. 
-        // We add the sold shares from the G&L report so the lot is created with the true total quantity.
-        const buys = selectedTxs.filter(t => t.type === 'BUY');
-        const sells = selectedTxs.filter(t => t.type === 'SELL' && t.buy_date);
-        
-        buys.forEach(buy => {
-            const linkedSells = sells.filter(s => 
-                s.symbol === buy.symbol && 
-                s.buy_date === buy.date && 
-                Math.abs(s.buy_price - buy.price) < 0.01
-            );
-            const totalSold = linkedSells.reduce((sum, s) => sum + s.qty, 0);
-            buy.qty += totalSold;
-        });
 
         showLoading("Merging selected transactions...");
         try {

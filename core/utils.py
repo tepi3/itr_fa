@@ -79,3 +79,16 @@ def get_user_dir(username):
     user_dir = PORTFOLIOS_DIR / safe_name
     user_dir.mkdir(exist_ok=True)
     return user_dir, safe_name
+
+def parse_sort_date(date_str: str):
+    """Parse a date string (dd/mm/yyyy or ISO) to a datetime object for sorting."""
+    from datetime import datetime
+    if not date_str:
+        return datetime.min
+    try:
+        if "/" in date_str:
+            return datetime.strptime(date_str, "%d/%m/%Y")
+        return datetime.fromisoformat(date_str)
+    except Exception:
+        return datetime.min
+

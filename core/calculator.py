@@ -15,6 +15,7 @@ from typing import Optional
 
 from core.sbi_rates import get_sbi_tt_rate
 from core.stock_data import get_historical_prices, get_price_on_date
+from core.utils import parse_sort_date
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +130,7 @@ def calculate_peak_value(
         return {"value": None, "error": "No price data available"}
 
     # Sort sells by date
-    sorted_sells = sorted(sells_in_cy, key=lambda s: s["sell_date"])
+    sorted_sells = sorted(sells_in_cy, key=lambda s: parse_sort_date(s["sell_date"]))
 
     # Cache daily TTBR as (rate, rate_date) to avoid repeated lookups
     daily_ttbr_cache = {}

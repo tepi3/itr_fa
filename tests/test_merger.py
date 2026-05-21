@@ -87,5 +87,64 @@ class TestMerger(unittest.TestCase):
         self.assertEqual(stock["lots"][0]["sells"][0]["quantity"], 10)
         self.assertEqual(stock["lots"][1]["sells"][0]["quantity"], 5)
 
+    def test_dd_mm_yyyy_chronological_sorting(self):
+        # Scenario: Lots are imported or created in non-chronological order or with dd/mm/yyyy dates
+        # "31/01/2022" should sort BEFORE "20/11/2025" and "05/03/2023" should be in between
+        portfolio = {
+            "calendar_year": 2025,
+            "stocks": [{
+                "ticker": "TEST",
+                "lots": []
+            }]
+        }
+        txs = [
+            {"type": "BUY", "date": "20/11/2025", "symbol": "TEST", "qty": 10, "price": 100},
+            {"type": "BUY", "date": "31/01/2022", "symbol": "TEST", "qty": 5, "price": 90},
+            {"type": "BUY", "date": "05/03/2023", "symbol": "TEST", "qty": 8, "price": 95}
+        ]
+        res = apply_transactions(portfolio, txs)
+        lots = res["stocks"][0]["lots"]
+        self.assertEqual(len(lots), 3)
+        # Verify correct chronological order
+        self.assertEqual(lots[0]["buy_date"], "31/01/2022")
+        self.assertEqual(lots[1]["buy_date"], "05/03/2023")
+        self.assertEqual(lots[2]["buy_date"], "20/11/2025")
+
+    def test_fifo_sell_with_dd_mm_yyyy(self):
+        # Scenario: Under alphabetical string sorting, "31/01/2022" sorts after "20/11/2025" because "3" > "2".
+        # We must verify that FIFO properly matches the older lot first (31/01/2022) before the newer lot (20/11/2025).
+        portfolio = {
+            "calendar_year": 2025,
+            "stocks": [{
+                "ticker": "TEST",
+                "lots": [
+                    {"id": "L1", "buy_date": "20/11/2025", "quantity": 10, "buy_price": 100, "sells": []},
+                    {"id": "L2", "buy_date": "31/01/2022", "quantity": 10, "buy_price": 50, "sells": []}
+                ]
+            }]
+        }
+        # First, ensure apply_transactions will re-sort the lots in portfolio chronologically
+        txs_sort = [{"type": "BUY", "date": "31/01/2022", "symbol": "TEST", "qty": 0, "price": 50}]
+        portfolio = apply_transactions(portfolio, txs_sort)
+        
+        # Check that lots are sorted chronologically: L2 ("31/01/2022") must be first, L1 ("20/11/2025") second.
+        self.assertEqual(portfolio["stocks"][0]["lots"][0]["buy_date"], "31/01/2022")
+        self.assertEqual(portfolio["stocks"][0]["lots"][1]["buy_date"], "20/11/2025")
+
+        # Now sell 15 shares. It should consume 10 shares from L2 (31/01/2022) and 5 shares from L1 (20/11/2025)
+        txs_sell = [{"type": "SELL", "date": "10/12/2025", "symbol": "TEST", "qty": 15, "price": 150}]
+        res = apply_transactions(portfolio, txs_sell)
+        
+        stock = res["stocks"][0]
+        # L2 (31/01/2022) is index 0
+        self.assertEqual(stock["lots"][0]["buy_date"], "31/01/2022")
+        self.assertEqual(len(stock["lots"][0]["sells"]), 1)
+        self.assertEqual(stock["lots"][0]["sells"][0]["quantity"], 10)
+        
+        # L1 (20/11/2025) is index 1
+        self.assertEqual(stock["lots"][1]["buy_date"], "20/11/2025")
+        self.assertEqual(len(stock["lots"][1]["sells"]), 1)
+        self.assertEqual(stock["lots"][1]["sells"][0]["quantity"], 5)
+
 if __name__ == "__main__":
     unittest.main()

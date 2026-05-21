@@ -4,7 +4,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from core.utils import tax_round
+from core.utils import tax_round, parse_sort_date
 
 # openpyxl is lazy-loaded to speed up app startup
 openpyxl = None
@@ -185,7 +185,11 @@ class ETradeRollbackBuilder:
                 "buy_price": lot_data["buy_price"], "quantity": total_qty, "sells": lot_data["sells"]
             })
 
-        for stock in stocks_map.values(): stock["lots"].sort(key=lambda x: x["buy_date"])
+        for stock in stocks_map.values():
+            stock["lots"].sort(key=lambda x: parse_sort_date(x["buy_date"]))
+            for lot in stock["lots"]:
+                if "sells" in lot:
+                    lot["sells"].sort(key=lambda s: parse_sort_date(s["sell_date"]))
         return {"calendar_year": self.target_year, "overrides": {}, "sbi_rate_overrides": {}, "stocks": list(stocks_map.values())}
 
 def _to_csv_str(file_bytes: bytes, filename: str) -> str:
