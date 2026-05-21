@@ -324,18 +324,20 @@
                         <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L21 8M21 16a9 9 0 0 1-14.85 3.36L3 18"></path></svg>Load Rates</button>
                         <button id="lockRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Lock Year</button>
                     </div>
-                    <table id="monthlyRatesTable">
-                        <thead>
-                            <tr>
-                                <th>Month</th>
-                                <th>Rate Date (Last WD Prev Month)</th>
-                                <th>TT Buy Rate (₹)</th>
-                                <th>Source</th>
-                                <th>Edit</th>
-                            </tr>
-                        </thead>
-                        <tbody id="monthlyRatesTableBody"></tbody>
-                    </table>
+                    <div class="table-wrapper">
+                        <table id="monthlyRatesTable">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Rate Date (Last WD Prev Month)</th>
+                                    <th>TT Buy Rate (₹)</th>
+                                    <th>Source</th>
+                                    <th>Edit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthlyRatesTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
@@ -494,15 +496,17 @@
             </div>
             <div id="stockSummaryContent" class="collapsible-content">
                 <div>
-                    <table id="stockSummaryTable">
-                        <thead>
-                            <tr>
-                                <th>Entity Name</th>
-                                <th>Total Dividends Earned (₹)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="stockSummaryTableBody"></tbody>
-                    </table>
+                    <div class="table-wrapper">
+                        <table id="stockSummaryTable">
+                            <thead>
+                                <tr>
+                                    <th>Entity Name</th>
+                                    <th>Total Dividends Earned (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockSummaryTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
@@ -593,17 +597,19 @@
             <div id="sbiRatesContent" class="collapsible-content">
                 <div>
                     <p class="hint" style="margin-bottom: 12px;">These are the specific SBI TT Buying rates applied to each calculation step.</p>
-                    <table id="sbiRatesTable">
-                        <thead>
-                            <tr>
-                                <th>Calculation For</th>
-                                <th>Rate Date</th>
-                                <th>TT Buy Rate (₹)</th>
-                                <th>Source</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sbiRatesTableBody"></tbody>
-                    </table>
+                    <div class="table-wrapper">
+                        <table id="sbiRatesTable">
+                            <thead>
+                                <tr>
+                                    <th>Calculation For</th>
+                                    <th>Rate Date</th>
+                                    <th>TT Buy Rate (₹)</th>
+                                    <th>Source</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sbiRatesTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </section>
@@ -652,7 +658,7 @@
                 <div id="shLotsRefContent" class="collapsible-content" style="margin-top:12px;">
                     <div>
                         <p class="hint" style="margin-bottom:10px;">These are the acquisition lots from your current portfolio — for reference while building simulated sells. <strong>Not editable here.</strong></p>
-                        <div style="overflow-x:auto;">
+                        <div class="table-wrapper">
                             <table class="sh-lots-ref-table" id="shLotsRefTable">
                                 <thead>
                                     <tr>
@@ -679,7 +685,7 @@
                     <h3 style="margin:0;">Simulated Sells</h3>
                     <button id="shAddRowBtn" class="btn btn-primary btn-sm"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Sell</button>
                 </div>
-                <div style="overflow-x:auto;">
+                <div class="table-wrapper">
                     <table id="shSellsTable" style="width:100%;border-collapse:collapse;font-size:0.875rem;">
                         <thead>
                             <tr>
@@ -715,7 +721,7 @@
 
                 <!-- Per-sell breakdown -->
                 <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Per-Sell Breakdown</div>
-                <div style="overflow-x:auto;margin-bottom:24px;">
+                <div class="table-wrapper" style="margin-bottom:24px;">
                     <table id="shResultsTable" style="width:100%;border-collapse:collapse;font-size:0.83rem;">
                         <thead>
                             <tr>
@@ -884,17 +890,19 @@
                                 <button class="btn btn-sm btn-primary add-lot-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Lot</button>
                             </div>
                         </div>
-                        <table class="lots-table">
-                            <thead>
-                                <tr>
-                                    <th>Buy Date</th>
-                                    <th>Quantity</th>
-                                    <th class="buy-price-header">Buy Price ($)</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="lots-tbody"></tbody>
-                        </table>
+                        <div class="table-wrapper">
+                            <table class="lots-table">
+                                <thead>
+                                    <tr>
+                                        <th>Buy Date</th>
+                                        <th>Quantity</th>
+                                        <th class="buy-price-header">Buy Price ($)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="lots-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
     
                     <!-- Sells Section -->
@@ -903,20 +911,22 @@
                             <h3>Sell Transactions</h3>
                             <button class="btn btn-sm btn-primary add-sell-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Sell</button>
                         </div>
-                        <table class="sells-table">
-                            <thead>
-                                <tr>
-                                    <th>Lot (Buy Date)</th>
-                                    <th>Buy Price ($)</th>
-                                    <th>Sell Date</th>
-                                    <th>Quantity</th>
-                                    <th class="sell-price-header">Sell Price ($)</th>
-                                    <th>G&amp;L</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="sells-tbody"></tbody>
-                        </table>
+                        <div class="table-wrapper">
+                            <table class="sells-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lot (Buy Date)</th>
+                                        <th>Buy Price ($)</th>
+                                        <th>Sell Date</th>
+                                        <th>Quantity</th>
+                                        <th class="sell-price-header">Sell Price ($)</th>
+                                        <th>G&amp;L</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="sells-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
     
                     <!-- Dividends Section -->
@@ -929,17 +939,19 @@
                             </div>
                         </div>
                         <p class="hint" style="margin-top:-5px; margin-bottom:8px;">Auto-fetched from Nasdaq (includes Payment Dates). You can edit, delete, or add manually.</p>
-                        <table class="dividends-table">
-                            <thead>
-                                <tr>
-                                    <th>Ex-Date</th>
-                                    <th>Payment Date</th>
-                                    <th class="div-amount-header">Dividend Per Share ($)</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="dividends-tbody"></tbody>
-                        </table>
+                        <div class="table-wrapper">
+                            <table class="dividends-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ex-Date</th>
+                                        <th>Payment Date</th>
+                                        <th class="div-amount-header">Dividend Per Share ($)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="dividends-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>

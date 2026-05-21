@@ -1344,11 +1344,11 @@ function renderStockCard(stock) {
 
     // Ensure sections have correct classes for cross-linking
     const lotTable = card.querySelector(".lots-table");
-    if (lotTable && lotTable.parentElement) lotTable.parentElement.classList.add("lots-section");
+    if (lotTable) lotTable.closest(".lots-section")?.classList.add("lots-section");
     const sellTable = card.querySelector(".sells-table");
-    if (sellTable && sellTable.parentElement) sellTable.parentElement.classList.add("sells-section");
+    if (sellTable) sellTable.closest(".sells-section")?.classList.add("sells-section");
     const divTable = card.querySelector(".dividends-table");
-    if (divTable && divTable.parentElement) divTable.parentElement.classList.add("dividends-section");
+    if (divTable) divTable.closest(".dividends-section")?.classList.add("dividends-section");
 
     // Bind company info changes
     card.querySelectorAll(".company-info-section input, .company-info-section select").forEach(el => {
