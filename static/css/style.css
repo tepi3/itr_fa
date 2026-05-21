@@ -1223,6 +1223,8 @@ tr:hover td {
     padding: 28px 32px;
     width: 100%;
     max-width: 580px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
     box-shadow: var(--shadow-lg);
     animation: fadeIn 0.2s ease;
 }
@@ -1700,6 +1702,139 @@ tr:hover td {
     .quick-jump-nav { display: none; }
 }
 
+@media (max-width: 1650px) {
+    /* Collapsed Generate FA Report Floating Button */
+    .calc-fab {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        padding: 0;
+        border-radius: 24px;
+        justify-content: center;
+        gap: 0;
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-radius 0.35s ease,
+                    padding 0.35s ease,
+                    transform 0.25s ease,
+                    box-shadow 0.25s ease;
+    }
+    
+    .calc-fab svg {
+        margin-right: 0 !important;
+        transition: margin 0.35s ease;
+    }
+    
+    .calc-fab span {
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        display: inline-block;
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.25s ease,
+                    margin-left 0.35s ease;
+        margin-left: 0;
+    }
+    
+    /* Expand FAB on Hover/Focus-within */
+    .calc-fab:hover,
+    .calc-fab:focus-within {
+        width: 210px;
+        border-radius: 30px;
+        padding: 0 20px;
+        justify-content: center;
+    }
+    
+    .calc-fab:hover svg,
+    .calc-fab:focus-within svg {
+        margin-right: 8px !important;
+    }
+    
+    .calc-fab:hover span,
+    .calc-fab:focus-within span {
+        width: 140px;
+        opacity: 1;
+        margin-left: 4px;
+    }
+
+    /* Collapsed Quick Jump Navigation */
+    .quick-jump-nav {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        max-height: 48px;
+        border-radius: 24px;
+        overflow: hidden;
+        padding: 0;
+        right: 28px;
+        bottom: 92px; /* Placed exactly above collapsed FAB */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-radius 0.35s ease,
+                    padding 0.35s ease,
+                    border-color 0.35s ease,
+                    box-shadow 0.35s ease;
+    }
+    
+    /* Collapsed state scroll signifier */
+    .quick-jump-nav::before {
+        content: "⇅";
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--accent);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        pointer-events: none;
+    }
+    
+    .quick-jump-nav .qj-title,
+    .quick-jump-nav .qj-btn {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    
+    /* Expand Quick Jump Nav on Hover/Focus-within */
+    .quick-jump-nav:hover,
+    .quick-jump-nav:focus-within {
+        width: 170px;
+        max-height: 460px;
+        height: auto;
+        border-radius: var(--radius);
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        cursor: default;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(99, 102, 241, 0.2);
+        border-color: var(--accent);
+    }
+    
+    .quick-jump-nav:hover::before,
+    .quick-jump-nav:focus-within::before {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    
+    .quick-jump-nav:hover .qj-title,
+    .quick-jump-nav:focus-within .qj-title,
+    .quick-jump-nav:hover .qj-btn,
+    .quick-jump-nav:focus-within .qj-btn {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+}
+
 /* ===== Portfolio Dashboard ===== */
 .portfolio-dashboard {
     display: grid;
@@ -2119,7 +2254,8 @@ kbd {
 .about-modal-box {
     max-width: 420px !important;
     padding: 0 !important;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     border-radius: 16px !important;
 }
 
