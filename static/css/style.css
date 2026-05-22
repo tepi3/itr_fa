@@ -2731,3 +2731,65 @@ kbd {
     color: var(--text-muted);
 }
 
+/* Make Sell Simulator Tables Compact on Larger Screens */
+#shSellsTable, #shResultsTable {
+    width: 100%;
+    table-layout: auto;
+}
+
+#shSellsTable th, #shSellsTable td,
+#shResultsTable th, #shResultsTable td {
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+}
+
+#shSellsTable th {
+    font-size: 0.73rem !important;
+}
+
+#shResultsTable th {
+    font-size: 0.73rem !important;
+}
+
+/* Constrain Lot select in sells table */
+.sh-lot-select {
+    max-width: 250px;
+    width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0.78rem !important;
+    padding: 4px 6px !important;
+    height: 28px !important;
+}
+
+/* Flex group alignment inside sells table */
+#shSellsTable .price-input-group {
+    gap: 4px;
+}
+
+#shSellsTable .price-input-group input {
+    padding: 4px 6px !important;
+    height: 28px !important;
+    font-size: 0.78rem !important;
+}
+
+#shSellsTable .price-input-group button {
+    padding: 2px 6px !important;
+    height: 28px !important;
+    font-size: 0.72rem !important;
+}
+
+#shSellsTable input.sh-sell-date {
+    padding: 4px 6px !important;
+    height: 28px !important;
+    font-size: 0.78rem !important;
+    width: 90px !important;
+}
+
+/* Badges smaller */
+.sh-holding-badge {
+    padding: 2px 6px !important;
+    font-size: 0.7rem !important;
+}
+
