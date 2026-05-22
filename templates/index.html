@@ -679,6 +679,63 @@
                 </div>
             </section>
 
+            <!-- Smart Lot Allocator Card -->
+            <section class="sh-smart-allocator">
+                <h3 style="margin:0 0 12px;font-size:0.95rem;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                    Smart Sell Allocator (Batch Lot Selection)
+                </h3>
+                <div class="sh-alloc-grid">
+                    <div class="sh-alloc-field">
+                        <label for="shAllocTicker">Stock <span id="shAllocAvailableBadge" class="sh-alloc-badge" style="display:none;"></span></label>
+                        <select id="shAllocTicker">
+                            <option value="">— Select Stock —</option>
+                        </select>
+                    </div>
+                    <div class="sh-alloc-field">
+                        <label>Allocation Mode</label>
+                        <div class="sh-alloc-toggle-group">
+                            <button type="button" id="shAllocToggleQty" class="sh-alloc-toggle-btn active">Qty</button>
+                            <button type="button" id="shAllocToggleInr" class="sh-alloc-toggle-btn">₹ Target</button>
+                        </div>
+                    </div>
+                    <div class="sh-alloc-field">
+                        <label id="shAllocValueLabel" for="shAllocValue">Share Quantity</label>
+                        <input type="number" id="shAllocValue" placeholder="e.g. 50" step="any" min="0" style="width:100%;">
+                    </div>
+                    <div class="sh-alloc-field" style="justify-content: center; height: 38px;">
+                        <label class="sh-alloc-checkbox-label">
+                            <input type="checkbox" id="shAllocWholeShares" checked>
+                            Whole units only
+                        </label>
+                    </div>
+                    <div class="sh-alloc-field">
+                        <label for="shAllocDate">Simulated Sell Date</label>
+                        <input type="text" id="shAllocDate" placeholder="DD/MM/YYYY" style="width:100%;">
+                    </div>
+                    <div class="sh-alloc-field">
+                        <label for="shAllocPrice">Sell Price (USD)</label>
+                        <div class="price-input-group" style="width:100%;">
+                            <input type="number" id="shAllocPrice" placeholder="e.g. 150.00" step="any" min="0" style="flex:1; min-width:80px;">
+                            <button type="button" id="shAllocPriceFetchBtn" class="btn btn-sm btn-fetch-price" title="Fetch live market price">Live</button>
+                        </div>
+                    </div>
+                    <div class="sh-alloc-field">
+                        <label for="shAllocStrategy">Lot Selection Strategy</label>
+                        <select id="shAllocStrategy" style="width:100%;">
+                            <option value="mintax" selected>MinTax (Lowest Tax)</option>
+                            <option value="maxloss">MaxLoss (Harvest Loss)</option>
+                            <option value="fifo">FIFO (Oldest First)</option>
+                            <option value="lifo">LIFO (Newest First)</option>
+                        </select>
+                    </div>
+                    <div class="sh-alloc-field">
+                        <button type="button" id="shAllocBtn" class="btn btn-primary" style="width:100%;height:38px;">Allocate Sells</button>
+                    </div>
+                </div>
+                <div id="shAllocRateBanner" style="display:none; margin-top:12px; font-size:0.8rem; padding:8px 12px; border-radius:6px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.25); color:var(--text-main);"></div>
+            </section>
+
             <!-- Simulated Sells Table -->
             <section class="card">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -719,6 +776,20 @@
                     <button class="btn-help-inline" onclick="showTutorialStepByTitle('Sell Simulator')" title="Understanding simulation results"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
                 </div>
 
+                <!-- Total Proceeds Comparison Card Grid -->
+                <div class="sh-proceeds-comparison">
+                    <div class="sh-proceeds-card">
+                        <span class="label">Total Taxable Proceeds (Rule 115)</span>
+                        <span id="shTotalProceedsTax" class="value">₹0</span>
+                        <span class="rate-info" style="margin-top:4px;">Calculated using SBI TT buying rate of the last working day of previous month.</span>
+                    </div>
+                    <div class="sh-proceeds-card actual">
+                        <span class="label">Total Actual Cash Proceeds</span>
+                        <span id="shTotalProceedsActual" class="value">₹0</span>
+                        <span class="rate-info" style="margin-top:4px;">Calculated using latest available SBI TT rate on actual sell dates.</span>
+                    </div>
+                </div>
+
                 <!-- Per-sell breakdown -->
                 <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Per-Sell Breakdown</div>
                 <div class="table-wrapper" style="margin-bottom:24px;">
@@ -729,12 +800,13 @@
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Buy Date</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sell Date</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Qty</th>
-                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Buy Cost (₹)</th>
-                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sale Proceeds (₹)</th>
-                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Gain / Loss (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sale Proceeds (Tax) (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Sale Proceeds (Actual) (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Gain / Loss (Tax) (₹)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Gain / Loss (Actual) (₹)</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Type</th>
-                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR Buy</th>
-                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR Sell</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR Sell (Tax)</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR Sell (Actual)</th>
                             </tr>
                         </thead>
                         <tbody id="shResultsBody"></tbody>

@@ -2585,3 +2585,148 @@ kbd {
     }
 }
 
+/* ===== Smart Sell Allocator & Validation Styles ===== */
+.sh-smart-allocator {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.sh-smart-allocator:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+.sh-alloc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+.sh-alloc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sh-alloc-field label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.sh-alloc-badge {
+    font-size: 0.72rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 700;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+.sh-alloc-badge.warning {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.sh-alloc-toggle-group {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-input);
+}
+.sh-alloc-toggle-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-align: center;
+}
+.sh-alloc-toggle-btn.active {
+    background: var(--accent);
+    color: white;
+}
+.sh-alloc-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+.sh-alloc-checkbox-label input {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Over-allocation validation styling */
+.qty-over-limit {
+    border-color: var(--danger) !important;
+    background-color: var(--danger-light) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+    animation: shake 0.25s ease-in-out;
+}
+.sh-qty-warning-msg {
+    color: var(--danger);
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-top: 4px;
+    display: block;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* Dual proceeds summary layout */
+.sh-proceeds-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.sh-proceeds-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sh-proceeds-card.actual {
+    border-color: rgba(34, 197, 94, 0.25);
+    background: rgba(34, 197, 94, 0.02);
+}
+.sh-proceeds-card .label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+.sh-proceeds-card .value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+.sh-proceeds-card.actual .value {
+    color: var(--success);
+}
+.sh-proceeds-card .rate-info {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+

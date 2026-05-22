@@ -43,6 +43,7 @@ def api_lookup_stock():
 def api_sbi_rate():
     """Get SBI TT rate for a specific date (USD only)."""
     date_str = request.args.get("date")
+    use_event = request.args.get("use_event_date", "false").lower() == "true"
     if not date_str:
         return jsonify({"error": "date parameter is required"}), 400
     try:
@@ -52,7 +53,7 @@ def api_sbi_rate():
             d = dt_date.fromisoformat(date_str)
     except ValueError:
         return jsonify({"error": "Invalid date format. Use dd/mm/yyyy"}), 400
-    result = get_sbi_tt_rate(d)
+    result = get_sbi_tt_rate(d, use_event_date=use_event)
     return jsonify(result)
 
 @market_bp.route("/api/stock-price", methods=["GET"])

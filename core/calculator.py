@@ -687,15 +687,46 @@ def simulate_sell_impact(payload: dict) -> dict:
             sell_results.append(result)
             continue
 
+        # Actual TTBR (use_event_date=True)
+        try:
+            buy_rate_actual, buy_rate_actual_date, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True)
+        except Exception:
+            buy_rate_actual, buy_rate_actual_date = None, None
+
+        try:
+            sell_rate_actual, sell_rate_actual_date, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True)
+        except Exception:
+            sell_rate_actual, sell_rate_actual_date = None, None
+
+        # Fallback to Rule 115 rates if actual rates not found
+        if buy_rate_actual is None:
+            buy_rate_actual, buy_rate_actual_date = buy_rate, buy_rate_date
+        if sell_rate_actual is None:
+            sell_rate_actual, sell_rate_actual_date = sell_rate, sell_rate_date
+
         buy_inr_per_share  = buy_price  * buy_rate
         sell_inr_per_share = sell_price * sell_rate
         gain_inr = (sell_inr_per_share - buy_inr_per_share) * sell_qty
+
+        buy_inr_per_share_actual  = buy_price  * buy_rate_actual
+        sell_inr_per_share_actual = sell_price * sell_rate_actual
+        gain_inr_actual = (sell_inr_per_share_actual - buy_inr_per_share_actual) * sell_qty
 
         result["buy_inr_per_share"]  = round(buy_inr_per_share,  2)
         result["sell_inr_per_share"] = round(sell_inr_per_share, 2)
         result["buy_cost_inr"]       = round(buy_inr_per_share  * sell_qty)
         result["sell_proceeds_inr"]  = round(sell_inr_per_share * sell_qty)
         result["gain_inr"]           = round(gain_inr)
+
+        result["buy_inr_per_share_actual"]  = round(buy_inr_per_share_actual,  2)
+        result["sell_inr_per_share_actual"] = round(sell_inr_per_share_actual, 2)
+        result["buy_cost_actual_inr"]       = round(buy_inr_per_share_actual  * sell_qty)
+        result["sell_proceeds_actual_inr"]  = round(sell_inr_per_share_actual * sell_qty)
+        result["gain_actual_inr"]           = round(gain_inr_actual)
+        result["ttbr_buy_actual"]           = buy_rate_actual
+        result["ttbr_buy_actual_date"]      = buy_rate_actual_date
+        result["ttbr_sell_actual"]          = sell_rate_actual
+        result["ttbr_sell_actual_date"]     = sell_rate_actual_date
 
         if is_long_term:
             category = "ltcg" if gain_inr >= 0 else "ltcl"
@@ -733,10 +764,15 @@ def simulate_sell_impact(payload: dict) -> dict:
     compute_offset_summary(mini_tax_years)
     offset = mini_tax_years["prev"]["offset"]
 
+    total_proceeds_tax_inr = round(sum(s.get("sell_proceeds_inr", 0) for s in sell_results if s.get("sell_proceeds_inr") is not None))
+    total_proceeds_actual_inr = round(sum(s.get("sell_proceeds_actual_inr", 0) for s in sell_results if s.get("sell_proceeds_actual_inr") is not None))
+
     return {
         "sells":  sell_results,
         "totals": totals,
         "offset": offset,
+        "total_proceeds_tax_inr": total_proceeds_tax_inr,
+        "total_proceeds_actual_inr": total_proceeds_actual_inr,
     }
 
 
