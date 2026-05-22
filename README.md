@@ -108,10 +108,20 @@ python3 app.py
 - **ITR §70/74 Set-Off** — Automatic capital gains netting: STCL vs STCG, residual STCL vs LTCG, LTCL vs LTCG, with carry-forward tracking.
 - **Consolidated Tax Statement** — Generate a unified tax view for any complete Tax Year (Apr–Mar) by combining two calendar year reports. If a year's report is missing, that portion is treated as zero.
 
-### Sell Simulator
-- **Tax Impact Simulator** — Simulate hypothetical stock sells and preview STCG/LTCG tax impact without modifying your portfolio.
-- **Live Price Fetch** — Fetch real-time intraday prices for sell simulations.
-- **Portfolio Lots Reference** — View all acquisition lots from your current portfolio in a read-only reference table while building simulated sells.
+### Sell Simulator & Smart Allocator
+- **Smart Sell Allocator (Batch Selection)** — Select any stock from your portfolio and batch-allocate sells with a single click. Choose between entering a **Share Quantity** or an **INR Target (₹)**.
+- **INR Target Met Guarantee** — In INR Target mode, the allocator automatically calculates required share quantities based on the latest currency rates, applying individual lot constraint checks and ceiling rounding to guarantee your cash proceeds meet or exceed your target.
+- **Four Allocation Strategies** — Optimize your draws using advanced batch drawdown algorithms:
+  - **MinTax (Lowest Tax):** Sorts lots by prioritized tax brackets (STCL > LTCL > LTCG > STCG) then by gain/loss ascending to harvest capital losses first.
+  - **MaxLoss (Harvest Loss):** Maximizes capital loss or minimizes capital gain based on current sell prices.
+  - **FIFO (First In, First Out):** Drawdowns from the oldest buy lots first.
+  - **LIFO (Last In, First Out):** Drawdowns from the newest buy lots first.
+- **Dual-Proceeds Simulation (Actual vs. ITR Tax)** — Simultaneously simulates and compares actual cash proceeds and tax proceeds:
+  - **Tax proceeds:** Computed using the SBI TT rate of the last working day of the previous month (Rule 115).
+  - **Actual proceeds:** Computed using the latest available SBI TT rate on the exact simulated sell date.
+- **Side-by-Side Proceeds Cards & Table** — Displays a side-by-side summary grid comparing total actual vs. taxable proceeds, plus highly condensed, compact breakdowns with no horizontal scrolling.
+- **Calendar Year Locking & Protection** — Automatically detects the active running calendar year (e.g. 2026) and locks editing to it. If the running year is unavailable, it dynamically falls back to the year in which the user opened the simulator to protect previous years from manual changes. Dropdown modifications automatically redirect to the main portfolio page.
+- **Manual Over-Allocation Safety Guards** — Highlights overallocated acquisition lots in premium red (`.qty-over-limit`) with clear warning tooltips, and disables the simulation button until errors are corrected.
 
 ### Productivity
 - **Undo / Redo** — Undo any portfolio change (add/remove stock, lot, sell, dividend) with Undo or **Ctrl+Z** (⌘+Z on Mac). Redo with Redo or **Ctrl+Shift+Z**. Supports up to 50 levels.
