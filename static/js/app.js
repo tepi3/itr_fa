@@ -537,6 +537,14 @@ function initYearSelectors() {
     mainSelect.addEventListener("change", async (e) => {
         state.portfolio.calendar_year = parseInt(e.target.value);
         rateYearSelect.value = state.portfolio.calendar_year;
+        
+        // If changing year from Sell Simulator tab, redirect back to A3 Portfolio
+        const activeTab = document.querySelector(".nav-tab.active")?.id;
+        if (activeTab === "tabSellHelper") {
+            showToast("Changing calendar year returned you to the main Portfolio view.", "info");
+            switchTab("a3");
+        }
+        
         if (state.username) await autoLoadForYear(state.portfolio.calendar_year);
     });
     initialSelect.addEventListener("change", (e) => {
@@ -3929,7 +3937,43 @@ function switchTab(tab) {
     document.getElementById("tabSellHelper").classList.toggle("active", isSellHelper);
     document.getElementById("tabTaxStatement").classList.toggle("active", isTaxStatement);
 
-    if (isSellHelper) shImportLots();
+    if (isSellHelper) {
+        const runningYear = new Date().getFullYear();
+        const mainSelect = document.getElementById("yearSelect");
+        let targetYear = 2025;
+        if (mainSelect) {
+            const availableYears = Array.from(mainSelect.options).map(o => parseInt(o.value));
+            targetYear = availableYears.includes(runningYear) ? runningYear : 2025;
+        }
+
+        const bannerYearEl = document.getElementById("shBannerYear");
+        if (bannerYearEl) bannerYearEl.textContent = `CY${targetYear}`;
+
+        if (state.portfolio.calendar_year !== targetYear) {
+            showToast(`Sell Simulator only works for the running calendar year (${targetYear}). Switching to CY${targetYear}.`, "info");
+            
+            state.portfolio.calendar_year = targetYear;
+            if (mainSelect) mainSelect.value = targetYear;
+            const rateYearSelect = document.getElementById("ratesYearSelect");
+            if (rateYearSelect) rateYearSelect.value = targetYear;
+
+            if (state.username) {
+                showLoading(`Loading portfolio for CY${targetYear}...`);
+                autoLoadForYear(targetYear).then(() => {
+                    shImportLots();
+                    hideLoading();
+                }).catch(err => {
+                    console.error("Auto load failed", err);
+                    shImportLots();
+                    hideLoading();
+                });
+            } else {
+                shImportLots();
+            }
+        } else {
+            shImportLots();
+        }
+    }
 
     // Show/hide FAB + quick-jump nav based on tab and stock count
     const qjNav = document.getElementById("quickJumpNav");

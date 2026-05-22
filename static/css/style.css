@@ -2658,6 +2658,7 @@ kbd {
 .sh-alloc-checkbox-label {
     display: flex;
     align-items: center;
+    justify-content: flex-start !important;
     gap: 8px;
     font-size: 0.8rem;
     color: var(--text-secondary);
