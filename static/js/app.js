@@ -539,7 +539,7 @@ function initYearSelectors() {
         rateYearSelect.value = state.portfolio.calendar_year;
         
         // If changing year from Sell Simulator tab, redirect back to A3 Portfolio
-        const activeTab = document.querySelector(".nav-tab.active")?.id;
+        const activeTab = document.querySelector(".tab-btn.active")?.id;
         if (activeTab === "tabSellHelper") {
             showToast("Changing calendar year returned you to the main Portfolio view.", "info");
             switchTab("a3");
@@ -3887,7 +3887,7 @@ function renderTaxYearSummary(taxYears) {
 }
 
 // ===== Tab Switching =====
-function switchTab(tab) {
+async function switchTab(tab) {
     const isA3 = tab === "a3";
     const isSellHelper = tab === "sellHelper";
     const isTaxStatement = tab === "taxStatement";
@@ -3940,39 +3940,77 @@ function switchTab(tab) {
     if (isSellHelper) {
         const runningYear = new Date().getFullYear();
         const mainSelect = document.getElementById("yearSelect");
-        let targetYear = 2025;
-        if (mainSelect) {
-            const availableYears = Array.from(mainSelect.options).map(o => parseInt(o.value));
-            targetYear = availableYears.includes(runningYear) ? runningYear : 2025;
+        const openedYear = state.portfolio?.calendar_year || 2025;
+        let targetYear = openedYear;
+        let hasCurrentYearLots = false;
+        let currentYearLoaded = false;
+
+        const isRunningYearInDropdown = Array.from(mainSelect?.options || []).some(opt => parseInt(opt.value) === runningYear);
+
+        showLoading("Checking current year lots...");
+
+        if (isRunningYearInDropdown && state.username) {
+            try {
+                if (state.portfolio && state.portfolio.calendar_year === runningYear) {
+                    hasCurrentYearLots = state.portfolio.stocks && state.portfolio.stocks.length > 0;
+                    currentYearLoaded = true;
+                } else {
+                    const resp = await fetch(`/api/load?year=${runningYear}&username=${encodeURIComponent(state.username)}`);
+                    const data = await resp.json();
+                    if (data.success && data.portfolio && data.portfolio.stocks && data.portfolio.stocks.length > 0) {
+                        hasCurrentYearLots = true;
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to check if running year has lots:", e);
+            }
+        }
+
+        if (isRunningYearInDropdown && hasCurrentYearLots) {
+            targetYear = runningYear;
+        } else {
+            targetYear = openedYear;
         }
 
         const bannerYearEl = document.getElementById("shBannerYear");
         if (bannerYearEl) bannerYearEl.textContent = `CY${targetYear}`;
 
+        let infoMsg = "";
+        if (targetYear === runningYear) {
+            infoMsg = `Sell Simulator only works for the active running calendar year. Loaded lots from the current calendar year (${runningYear}).`;
+        } else {
+            infoMsg = `Sell Simulator only works for the active running calendar year. No lots available in current calendar year (${runningYear}), showing ${targetYear} lots instead.`;
+        }
+        showToast(infoMsg, "info");
+
+        const bannerSpan = document.querySelector("#shRunningYearBanner span");
+        if (bannerSpan) {
+            bannerSpan.innerHTML = `The Sell Simulator works exclusively for the active running calendar year (<strong id="shBannerYear">CY${targetYear}</strong>). Previous years are not editable. <span style="opacity:0.85; display:block; margin-top:2px;">${infoMsg}</span>`;
+        }
+
         if (state.portfolio.calendar_year !== targetYear) {
-            showToast(`Sell Simulator only works for the running calendar year (${targetYear}). Switching to CY${targetYear}.`, "info");
-            
             state.portfolio.calendar_year = targetYear;
             if (mainSelect) mainSelect.value = targetYear;
             const rateYearSelect = document.getElementById("ratesYearSelect");
             if (rateYearSelect) rateYearSelect.value = targetYear;
 
             if (state.username) {
-                showLoading(`Loading portfolio for CY${targetYear}...`);
-                autoLoadForYear(targetYear).then(() => {
-                    shImportLots();
-                    hideLoading();
-                }).catch(err => {
+                try {
+                    await autoLoadForYear(targetYear);
+                } catch (err) {
                     console.error("Auto load failed", err);
-                    shImportLots();
-                    hideLoading();
-                });
-            } else {
-                shImportLots();
+                }
             }
-        } else {
-            shImportLots();
+        } else if (state.username && !currentYearLoaded && targetYear === runningYear) {
+            try {
+                await autoLoadForYear(targetYear);
+            } catch (err) {
+                console.error("Auto load failed", err);
+            }
         }
+
+        shImportLots();
+        await hideLoading();
     }
 
     // Show/hide FAB + quick-jump nav based on tab and stock count
@@ -4340,7 +4378,11 @@ async function shExecuteAllocation() {
 
             const banner = document.getElementById("shAllocRateBanner");
             if (banner) {
-                banner.innerHTML = `Using actual SBI TT rate of <strong>₹${actualRate.toFixed(2)}</strong> (effective ${actualRateDate}) to calculate units required for target ₹${formatINR(allocValue)}. Required Qty: <strong>${requiredQty.toFixed(4)}</strong> shares.`;
+                let qtyDisplayStr = `<strong>${requiredQty.toFixed(4)}</strong> shares`;
+                if (wholeSharesOnly) {
+                    qtyDisplayStr = `<strong>${Math.ceil(requiredQty)}</strong> shares (rounded up from ${requiredQty.toFixed(4)} to ensure target ₹${formatINR(allocValue)} is met with whole units)`;
+                }
+                banner.innerHTML = `Using actual SBI TT rate of <strong>₹${actualRate.toFixed(2)}</strong> (effective ${actualRateDate}) to calculate units required for target ₹${formatINR(allocValue)}. Required Qty: ${qtyDisplayStr}.`;
                 banner.style.display = "block";
             }
         } else {
@@ -4349,9 +4391,19 @@ async function shExecuteAllocation() {
             if (banner) banner.style.display = "none";
         }
 
-        if (requiredQty > totalAvail) {
+        let maxPossibleAlloc = 0;
+        simState.lots.filter(l => l.ticker === ticker).forEach(l => {
+            maxPossibleAlloc += wholeSharesOnly ? Math.floor(l.available_qty) : l.available_qty;
+        });
+
+        if (wholeSharesOnly) {
+            requiredQty = Math.ceil(requiredQty);
+        }
+
+        if (requiredQty > maxPossibleAlloc) {
             await hideLoading();
-            return showToast(`Requested quantity ${requiredQty.toFixed(4)} exceeds total available shares ${totalAvail.toFixed(4)} for ${ticker}`, "error");
+            const unitStr = wholeSharesOnly ? "whole units" : "units";
+            return showToast(`Requested target requires ${requiredQty.toFixed(4)} shares, which exceeds the maximum available ${unitStr} (${maxPossibleAlloc.toFixed(4)}) for ${ticker}.`, "error");
         }
 
         let activeLots = simState.lots
