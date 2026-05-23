@@ -1,0 +1,960 @@
+/* ===== Header ===== */
+#appHeader {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+}
+
+.header-left h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.header-left .subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.year-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.year-selector label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.year-selector select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition);
+}
+
+.year-selector select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Dropdown Menu Styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: var(--bg-secondary);
+    min-width: 220px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    z-index: 1000;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    padding: 8px 0;
+    flex-direction: column;
+}
+
+.dropdown-content-right {
+    left: auto;
+    right: 0;
+}
+
+/* Bridge the gap between button and menu to prevent flicker */
+.dropdown-content::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 0;
+    width: 100%;
+    height: 10px;
+}
+
+.dropdown:hover .dropdown-content {
+    display: flex;
+}
+
+.dropdown-content .btn {
+    text-align: left;
+    border: none;
+    border-radius: 0;
+    padding: 10px 16px;
+    width: 100%;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-content .btn:hover {
+    background-color: var(--accent-light);
+    color: var(--accent);
+}
+
+.dropdown-toggle::after {
+    content: " ▾";
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.btn-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.action-separator {
+    width: 1px;
+    height: 24px;
+    background-color: var(--border);
+}
+
+/* ===== Theme Toggle Animation ===== */
+.theme-toggle-btn {
+    position: relative;
+    overflow: hidden;
+    width: 32px;
+    height: 32px;
+    padding: 0 !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.theme-icon-sun, .theme-icon-moon {
+    position: absolute;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+}
+
+/* Dark Theme (Moon Visible) */
+:root[data-theme="dark"] .theme-icon-moon {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+}
+
+:root[data-theme="dark"] .theme-icon-sun {
+    transform: translateY(20px) rotate(90deg) scale(0.5);
+    opacity: 0;
+}
+
+/* Light Theme (Sun Visible) */
+:root[data-theme="light"] .theme-icon-sun {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+}
+
+:root[data-theme="light"] .theme-icon-moon {
+    transform: translateY(-20px) rotate(-90deg) scale(0.5);
+    opacity: 0;
+}
+
+/* Premium Icon Buttons */
+.btn-icon-square {
+    width: 32px;
+    height: 32px;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    transition: var(--transition);
+    position: relative;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.btn-icon-square svg {
+    width: 16px;
+    height: 16px;
+    transition: var(--transition);
+}
+
+/* Hover effects with subtle glowing drop-shadows */
+.btn-icon-square:hover {
+    transform: translateY(-1px);
+    border-color: var(--accent) !important;
+    color: var(--accent);
+    background: var(--accent-light) !important;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+}
+
+/* Specific styling for the Shutdown/Quit button */
+#quitAppBtn.btn-icon-square {
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    color: rgba(239, 68, 68, 0.85);
+}
+
+#quitAppBtn.btn-icon-square:hover {
+    border-color: var(--danger) !important;
+    color: #ffffff;
+    background: var(--danger-light) !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+#quitAppBtn.btn-icon-square svg {
+    color: var(--danger);
+    transition: var(--transition);
+}
+
+#quitAppBtn.btn-icon-square:hover svg {
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* ===== Main Content ===== */
+#appMain {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px;
+}
+
+/* ===== Add Stock Section ===== */
+.add-stock-form .input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.add-stock-form input {
+    flex: 1;
+    max-width: 400px;
+}
+
+.hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+/* ===== Form Elements ===== */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-family: var(--font);
+    font-size: 0.88rem;
+    outline: none;
+    transition: var(--transition);
+    width: 100%;
+}
+
+input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+input::placeholder { color: var(--text-muted); }
+
+label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.form-field { display: flex; flex-direction: column; }
+
+/* ===== Section Headers ===== */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* ===== Unsaved Changes Indicator ===== */
+.unsaved-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warning);
+    margin-right: 4px;
+    animation: pulse 1.5s ease-in-out infinite;
+    vertical-align: middle;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* ===== Help Button ===== */
+.btn-help {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12));
+    color: var(--accent);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+.btn-help:hover {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    border-color: transparent;
+}
+
+.btn-help-inline {
+    background: none;
+    border: none;
+    padding: 2px;
+    margin-left: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.btn-help-inline:hover {
+    opacity: 1;
+    color: var(--accent);
+    background: rgba(var(--accent-rgb, 99, 102, 241), 0.1);
+}
+
+.btn-help-inline svg {
+    display: block;
+}
+
+/* ===== Floating Calculate A3 Button ===== */
+.calc-fab {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 200;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    font-family: var(--font);
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5), 0 2px 8px rgba(0,0,0,0.3);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.25s ease,
+                opacity 0.25s ease;
+    opacity: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    animation: fabPulse 2.5s ease-in-out infinite;
+}
+
+.calc-fab:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.65), 0 4px 12px rgba(0,0,0,0.3);
+    animation: none;
+}
+
+.calc-fab:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+@keyframes fabPulse {
+    0%, 100% { box-shadow: 0 6px 24px rgba(99, 102, 241, 0.5), 0 2px 8px rgba(0,0,0,0.3); }
+    50% { box-shadow: 0 6px 30px rgba(99, 102, 241, 0.7), 0 2px 10px rgba(0,0,0,0.3); }
+}
+
+/* ===== Quick Jump Navigation (fixed above FAB) ===== */
+.quick-jump-nav {
+    position: fixed;
+    bottom: 90px;
+    right: 50px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 8px;
+    background: rgba(26, 29, 40, 0.92);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+    min-width: 150px;
+}
+
+.qj-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0 6px 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+}
+
+.qj-btn {
+    font-family: var(--font);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    transition: var(--transition);
+}
+
+.qj-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.qj-btn.active {
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+}
+
+.qj-btn.qj-hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .quick-jump-nav { display: none; }
+}
+
+@media (max-width: 1650px) {
+    /* Collapsed Generate FA Report Floating Button */
+    .calc-fab {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        padding: 0;
+        border-radius: 24px;
+        justify-content: center;
+        gap: 0;
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-radius 0.35s ease,
+                    padding 0.35s ease,
+                    transform 0.25s ease,
+                    box-shadow 0.25s ease;
+    }
+    
+    .calc-fab svg {
+        margin-right: 0 !important;
+        transition: margin 0.35s ease;
+    }
+    
+    .calc-fab span {
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        display: inline-block;
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    opacity 0.25s ease,
+                    margin-left 0.35s ease;
+        margin-left: 0;
+    }
+    
+    /* Expand FAB on Hover/Focus-within */
+    .calc-fab:hover,
+    .calc-fab:focus-within {
+        width: 210px;
+        border-radius: 30px;
+        padding: 0 20px;
+        justify-content: center;
+    }
+    
+    .calc-fab:hover svg,
+    .calc-fab:focus-within svg {
+        margin-right: 8px !important;
+    }
+    
+    .calc-fab:hover span,
+    .calc-fab:focus-within span {
+        width: 140px;
+        opacity: 1;
+        margin-left: 4px;
+    }
+
+    /* Collapsed Quick Jump Navigation */
+    .quick-jump-nav {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        max-height: 48px;
+        border-radius: 24px;
+        overflow: hidden;
+        padding: 0;
+        right: 28px;
+        bottom: 92px; /* Placed exactly above collapsed FAB */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-radius 0.35s ease,
+                    padding 0.35s ease,
+                    border-color 0.35s ease,
+                    box-shadow 0.35s ease;
+    }
+    
+    /* Collapsed state scroll signifier */
+    .quick-jump-nav::before {
+        content: "⇅";
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--accent);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        pointer-events: none;
+    }
+    
+    .quick-jump-nav .qj-title,
+    .quick-jump-nav .qj-btn {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    
+    /* Expand Quick Jump Nav on Hover/Focus-within */
+    .quick-jump-nav:hover,
+    .quick-jump-nav:focus-within {
+        width: 170px;
+        max-height: 460px;
+        height: auto;
+        border-radius: var(--radius);
+        padding: 12px 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        cursor: default;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(99, 102, 241, 0.2);
+        border-color: var(--accent);
+    }
+    
+    .quick-jump-nav:hover::before,
+    .quick-jump-nav:focus-within::before {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    
+    .quick-jump-nav:hover .qj-title,
+    .quick-jump-nav:focus-within .qj-title,
+    .quick-jump-nav:hover .qj-btn,
+    .quick-jump-nav:focus-within .qj-btn {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+}
+
+/* ===== Light Theme ===== */
+:root[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-hover: #f1f5f9;
+    --bg-input: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    --accent-light: rgba(99, 102, 241, 0.1);
+}
+
+:root[data-theme="light"] .card, 
+:root[data-theme="light"] .stock-card {
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+:root[data-theme="light"] #appHeader {
+    background: rgba(255, 255, 255, 0.85);
+    border-bottom: 1px solid var(--border);
+}
+
+:root[data-theme="light"] .quick-jump-nav {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+}
+
+:root[data-theme="light"] .calc-fab {
+    box-shadow: 0 6px 24px rgba(99, 102, 241, 0.3), 0 2px 8px rgba(0,0,0,0.1);
+}
+
+:root[data-theme="light"] .dash-stat {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+:root[data-theme="light"] th {
+    background: #f1f5f9;
+    color: #475569;
+    border-bottom: 2px solid var(--border);
+}
+
+:root[data-theme="light"] .tab-btn:not(.active) {
+    color: var(--text-secondary);
+}
+
+:root[data-theme="light"] .tab-btn:hover:not(.active) {
+    background: var(--bg-tertiary);
+}
+
+/* ===== Side Panel (History) ===== */
+.side-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100vh;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+}
+.side-panel.hidden { transform: translateX(100%); display: flex !important; pointer-events: none; }
+
+.side-panel-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.side-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.history-item {
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary);
+    margin-bottom: 8px;
+    border: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.history-item:hover { background: var(--bg-hover); border-color: var(--accent); }
+.history-item.active { border-left: 4px solid var(--accent); background: var(--bg-hover); }
+
+.history-label { font-size: 0.85rem; font-weight: 600; display: block; }
+.history-time { font-size: 0.72rem; color: var(--text-muted); }
+
+/* ===== Header Buttons (Help & Quit) ===== */
+.btn-help {
+    background: var(--accent-light) !important;
+    color: var(--accent) !important;
+    border: 1px solid var(--accent) !important;
+}
+.btn-help:hover {
+    background: var(--accent) !important;
+    color: white !important;
+}
+
+.btn-quit {
+    color: var(--danger) !important;
+    border: 1px solid var(--danger) !important;
+    background: var(--danger-light) !important;
+}
+.btn-quit:hover {
+    background: var(--danger) !important;
+    color: white !important;
+}
+
+/* ===== Responsive Main Card Scrolling for Smaller Viewports ===== */
+@media (max-height: 800px), (max-width: 1200px) {
+    #appMain .card {
+        max-height: calc(100vh - 180px);
+        overflow-y: auto;
+        overflow-x: hidden; /* Force table-wrapper to scroll instead of entire card */
+        scroll-behavior: smooth;
+    }
+}
+
+/* ===== Smart Sell Allocator & Validation Styles ===== */
+.sh-smart-allocator {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.sh-smart-allocator:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+.sh-alloc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+.sh-alloc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sh-alloc-field label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.sh-alloc-badge {
+    font-size: 0.72rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 700;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+.sh-alloc-badge.warning {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.sh-alloc-toggle-group {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-input);
+}
+.sh-alloc-toggle-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-align: center;
+}
+.sh-alloc-toggle-btn.active {
+    background: var(--accent);
+    color: white;
+}
+.sh-alloc-checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start !important;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+.sh-alloc-checkbox-label input {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Over-allocation validation styling */
+.qty-over-limit {
+    border-color: var(--danger) !important;
+    background-color: var(--danger-light) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+    animation: shake 0.25s ease-in-out;
+}
+.sh-qty-warning-msg {
+    color: var(--danger);
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-top: 4px;
+    display: block;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* Dual proceeds summary layout */
+.sh-proceeds-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.sh-proceeds-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sh-proceeds-card.actual {
+    border-color: rgba(34, 197, 94, 0.25);
+    background: rgba(34, 197, 94, 0.02);
+}
+.sh-proceeds-card .label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+.sh-proceeds-card .value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+.sh-proceeds-card.actual .value {
+    color: var(--success);
+}
+.sh-proceeds-card .rate-info {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+
+/* Make Sell Simulator Tables Compact on Larger Screens */
+#shSellsTable, #shResultsTable {
+    width: 100%;
+    table-layout: auto;
+}
+
+#shSellsTable th, #shSellsTable td,
+#shResultsTable th, #shResultsTable td {
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+}
+
+#shSellsTable th {
+    font-size: 0.73rem !important;
+}
+
+#shResultsTable th {
+    font-size: 0.73rem !important;
+}
+
+/* Constrain Lot select in sells table */
+.sh-lot-select {
+    max-width: 250px;
+    width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0.78rem !important;
+    padding: 4px 6px !important;
+    height: 28px !important;
+}
+
+/* Flex group alignment inside sells table */
+#shSellsTable .price-input-group {
+    gap: 4px;
+}
+
+#shSellsTable .price-input-group input {
+    padding: 4px 6px !important;
+    height: 28px !important;
+    font-size: 0.78rem !important;
+}
+
+#shSellsTable .price-input-group button {
+    padding: 2px 6px !important;
+    height: 28px !important;
+    font-size: 0.72rem !important;
+}
+
+#shSellsTable input.sh-sell-date {
+    padding: 4px 6px !important;
+    height: 28px !important;
+    font-size: 0.78rem !important;
+    width: 90px !important;
+}
+
+/* Badges smaller */
+.sh-holding-badge {
+    padding: 2px 6px !important;
+    font-size: 0.7rem !important;
+}
+

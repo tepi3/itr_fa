@@ -1,0 +1,104 @@
+/* ===== Buttons ===== */
+.btn {
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.btn-primary:hover { 
+    background: var(--accent-hover); 
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4); 
+    transform: translateY(-2px);
+}
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+.btn-outline:hover { 
+    border-color: var(--accent); 
+    color: var(--accent); 
+    background: var(--accent-light);
+    transform: translateY(-1px);
+}
+.btn-outline:active {
+    transform: translateY(0);
+}
+
+.btn-accent {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+.btn-accent:hover { 
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5); 
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}
+.btn-accent:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.btn-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid transparent;
+}
+.btn-danger:hover { background: var(--danger); color: white; transform: translateY(-1px); }
+.btn-danger:active { transform: translateY(0); }
+
+.btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+
+.btn-fetch-price {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-fetch-price:hover {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+}
+.btn-fetch-price:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Price input + fetch button side-by-side */
+.price-input-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.price-input-group input {
+    min-width: 90px;
+}
+
+.btn-large { padding: 14px 36px; font-size: 1rem; width: 100%; justify-content: center; }
+

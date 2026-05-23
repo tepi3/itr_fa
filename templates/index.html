@@ -109,7 +109,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                             <span>Upload Broker Docs</span>
                         </button>
-                        <button id="loadBtn" class="btn" title="Load saved data from server">
+                        <button id="loadBtn" class="btn" title="Load portfolio saved in app">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M2 10h20"></path></svg>
                             <span>Load Portfolio</span>
                         </button>
@@ -184,9 +184,10 @@
                     </button>
                     <div class="dropdown-content">
                         <button id="collapseAllBtn" class="btn" title="Collapse all stock cards">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="9 18 15 12 9 6"></polyline></svg>
                             <span>Collapse All</span>
                         </button>
+
                         <button id="expandAllBtn" class="btn" title="Expand all stock cards">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             <span>Expand All</span>
@@ -261,6 +262,13 @@
                             </button>
                         </div>
                     </div>
+                    <button class="btn-help-inline" onclick="event.stopPropagation(); showTutorialStepByTitle('Resolution / Density Scale')" title="UI Resolution Scale Help" style="margin-left: -2px; margin-right: 2px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </button>
                     <button id="helpBtn" class="btn btn-sm btn-outline btn-icon-square btn-help" title="Show tutorial">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
@@ -736,7 +744,16 @@
                         </select>
                     </div>
                     <div class="sh-alloc-field">
-                        <button type="button" id="shAllocBtn" class="btn btn-primary" style="width:100%;height:38px;">Allocate Sells</button>
+                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                            <button type="button" id="shAllocBtn" class="btn btn-primary" style="flex: 1; height:38px;">Allocate Sells</button>
+                            <button type="button" class="btn-help-inline" onclick="event.stopPropagation(); showTutorialStepByTitle('Allocate Sells')" title="How sell allocation works" style="padding: 6px; margin: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; height: 38px; width: 38px; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: all 0.2s ease;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div id="shAllocRateBanner" style="display:none; margin-top:12px; font-size:0.8rem; padding:8px 12px; border-radius:6px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.25); color:var(--text-main);"></div>
@@ -1301,6 +1318,6 @@
     <!-- ===== END First-Time Disclaimer Acceptance Modal ===== -->
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="/static/js/app.js?v=13"></script>
+    <script type="module" src="/static/js/main.js?v=1.1.4"></script>
 </body>
 </html>

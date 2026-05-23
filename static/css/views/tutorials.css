@@ -1,0 +1,86 @@
+/* ===== Tutorial Overlay ===== */
+.tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    pointer-events: none;
+}
+
+.tutorial-backdrop {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    pointer-events: auto;
+    transition: background 0.3s;
+}
+.tutorial-backdrop.dimmed {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.tutorial-spotlight {
+    position: absolute;
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 15px rgba(99, 102, 241, 0.4);
+    border: 2px solid var(--accent);
+    z-index: 20001;
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tutorial-tooltip {
+    position: absolute;
+    z-index: 20002;
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    max-width: 380px;
+    min-width: 280px;
+    box-shadow: 0 8px 40px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(99, 102, 241, 0.15);
+    pointer-events: auto;
+    animation: tutorialFadeIn 0.3s ease;
+}
+
+@keyframes tutorialFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tutorial-tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.tutorial-step-counter {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--accent-light);
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+
+.tutorial-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+}
+
+.tutorial-desc {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin: 0 0 16px;
+}
+
+.tutorial-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+

@@ -1,0 +1,197 @@
+/* ===== UI Density / Resolution Scale ===== */
+:root[data-density="compact"] {
+    --ui-scale: 85%;
+}
+:root[data-density="standard"] {
+    --ui-scale: 100%;
+}
+:root[data-density="zoomed"] {
+    --ui-scale: 115%;
+}
+
+html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+html {
+    font-size: var(--ui-scale, 100%);
+    transition: font-size 0.15s ease-in-out;
+}
+
+/* ===== CSS Variables & Reset ===== */
+:root {
+    --bg-primary: #0f1117;
+    --bg-secondary: #1a1d28;
+    --bg-tertiary: #232738;
+    --bg-hover: #2d3148;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --accent-light: rgba(99, 102, 241, 0.15);
+    --success: #10b981;
+    --success-light: rgba(16, 185, 129, 0.15);
+    --warning: #f59e0b;
+    --warning-light: rgba(245, 158, 11, 0.15);
+    --danger: #ef4444;
+    --danger-light: rgba(239, 68, 68, 0.15);
+    --border: #2d3148;
+    --border-light: #3d4260;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+    --transition: all 0.2s ease;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ===== Animations ===== */
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stagger-in {
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--stagger-delay, 0s));
+}
+
+.collapsible-content {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.collapsible-content.collapsed {
+    display: grid;
+    grid-template-rows: 0fr;
+}
+
+.collapsible-content > div {
+    min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.highlight-pulse {
+    animation: highlight-pulse 2s ease-out;
+    border: 1px solid var(--accent) !important;
+    border-radius: 4px;
+}
+
+#monthlyRatesSection .save-rate-btn {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+}
+
+/* ===== Kbd Styling ===== */
+kbd {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: var(--font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ===== Skeleton Loaders ===== */
+.skeleton {
+    background: var(--bg-tertiary);
+    background: linear-gradient(
+        90deg,
+        var(--bg-tertiary) 25%,
+        var(--border-light) 50%,
+        var(--bg-tertiary) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+    height: 180px;
+    margin-bottom: 20px;
+    padding: 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: var(--shadow);
+}
+
+.skeleton-line {
+    height: 14px;
+    width: 100%;
+}
+
+.skeleton-line.short { width: 30%; }
+.skeleton-line.medium { width: 60%; }
+.skeleton-line.title { height: 24px; width: 40%; margin-bottom: 8px; }
+
+.skeleton-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+
+.loading-skeleton {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 25%,
+        var(--border-light) 50%,
+        transparent 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    opacity: 0.4;
+    z-index: 10;
+}
+

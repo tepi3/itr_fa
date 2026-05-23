@@ -1,0 +1,157 @@
+/* ===== Cards ===== */
+.card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: var(--transition);
+    width: 100%;
+    max-width: 100%;
+}
+
+.card:hover { border-color: var(--border-light); }
+
+.card h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+}
+
+/* ===== Stock Cards ===== */
+.stock-card { position: relative; }
+
+.stock-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.stock-card-header .stock-info-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stock-ticker {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.stock-name {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.stock-peak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--warning-light);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    white-space: nowrap;
+    cursor: default;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-box.large {
+    max-width: 900px;
+    width: 95vw;
+}
+
+/* Badge variants */
+.badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.badge-success {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.badge-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-box {
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+.stock-card-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.stock-card-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                margin 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                border 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 1px solid transparent;
+}
+
+.stock-card-body.expanded {
+    grid-template-rows: 1fr;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top-color: var(--border);
+}
+
+.stock-card-body > div {
+    min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.stock-card-body.collapsed { display: none; }
+
+/* ===== Drag Handle ===== */
+.drag-handle {
+    cursor: grab;
+    font-size: 1rem;
+    color: var(--text-muted);
+    user-select: none;
+    opacity: 0.5;
+    transition: var(--transition);
+}
+.drag-handle:hover { opacity: 1; color: var(--accent); }
+.stock-card.dragging { opacity: 0.4; border-color: var(--accent); }
+.stock-card.drag-over { border-top: 3px solid var(--accent); }
+

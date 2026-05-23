@@ -116,6 +116,16 @@ def init_flask_app():
     # Initialize storage
     init_user_storage()
 
+    @state.app.after_request
+    def add_header(response):
+        """Force cache clearing for all static JS/CSS assets to prevent pywebview cache desync."""
+        if request.path.startswith('/static/'):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+
     # Initial SBI rates fetch if empty
     from core.sbi_rates import ensure_rates_cached
     Thread(target=ensure_rates_cached, daemon=True).start()

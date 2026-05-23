@@ -1,0 +1,126 @@
+/* ===== Pie Chart ===== */
+.pie-chart-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    flex-wrap: wrap;
+    padding: 16px 0;
+}
+
+.pie-chart-container canvas {
+    flex-shrink: 0;
+    max-width: 320px;
+    max-height: 320px;
+}
+
+.pie-chart-legend {
+    flex: 1;
+    min-width: 300px;
+}
+
+.pie-legend-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.pie-legend-table th {
+    text-align: left;
+    padding: 8px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+}
+
+.pie-legend-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.pie-legend-table tr:last-child td {
+    border-bottom: none;
+}
+
+.pie-legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* ===== Portfolio Dashboard ===== */
+.portfolio-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.dash-stat {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: var(--transition);
+}
+
+.dash-stat:hover { border-color: var(--accent); }
+
+.dash-icon { font-size: 1.4rem; }
+.dash-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+}
+.dash-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+/* ===== Stock Filter Bar ===== */
+.stock-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.stock-filter-bar input {
+    max-width: 350px;
+}
+.stock-filter-count {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* ===== YoY Comparison ===== */
+.yoy-section {
+    margin-top: 24px;
+}
+.yoy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+.yoy-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    text-align: center;
+}
+.yoy-card .yoy-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.yoy-card .yoy-value { font-size: 1.2rem; font-weight: 700; margin: 4px 0; }
+.yoy-card .yoy-delta { font-size: 0.82rem; font-weight: 600; }
+.yoy-delta.positive { color: var(--success); }
+.yoy-delta.negative { color: var(--danger); }
+
