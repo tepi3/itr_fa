@@ -3,9 +3,9 @@
  */
 
 const tutorialStepsA3 = [
-    { selector: "#portfolioMenu", title: "Portfolio Menu", desc: "This menu contains all file and data operations. Hover over it to access Upload, Load, Open, and Save As options." },
+    { selector: "#portfolioMenu", title: "Portfolio Menu", desc: "This menu contains all file and data operations. Access Upload, Load, Import Prev Year, Open, and Save As options here." },
     { selector: "#toolsMenu", title: "Tools Menu", desc: "Access market data tools here, including SBI TT Rates download and the Batch Dividend Fetcher." },
-    { selector: "#manageMenu", title: "Manage Menu", desc: "Year-level operations like importing from the previous year or clearing the current session's data." },
+    { selector: "#manageMenu", title: "Manage Menu", desc: "Maintenance tools for the app and portfolio. Includes clearing current year data, resetting SBI overrides, managing stock cache, or deleting all app data." },
     { selector: "#viewMenu", title: "View Menu", desc: "Customize your display by collapsing/expanding all stock cards, or view your session's Action History." },
     { selector: "#densityBtn", title: "Resolution / Density Scale", desc: "Adjust the user interface scaling and grid density to fit compact laptop displays or high-resolution 4K screens dynamically." },
     { selector: "#saveBtn", title: "Quick Save", desc: "Save your current work to the server. The pulsing blue dot indicates unsaved changes." },
