@@ -15,11 +15,19 @@ You can run FA Desk without installing Python by downloading the standalone exec
 2. Download `fa_desk_macOS.zip`, `fa_desk_Windows.exe`, or `fa_desk_Linux` from the **Assets** section.
 3. Run the executable. The app will launch in a **standalone desktop window**.
    - *Note:* In developer/source mode, it still opens in your browser automatically.
-   - *Note for Mac users:* Refer to **macOS Installation** below to bypass Apple's unidentified developer warning.
+   - *Note for Desktop users:* Refer to **Windows** or **macOS Installation** below to bypass security warnings.
    - *Data storage:* Your saved portfolios will be safely stored in a `.fa_desk_data` folder in your user's home directory.
 
-####  macOS Installation
+   #### 🪟 Windows Installation
 
+   Because this app is currently unsigned, Windows SmartScreen will block it upon first launch. Please follow these steps to run the app:
+
+   1. Double-click the `fa_desk_Windows.exe` file.
+   2. When the blue "Windows protected your PC" screen appears, click **More info**.
+   3. Click the **Run anyway** button that appears at the bottom.
+   4. The application will now launch. You only need to do this once.
+
+   ####  macOS Installation
 Because this app is currently unsigned, macOS will block it upon first launch. Please follow one of these methods to run the app:
 
 ##### Method 1: The "Open Anyway" (Recommended)
