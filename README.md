@@ -266,7 +266,11 @@ Generate a unified tax statement combining multiple calendar years to perfectly 
 Every exchange rate applied during report generation is listed in full — stock by stock, event by event (Buy, Peak, Closing, Dividend, Sale) — with the exact rate date and source. Click any rate to override it inline.
 ![SBI Rates Used](docs/screenshots/09_sbi_rates_used.png)
 
-### 9. End-of-Year Asset Allocation
+### 9. SBI TT Rates Calendar Editor
+Populate and edit daily rates for any month/year since 2010 in a modern Sunday-aligned calendar grid. Inline edits from the calendar or report table update the same active database cache.
+![SBI TT Rates Editor](docs/screenshots/09b_sbi_rate_editor.png)
+
+### 10. End-of-Year Asset Allocation
 Visualize how your foreign portfolio is distributed across stocks as of December 31st with an interactive donut chart showing INR values and percentage breakdown.
 ![Asset Pie Chart](docs/screenshots/10_asset_pie_chart.png)
 
