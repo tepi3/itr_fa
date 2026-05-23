@@ -1700,18 +1700,21 @@ export function jumpToSection(sectionId, targetSelector = null) {
 }
 
 export async function clearSbiOverrides() {
-    if (!confirm("Are you sure you want to clear all manual SBI TT rate overrides? This will purge all post-2020 rates, restore modified pre-2020 PDF rates to default, and remove any other custom pre-2020 rates.")) return;
+    if (!confirm("Are you sure you want to reset the SBI TT rates database? This will clear all manual overrides and restore the database to its default state (pre-2020 PDF rates + fresh fetch from GitHub).")) return;
     
     try {
-        pushUndoSnapshot("Clear SBI Overrides");
+        pushUndoSnapshot("Reset SBI TT Rates");
+        showLoading("Resetting SBI TT rates database...");
         const res = await apiPost("/api/clear-sbi-rates");
+        await hideLoading();
+        
         if (res.success) {
             state.portfolio.sbi_rate_overrides = {};
             // Also clear calculated overrides as they likely depend on rates
             state.portfolio.overrides = {}; 
             
             markDirty();
-            showToast("SBI TT rates database cleared and restored to defaults", "success");
+            showToast("SBI TT rates restored to default state", "success");
             
             // Reload calendar rates if it is visible
             const ratesSection = document.getElementById("monthlyRatesSection");

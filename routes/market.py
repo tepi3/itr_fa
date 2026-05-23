@@ -167,12 +167,16 @@ def api_fetch_sbi_rates():
 
 @market_bp.route("/api/clear-sbi-rates", methods=["POST"])
 def api_clear_sbi_rates():
-    """Clear all manual rate overrides and fetched rates from disk cache."""
+    """Reset SBI TT rates: clear overrides, restore baseline, and fetch fresh rates."""
     try:
+        from core.sbi_rates import clear_sbi_cache, refresh_cache
+        # 1. Clear disk cache and restore pre-2020 PDF rates
         clear_sbi_cache()
+        # 2. Perform a fresh fetch from GitHub with overwrite=True to restore modern rates
+        refresh_cache(overwrite=True)
         return jsonify({"success": True})
     except Exception as e:
-        logger.exception("Failed to clear SBI rates cache")
+        logger.exception("Failed to reset SBI rates database")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
