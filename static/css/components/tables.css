@@ -468,17 +468,7 @@ tr:hover td {
     text-decoration-color: var(--accent);
 }
 
-/* ===== Highlight Pulse Animation ===== */
-@keyframes highlightPulse {
-    0% { background-color: transparent; }
-    20% { background-color: rgba(99, 102, 241, 0.35); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
-    100% { background-color: transparent; }
-}
 
-.highlight-pulse {
-    animation: highlightPulse 2s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 4px;
-}
 
 .highlight-border {
     border-top: 2px solid var(--accent) !important;
