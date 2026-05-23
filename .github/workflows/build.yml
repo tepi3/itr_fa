@@ -16,14 +16,17 @@ jobs:
             name: fa_desk_macOS
             sep: ":"
             icon: "static/icon.png"
+            build_mode: "--onedir"
           - os: windows-latest
             name: fa_desk_Windows
             sep: ";"
             icon: "static/icon.ico"
+            build_mode: "--onefile"
           - os: ubuntu-latest
             name: fa_desk_Linux
             sep: ":"
             icon: "static/icon.png"
+            build_mode: "--onefile"
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -65,7 +68,7 @@ jobs:
       run: >
         pyinstaller
         --name ${{ matrix.name }}
-        --onefile
+        ${{ matrix.build_mode }}
         --windowed
         --icon "${{ matrix.icon }}"
         --add-data "templates${{ matrix.sep }}templates"
