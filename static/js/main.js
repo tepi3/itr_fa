@@ -1113,6 +1113,18 @@ async function openAboutModal() {
     startAboutGlobe();
 }
 
+function toggleSearchModal() {
+    const modal = document.getElementById("searchModal");
+    const input = document.getElementById("searchInput");
+    if (modal && input) {
+        modal.classList.toggle("hidden");
+        if (!modal.classList.contains("hidden")) {
+            input.value = "";
+            input.focus();
+        }
+    }
+}
+
 function closeAboutModal() {
     document.getElementById("aboutModal").classList.add("hidden");
     if (aboutGlobeAnimationId) {
@@ -1687,6 +1699,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("redoBtn").addEventListener("click", redo);
     document.getElementById("helpBtn").addEventListener("click", startTutorial);
     document.getElementById("aboutBtn").addEventListener("click", openAboutModal);
+    document.getElementById("findBtn").addEventListener("click", toggleSearchModal);
     document.getElementById("generateFYBtn").addEventListener("click", fetchConsolidatedTaxSummary);
     document.getElementById("uploadDocsBtn").addEventListener("click", openPlatformModal);
     document.getElementById("etradeImportBtn").addEventListener("click", importEtradeDocs);
@@ -1740,8 +1753,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         if ((e.ctrlKey || e.metaKey) && e.key === "f") {
             e.preventDefault();
-            document.getElementById("searchModal").classList.remove("hidden");
-            document.getElementById("searchInput").focus();
+            toggleSearchModal();
         }
         if (e.key === "?" && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
             document.getElementById("shortcutsModal").classList.toggle("hidden");
