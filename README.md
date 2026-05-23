@@ -168,6 +168,7 @@ itr_fa/
 │       └── build.yml         # GitHub Actions CI/CD for portable binaries
 ├── app.py                    # Flask server & API routes (Port 5001)
 ├── config.py                 # Configuration constants & data path resolution
+├── desktop.py                # Standalone application entrypoint
 ├── requirements.txt          # Python dependencies (Flask, yfinance, openpyxl)
 ├── routes/                   # Flask Blueprints (API endpoints)
 │   ├── calculator.py
@@ -175,19 +176,30 @@ itr_fa/
 │   ├── parsers.py
 │   ├── portfolio.py
 │   └── users.py
-├── core/
-│   ├── sbi_rates.py          # SBI TT rate fetch, cache, and locking
-│   ├── stock_data.py         # Yahoo Finance wrapper
+├── core/                     # Core backend logic
 │   ├── calculator.py         # A3 column calculations & tax year summary
 │   ├── csv_export.py         # ITR-compliant CSV generation
 │   ├── etrade_parser.py      # E-Trade report parser (CSV/XLSX)
 │   ├── ibkr_parser.py        # IBKR report parser (CSV)
-│   └── sell_details_parser.py # G&L Expanded sell details parser (CSV/XLSX)
-├── static/
-│   ├── css/style.css         # Modern dark-mode UI
-│   └── js/app.js             # Frontend logic & state management
-└── templates/
-    └── index.html            # Main SPA template
+│   ├── merger.py             # Data merging utility
+│   ├── models.py             # Data models
+│   ├── sbi_rates.py          # SBI TT rate fetch, cache, and locking
+│   ├── smart_import.py       # Intelligent data importing logic
+│   ├── stock_data.py         # Yahoo Finance wrapper
+│   └── utils.py              # Shared utility functions
+├── static/                   # Frontend assets
+│   ├── css/                  # Modular CSS styles
+│   │   ├── base.css
+│   │   ├── layout.css
+│   │   ├── style.css
+│   │   ├── components/
+│   │   └── views/
+│   └── js/                   # Modular JavaScript
+│       ├── main.js           # Main application logic
+│       └── modules/          # Split JS modules
+├── templates/
+│   └── index.html            # Main SPA template
+└── tests/                    # Pytest test suite
 ```
 
 ## Notes

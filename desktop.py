@@ -333,20 +333,34 @@ def run_webview_mode(state):
     def start_main_app():
         start_time = time.time()
         if wait_for_flask(timeout=25):
-            # Ensure at least 2.0s of "work" progress before finishing
-            elapsed = time.time() - start_time
-            if elapsed < 2.0:
-                time.sleep(2.0 - elapsed)
+            import threading
+            loaded_event = threading.Event()
+            
+            def on_loaded():
+                loaded_event.set()
                 
+            state.webview_window.events.loaded += on_loaded
+            
+            # Start loading the main UI in the background
+            state.webview_window.load_url(f"http://{FLASK_HOST}:{FLASK_PORT}")
+            
+            # Wait for the main UI to finish loading (max 10s)
+            loaded_event.wait(timeout=10)
+
+            # Ensure the splash is visible for at least 1.5 seconds minimum
+            elapsed = time.time() - start_time
+            if elapsed < 1.5:
+                time.sleep(1.5 - elapsed)
+                
+            # Trigger 100% progress animation (0.4s CSS transition)
             try:
                 splash_window.evaluate_js("setReady()")
             except Exception:
                 pass
             
-            state.webview_window.load_url(f"http://{FLASK_HOST}:{FLASK_PORT}")
+            # Wait exactly 0.45s to let the animation hit 100% without extra idle waiting
+            time.sleep(0.45)
             
-            # Final buffer to see the 100% bar and "Ready!"
-            time.sleep(1.5)
             state.webview_window.show()
             
             if settings.get("maximized", True):
