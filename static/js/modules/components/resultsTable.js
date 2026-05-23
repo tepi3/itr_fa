@@ -3,7 +3,8 @@ import { apiGet, apiPost } from '../api.js';
 import { formatINR, formatAppDate, parseAppDate } from '../utils.js';
 import {
     showToast, showLoading, hideLoading, toggleSection,
-    showCalcTooltip, hideCalcTooltip, buildTooltipHTML, mapCalcDetailsToTooltip
+    showCalcTooltip, hideCalcTooltip, buildTooltipHTML, mapCalcDetailsToTooltip,
+    saveFileRobustly
 } from '../ui-utils.js';
 import {
     EDIT_PENCIL_SVG, UNLOCK_SVG, LOCK_SVG, SAVE_BTN_HTML,
@@ -1730,5 +1731,44 @@ export async function clearSbiOverrides() {
         }
     } catch (e) {
         showToast("Error clearing rates: " + e.message, "error");
+    }
+}
+
+/**
+ * Export the FA Schedule A3 results to a CSV file.
+ */
+export async function exportCSV() {
+    if (!state.calculatedRows || !state.calculatedRows.length) {
+        return showToast("Calculate first, then export", "warning");
+    }
+
+    showLoading("Generating CSV...");
+    try {
+        const resp = await fetch("/api/export-csv", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                rows: state.calculatedRows,
+                calendar_year: state.portfolio.calendar_year,
+            }),
+        });
+
+        if (!resp.ok) throw new Error("Export failed");
+        
+        const content = await resp.text();
+        const filename = `Schedule_FA_A3_CY${state.portfolio.calendar_year}.csv`;
+        
+        await hideLoading();
+        const result = await saveFileRobustly(content, filename, 'CSV File', 'text/csv', '.csv');
+        
+        if (result.success) {
+            const msg = result.method === 'browser-download' ? "CSV downloaded!" : "CSV saved successfully!";
+            showToast(msg, "success");
+        } else if (result.error !== 'Cancelled') {
+            showToast(`Save error: ${result.error}`, "error");
+        }
+    } catch (e) {
+        await hideLoading();
+        showToast(`Export error: ${e.message}`, "error");
     }
 }

@@ -56,7 +56,8 @@ import {
     clearSbiOverrides, 
     fetchConsolidatedTaxSummary,
     initFYYearSelector,
-    fetchTaxYearSummary
+    fetchTaxYearSummary,
+    exportCSV
 } from './modules/components/resultsTable.js';
 
 import { initSellHelper, shImportLots } from './modules/components/simulator.js';
@@ -2202,6 +2203,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     safeAddListener("fetchRatesBtn", "click", fetchSbiRates);
     safeAddListener("importSbiRatesBtn", "click", openSbiImportFile);
     safeAddListener("exportSbiRatesBtn", "click", exportSbiRates);
+    safeAddListener("exportCsvBtn", "click", exportCSV);
     safeAddListener("importSbiFileInput", "change", handleSbiImportFileSelect);
     safeAddListener("fetchAllDividendsBtn", "click", fetchAllDividends);
     safeAddListener("importPrevBtn", "click", importPreviousYear);
@@ -2489,6 +2491,7 @@ window.loadPortfolio = loadPortfolio;
 window.openPortfolioFile = openPortfolioFile;
 window.fetchSbiRates = fetchSbiRates;
 window.exportSbiRates = exportSbiRates;
+window.exportCSV = exportCSV;
 window.openSbiImportFile = openSbiImportFile;
 window.clearSbiOverrides = clearSbiOverrides;
 window.clearStockCache = clearStockCache;
