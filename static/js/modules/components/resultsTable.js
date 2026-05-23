@@ -947,20 +947,16 @@ export async function loadMonthlyRates() {
                         finished = true;
 
                         const newVal = parseFloat(input.value);
-                        if (!isNaN(newVal) && newVal > 0) {
+                        if (!isNaN(newVal) && newVal > 0 && newVal !== rInfo.rate) {
                             try {
                                 const saveRes = await apiPost("/api/save-manual-rate", { rate_date: dateStr, rate: newVal });
                                 if (saveRes.success) {
                                     showToast(`Saved rate for ${dateStr}: ₹${newVal}`, "success");
 
-                                    // Update visual representation without full reload
-                                    rInfo.rate = newVal;
-                                    rInfo.source = "override";
-
-                                    container.innerHTML = `
-                                        <div class="calendar-day-rate">₹${newVal.toFixed(2)}</div>
-                                        <span class="calendar-day-status override">override</span>
-                                    `;
+                                    // Trigger a full calendar reload to get correct status labels (cache vs override)
+                                    // since we don't know the baseline here
+                                    await loadMonthlyRates();
+                                    
                                     cell.classList.add("rate-updated");
                                     setTimeout(() => cell.classList.remove("rate-updated"), 800);
                                 } else {

@@ -288,9 +288,12 @@ def get_rate_for_date_direct(d: date) -> dict:
 
 
 def get_all_cached_rates() -> dict:
-    """Return all cached USD rates."""
+    """Return the full cache structure (for exporting)."""
     cache = _load_cache()
-    return cache.get("rates", {}).get("USD", {})
+    # Ensure manual_USD exists in the returned dict
+    if "manual_USD" not in cache:
+        cache["manual_USD"] = []
+    return cache
 
 
 def get_monthly_rates(year: int, overrides: dict = None) -> list:
@@ -328,7 +331,7 @@ def get_monthly_rates(year: int, overrides: dict = None) -> list:
 def save_manual_rate(rate_date: str, rate: float):
     """
     Save a manually entered rate into the cache.
-    This is used when the GitHub CSV doesn't have data for a date.
+    If the rate matches the baseline (shipped or fetched), remove the manual override tag.
     """
     cache = _load_cache()
     if "rates" not in cache:
@@ -338,13 +341,39 @@ def save_manual_rate(rate_date: str, rate: float):
     if "manual_USD" not in cache:
         cache["manual_USD"] = []
 
+    # Get baseline to see if this is actually an override
+    # We temporary remove the manual tag to see what the 'natural' rate would be
+    original_manual = set(cache.get("manual_USD", []))
+    if rate_date in original_manual:
+        cache["manual_USD"] = [d for d in cache["manual_USD"] if d != rate_date]
+    
+    # Reload baseline without this specific manual override
+    pre_2020 = _load_pre_2020_rates()
+    # Note: we don't reload the whole cache because we want to compare with 
+    # what would be there if THIS date wasn't manual.
+    # Fetched rates from GitHub are in cache["rates"]["USD"]
+    
+    baseline_rate = pre_2020.get(rate_date)
+    # If not in pre_2020, check if we have a fetched rate in the disk cache 
+    # (that isn't our current manual entry)
+    # This is tricky because the disk cache currently stores the manual entry too.
+    # However, for now, we can check if the value matches.
+    
+    is_restoring_baseline = (baseline_rate is not None and abs(baseline_rate - rate) < 0.0001)
+
     cache["rates"]["USD"][rate_date] = rate
-    if rate_date not in cache["manual_USD"]:
-        cache["manual_USD"].append(rate_date)
-        cache["manual_USD"].sort()
+    
+    if is_restoring_baseline:
+        if rate_date in original_manual:
+            logger.info(f"Restored baseline rate for {rate_date}: {rate}. Removing override tag.")
+            # manual_USD already has it removed from the check above
+    else:
+        if rate_date not in original_manual:
+            cache["manual_USD"].append(rate_date)
+            cache["manual_USD"].sort()
+        logger.info(f"Saved manual rate override: {rate_date} USD = {rate}")
 
     _save_cache(cache)
-    logger.info(f"Saved manual rate: {rate_date} USD = {rate}")
 
 
 def ensure_rates_cached():

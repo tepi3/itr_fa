@@ -197,8 +197,6 @@ def api_export_sbi_rates():
 def api_import_sbi_rates():
     """Import SBI rates cache from uploaded JSON."""
     try:
-        import json
-        from config import SBI_CACHE_FILE
         from core.sbi_rates import _save_cache
         data = request.get_json()
         if not data or "rates" not in data:
@@ -221,6 +219,7 @@ def api_import_sbi_rates():
             "rates": {
                 "USD": cleaned_usd
             },
+            "manual_USD": data.get("manual_USD", []),
             "locked_years": data.get("locked_years", [])
         }
         
