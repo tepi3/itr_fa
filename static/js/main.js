@@ -859,6 +859,8 @@ async function calculateAll() {
         setTimeout(() => hideLoading(), 200);
 
         if (!result.success) {
+            state.portfolio.stocks.forEach(s => setCardLoading(s.id, false));
+            updateDashboard();
             return showToast(`Calculation error: ${result.error}`, "error");
         }
 
@@ -994,6 +996,8 @@ async function calculateAll() {
         renderYoYComparison();
     } catch (e) {
         await hideLoading();
+        state.portfolio.stocks.forEach(s => setCardLoading(s.id, false));
+        updateDashboard();
         showToast(`Error: ${e.message}`, "error");
     }
 }
