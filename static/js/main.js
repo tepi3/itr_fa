@@ -473,8 +473,16 @@ function showFetchOptionsDialog() {
     });
 }
 
-async function fetchSbiRates() {
-    const choice = await showFetchOptionsDialog();
+async function fetchSbiRates(overwriteChoice = null) {
+    let choice = overwriteChoice;
+    // If called via event listener (e.g. click), overwriteChoice will be the Event object
+    if (choice instanceof Event) {
+        choice = null;
+    }
+    
+    if (choice === null) {
+        choice = await showFetchOptionsDialog();
+    }
     if (!choice) return; // User cancelled
     
     const overwrite = choice === "overwrite";
@@ -484,11 +492,7 @@ async function fetchSbiRates() {
         const result = await apiPost("/api/fetch-sbi-rates", { year, overwrite });
         await hideLoading();
         if (result.success) {
-            let msg = `Loaded SBI TT Rates for ${year}.`;
-            if (result.missing && result.missing.length > 0) {
-                msg += ` Note: Rates missing/approximated for: ${result.missing.join(", ")}`;
-            }
-            showToast(msg, "success");
+            showToast("SBI TT Rates fetched", "success");
             
             // Reload calendar if it is currently visible
             const ratesSection = document.getElementById("monthlyRatesSection");
@@ -496,11 +500,6 @@ async function fetchSbiRates() {
                 if (typeof loadMonthlyRates === "function") {
                     await loadMonthlyRates();
                 }
-            }
-            
-            // Trigger calculation update
-            if (typeof calculateAll === "function") {
-                await calculateAll();
             }
         } else {
             showToast(result.error || "Failed to fetch rates", "error");
@@ -568,11 +567,6 @@ async function handleSbiImportFileSelect(e) {
                     if (typeof loadMonthlyRates === "function") {
                         await loadMonthlyRates();
                     }
-                }
-                
-                // Recalculate everything
-                if (typeof calculateAll === "function") {
-                    await calculateAll();
                 }
             } else {
                 showToast(res.error || "Failed to import rates", "error");
@@ -783,10 +777,10 @@ async function selectUser(username) {
     try {
         const cacheStatus = await apiGet("/api/sbi-cache-status");
         if (cacheStatus.success && cacheStatus.empty) {
-            // Trigger the existing fetch rates choice dialog to fetch initial rates from GitHub!
-            showToast("SBI TT rates database is empty. Opening rates fetcher...", "info");
+            // Silently fetch initial rates from GitHub without prompting the user
+            showToast("Initializing SBI TT rates database for the first time...", "info");
             setTimeout(() => {
-                fetchSbiRates();
+                fetchSbiRates("overwrite");
             }, 800);
         }
     } catch (err) {

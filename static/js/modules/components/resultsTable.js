@@ -1679,16 +1679,8 @@ export async function clearSbiOverrides() {
             }
             
             // Refresh UI
-            if (state.calculatedRows && state.calculatedRows.length > 0) {
-                if (typeof window.calculateAll === "function") {
-                    window.calculateAll();
-                } else {
-                    console.warn("calculateAll not found on window");
-                }
-            } else {
-                dispatchStateChange("portfolio-restored");
-                dispatchStateChange("clear-calculated");
-            }
+            dispatchStateChange("portfolio-restored");
+            dispatchStateChange("clear-calculated");
         } else {
             showToast("Failed to clear rates: " + res.error, "error");
         }
