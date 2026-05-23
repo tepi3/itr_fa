@@ -176,6 +176,22 @@ def api_clear_sbi_rates():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@market_bp.route("/api/get-all-rates", methods=["GET"])
+def api_get_all_rates():
+    """Get all cached SBI rates and manual list (for UI sync)."""
+    try:
+        from core.sbi_rates import get_all_cached_rates
+        data = get_all_cached_rates()
+        return jsonify({
+            "success": True,
+            "rates": data.get("rates", {}),
+            "manual_USD": data.get("manual_USD", []),
+            "locked_years": data.get("locked_years", [])
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @market_bp.route("/api/export-sbi-rates", methods=["GET"])
 def api_export_sbi_rates():
     """Export SBI rates cache file as JSON."""

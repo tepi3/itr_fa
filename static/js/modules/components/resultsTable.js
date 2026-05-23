@@ -587,9 +587,24 @@ export function enableCellEdit(td, row, fieldKey) {
 }
 
 // ===== SBI Rates Used in Calculation =====
-export function collectSbiRates(rows, taxYears = null) {
+export async function collectSbiRates(rows, taxYears = null) {
+    if (taxYears) {
+        state.lastTaxYears = taxYears;
+    }
     const tbody = document.getElementById("sbiRatesTableBody");
     if (!tbody) return;
+    
+    // Fetch fresh rate cache to ensure UI is in sync with latest manual edits
+    let freshRates = { rates: { USD: {} }, manual_USD: [] };
+    try {
+        const res = await apiGet("/api/get-all-rates");
+        if (res.success) freshRates = res;
+    } catch (e) {
+        console.warn("Failed to fetch fresh rates for UI sync:", e);
+    }
+    const manualSet = new Set(freshRates.manual_USD || []);
+    const usdCache = freshRates.rates?.USD || {};
+
     tbody.innerHTML = "";
     const seenRates = new Set();
     const allEntries = [];
@@ -606,15 +621,18 @@ export function collectSbiRates(rows, taxYears = null) {
             ];
             a3Cols.forEach(entry => {
                 if (!entry.data) return;
-                const rate = entry.data.rate || entry.data.ttbr || (entry.data.components && entry.data.components.ttbr);
                 const rateDate = entry.data.rate_date || (entry.data.components && entry.data.components.rate_date);
-                if (rate && rateDate) {
+                if (rateDate) {
+                    // Look up fresh value and source
+                    const freshRate = usdCache[rateDate];
+                    const isManual = manualSet.has(rateDate);
+                    
                     allEntries.push({
                         label: entry.label,
-                        rate,
+                        rate: freshRate || entry.data.rate || entry.data.ttbr || (entry.data.components && entry.data.components.ttbr),
                         rateDate,
                         eventDate: entry.eventDate,
-                        source: entry.data.source,
+                        source: isManual ? "override" : (entry.data.source || "cache"),
                         origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
                     });
                 }
@@ -622,26 +640,34 @@ export function collectSbiRates(rows, taxYears = null) {
             if (details.dividends && details.dividends.dividend_entries) {
                 details.dividends.dividend_entries.forEach(de => {
                     const payDate = de.payment_date || de.ex_date;
-                    allEntries.push({
-                        label: `${ticker} — Dividend A3 (${formatAppDate(parseAppDate(payDate))})`,
-                        rate: de.ttbr,
-                        rateDate: de.rate_date,
-                        eventDate: payDate,
-                        source: de.source,
-                        origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
-                    });
+                    const rateDate = de.rate_date;
+                    if (rateDate) {
+                        const isManual = manualSet.has(rateDate);
+                        allEntries.push({
+                            label: `${ticker} — Dividend A3 (${formatAppDate(parseAppDate(payDate))})`,
+                            rate: usdCache[rateDate] || de.ttbr,
+                            rateDate,
+                            eventDate: payDate,
+                            source: isManual ? "override" : (de.source || "cache"),
+                            origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
+                        });
+                    }
                 });
             }
             if (details.sales && details.sales.sale_entries) {
                 details.sales.sale_entries.forEach(se => {
-                    allEntries.push({
-                        label: `${ticker} — Sale A3 (${formatAppDate(parseAppDate(se.sell_date))})`,
-                        rate: se.ttbr,
-                        rateDate: se.rate_date,
-                        eventDate: se.sell_date,
-                        source: se.source,
-                        origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
-                    });
+                    const rateDate = se.rate_date;
+                    if (rateDate) {
+                        const isManual = manualSet.has(rateDate);
+                        allEntries.push({
+                            label: `${ticker} — Sale A3 (${formatAppDate(parseAppDate(se.sell_date))})`,
+                            rate: usdCache[rateDate] || se.ttbr,
+                            rateDate,
+                            eventDate: se.sell_date,
+                            source: isManual ? "override" : (se.source || "cache"),
+                            origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
+                        });
+                    }
                 });
             }
         });
@@ -657,32 +683,38 @@ export function collectSbiRates(rows, taxYears = null) {
                     Object.values(stockData[cat].details || {}).forEach(qDetails => {
                         qDetails.forEach(d => {
                             if (cat === "dividends") {
-                                allEntries.push({
-                                    label: `${ticker} — Dividend Tax (${formatAppDate(parseAppDate(d.date))})`,
-                                    rate: d.ttbr,
-                                    rateDate: d.rate_date,
-                                    eventDate: d.date,
-                                    source: d.source,
-                                    origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
-                                });
+                                const rateDate = d.rate_date;
+                                if (rateDate) {
+                                    const isManual = manualSet.has(rateDate);
+                                    allEntries.push({
+                                        label: `${ticker} — Dividend Tax (${formatAppDate(parseAppDate(d.date))})`,
+                                        rate: usdCache[rateDate] || d.ttbr,
+                                        rateDate,
+                                        eventDate: d.date,
+                                        source: isManual ? "override" : (d.source || "cache"),
+                                        origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
+                                    });
+                                }
                             } else {
                                 if (d.sell_ttbr && d.sell_rate_date) {
+                                    const isManual = manualSet.has(d.sell_rate_date);
                                     allEntries.push({
                                         label: `${ticker} — Sale Tax (${formatAppDate(parseAppDate(d.date))})`,
-                                        rate: d.sell_ttbr,
+                                        rate: usdCache[d.sell_rate_date] || d.sell_ttbr,
                                         rateDate: d.sell_rate_date,
                                         eventDate: d.date,
-                                        source: d.source,
+                                        source: isManual ? "override" : (d.source || "cache"),
                                         origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
                                     });
                                 }
                                 if (d.buy_ttbr && d.buy_rate_date) {
+                                    const isManual = manualSet.has(d.buy_rate_date);
                                     allEntries.push({
                                         label: `${ticker} — Buy Tax (Lot ${formatAppDate(parseAppDate(d.buy_rate_date))})`,
-                                        rate: d.buy_ttbr,
+                                        rate: usdCache[d.buy_rate_date] || d.buy_ttbr,
                                         rateDate: d.buy_rate_date,
                                         eventDate: d.buy_rate_date,
-                                        source: d.source,
+                                        source: isManual ? "override" : (d.source || "cache"),
                                         origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
                                     });
                                 }
@@ -787,8 +819,21 @@ export function collectSbiRates(rows, taxYears = null) {
                     try {
                         const data = await apiPost("/api/save-manual-rate", { rate_date: rateDate, rate: newVal });
                         if (data.success) {
-                            showToast(`Saved rate for ${rateDate}: ₹${newVal}`);
-                            document.dispatchEvent(new CustomEvent('calculate-all'));
+                            showToast(`Saved rate for ${rateDate}: ₹${newVal}`, "success");
+                            
+                            // Reload calendar rates if it is visible to sync 'override' status
+                            const ratesSection = document.getElementById("monthlyRatesSection");
+                            if (ratesSection && !ratesSection.classList.contains("hidden")) {
+                                if (typeof loadMonthlyRates === "function") {
+                                    await loadMonthlyRates();
+                                }
+                            }
+
+                            // Refresh this table too (to update the 'source' badge etc)
+                            // We can use state.calculatedRows if available
+                            if (state.calculatedRows) {
+                                await collectSbiRates(state.calculatedRows, state.lastTaxYears);
+                            }
                         } else {
                             alert("Failed to save rate: " + data.error);
                             rateCell.innerHTML = originalContent;
@@ -1011,7 +1056,7 @@ export async function fetchTaxYearSummary() {
             state.taxYears = result.tax_years;
             renderTaxYearSummary(result.tax_years);
             renderTaxValidationTable(result.tax_years);
-            collectSbiRates(state.calculatedRows, result.tax_years);
+            await collectSbiRates(state.calculatedRows, result.tax_years);
             document.getElementById("taxYearSection").classList.remove("hidden");
         } else {
             console.warn("Tax year summary failed:", result.error);

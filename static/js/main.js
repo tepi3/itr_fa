@@ -895,7 +895,7 @@ async function calculateAll() {
             }
         }
 
-        collectSbiRates(result.rows);
+        await collectSbiRates(result.rows);
 
         // Update peak price badges with actual calculation results
         const stockPeakMap = {};
