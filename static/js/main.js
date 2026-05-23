@@ -786,6 +786,9 @@ async function selectUser(username) {
     } catch (err) {
         console.warn("Failed to check SBI cache status:", err);
     }
+
+    // Silently check for version update in the background after login
+    checkUpdateSilently();
 }
 
 // ===== Skeletons =====
@@ -1262,6 +1265,17 @@ async function openAboutModal() {
     const resultEl = document.getElementById("updateResult");
     const thankYouEl = document.getElementById("aboutThankYou");
 
+    // Hide the notification dot immediately when the user opens the About modal
+    const dot = document.getElementById("aboutUpdateDot");
+    if (dot) {
+        dot.classList.add("hidden");
+    }
+
+    // Persist dismissal for this specific version in localStorage so it never triggers again
+    if (state.silentUpdateInfo && state.silentUpdateInfo.latest_version) {
+        localStorage.setItem("fa_desk_dismissed_update_version", state.silentUpdateInfo.latest_version);
+    }
+
     try {
         const res = await fetch("/api/disclaimer");
         const data = await res.json();
@@ -1284,9 +1298,22 @@ async function openAboutModal() {
         badge.textContent = "v?";
     }
     
-    resultEl.classList.add("hidden");
-    resultEl.className = "about-update-result hidden";
-    resultEl.innerHTML = "";
+    // If the silent check already found update info, display it instantly!
+    if (state.silentUpdateInfo) {
+        const data = state.silentUpdateInfo;
+        resultEl.classList.remove("hidden");
+        if (data.update_available) {
+            resultEl.className = "about-update-result update-available";
+            resultEl.innerHTML = `New version <strong>v${data.latest_version}</strong> is available! <a href="${data.release_url}" target="_blank" rel="noopener">Download →</a>`;
+        } else {
+            resultEl.className = "about-update-result up-to-date";
+            resultEl.innerHTML = `<span style="color:var(--success); vertical-align:middle; display:inline-flex; align-items:center; gap:4px;">${BADGE_CHECK_SVG} You're on the latest version (v${data.current_version})</span>`;
+        }
+    } else {
+        resultEl.classList.add("hidden");
+        resultEl.className = "about-update-result hidden";
+        resultEl.innerHTML = "";
+    }
     
     modal.classList.remove("hidden");
     startAboutGlobe();
@@ -1329,12 +1356,24 @@ async function checkForUpdate() {
         if (!data.success) {
             resultEl.className = "about-update-result update-error";
             resultEl.textContent = `Could not check for updates: ${data.error}`;
-        } else if (data.update_available) {
-            resultEl.className = "about-update-result update-available";
-            resultEl.innerHTML = `New version <strong>v${data.latest_version}</strong> is available! <a href="${data.release_url}" target="_blank" rel="noopener">Download →</a>`;
         } else {
-            resultEl.className = "about-update-result up-to-date";
-            resultEl.innerHTML = `<span style="color:var(--success); vertical-align:middle; display:inline-flex; align-items:center; gap:4px;">${BADGE_CHECK_SVG} You're on the latest version (v${data.current_version})</span>`;
+            // Keep our cache updated
+            state.silentUpdateInfo = data;
+            
+            if (data.update_available) {
+                resultEl.className = "about-update-result update-available";
+                resultEl.innerHTML = `New version <strong>v${data.latest_version}</strong> is available! <a href="${data.release_url}" target="_blank" rel="noopener">Download →</a>`;
+                
+                // Hide badge and store in localStorage since they manually initiated and viewed the check
+                const dot = document.getElementById("aboutUpdateDot");
+                if (dot) {
+                    dot.classList.add("hidden");
+                }
+                localStorage.setItem("fa_desk_dismissed_update_version", data.latest_version);
+            } else {
+                resultEl.className = "about-update-result up-to-date";
+                resultEl.innerHTML = `<span style="color:var(--success); vertical-align:middle; display:inline-flex; align-items:center; gap:4px;">${BADGE_CHECK_SVG} You're on the latest version (v${data.current_version})</span>`;
+            }
         }
     } catch (e) {
         resultEl.classList.remove("hidden");
@@ -1343,6 +1382,27 @@ async function checkForUpdate() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = CHECK_UPDATE_BTN_HTML;
+    }
+}
+
+async function checkUpdateSilently() {
+    try {
+        const res = await fetch("/api/check-update");
+        const data = await res.json();
+        if (data.success && data.update_available && data.latest_version && data.latest_version !== data.current_version) {
+            state.silentUpdateInfo = data;
+            
+            // Check if the user has already dismissed this specific version
+            const dismissedVer = localStorage.getItem("fa_desk_dismissed_update_version");
+            if (dismissedVer !== data.latest_version) {
+                const dot = document.getElementById("aboutUpdateDot");
+                if (dot) {
+                    dot.classList.remove("hidden");
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Silent update check failed:", e);
     }
 }
 
