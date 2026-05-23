@@ -18,7 +18,7 @@ You can run FA Desk without installing Python by downloading the standalone exec
    - *Note for Desktop users:* Refer to **Windows** or **macOS Installation** below to bypass security warnings.
    - *Data storage:* Your saved portfolios will be safely stored in a `.fa_desk_data` folder in your user's home directory.
 
-   #### 🪟 Windows Installation
+   #### Windows Installation
 
    Because this app is currently unsigned, Windows SmartScreen will block it upon first launch. Please follow these steps to run the app:
 
@@ -28,24 +28,24 @@ You can run FA Desk without installing Python by downloading the standalone exec
    4. The application will now launch. You only need to do this once.
 
    ####  macOS Installation
-Because this app is currently unsigned, macOS will block it upon first launch. Please follow one of these methods to run the app:
+   Because this app is currently unsigned, macOS will block it upon first launch. Please follow one of these methods to run the app:
 
-##### Method 1: The "Open Anyway" (Recommended)
-1. Double-click the `fa_desk_macOS` app. When the warning appears, click **Done**.
-2. Open **System Settings > Privacy & Security**.
-3. Scroll down to the **Security** section.
-4. Look for the message: *"fa_desk_macOS" was blocked from use because it is not from an identified developer.*
-5. Click **Open Anyway**, enter your password, and click **Open** on the final dialog.
+   ##### Method 1: The "Open Anyway" (Recommended)
+   1. Double-click the `fa_desk_macOS` app. When the warning appears, click **Done**.
+   2. Open **System Settings > Privacy & Security**.
+   3. Scroll down to the **Security** section.
+   4. Look for the message: *"fa_desk_macOS" was blocked from use because it is not from an identified developer.*
+   5. Click **Open Anyway**, enter your password, and click **Open** on the final dialog.
 
-##### Method 2: The Terminal Bypass
-1. Open **Terminal**.
-2. Run the following command:
-   ```bash
-   xattr -cr /path/to/fa_desk_macOS.app
-   ```
-   *(Tip: You can drag the app icon directly into the terminal window to auto-fill the path).*
+   ##### Method 2: The Terminal Bypass
+   1. Open **Terminal**.
+   2. Run the following command:
+      ```bash
+      xattr -cr /path/to/fa_desk_macOS.app
+      ```
+      *(Tip: You can drag the app icon directly into the terminal window to auto-fill the path).*
 
-The app will now open normally with a double-click.
+   The app will now open normally with a double-click.
 
 ### Onboarding Demo Profile (No Setup Required!)
 
