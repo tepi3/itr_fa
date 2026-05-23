@@ -86,6 +86,7 @@ def calculate_initial_value(lot: dict, sbi_overrides: dict) -> dict:
         "value": value,
         "rate": rate,
         "rate_date": rate_date,
+        "source": source,
         "components": {
             "buy_price": buy_price,
             "quantity": quantity,
