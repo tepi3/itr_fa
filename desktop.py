@@ -321,7 +321,7 @@ def run_webview_mode(state):
     )
 
     # Calculate center of the screen for the splash window
-    splash_w, splash_h = 420, 340
+    splash_w, splash_h = 420, 360
     try:
         # Try to get screen dimensions to center splash
         screens = webview.screens
