@@ -600,9 +600,9 @@ export function collectSbiRates(rows, taxYears = null) {
             const details = row.calculation_details || {};
             const ticker = row.ticker || row.entity_name || '';
             const a3Cols = [
-                { label: `${ticker} — Buy (${formatAppDate(parseAppDate(row.acquire_date))})`, data: details.initial, field: 'initial_value' },
-                { label: `${ticker} — Peak Value (${details.peak && details.peak.peak_date ? formatAppDate(parseAppDate(details.peak.peak_date)) : '?'})`, data: details.peak, field: 'peak_value' },
-                { label: `${ticker} — Closing (Dec 31)`, data: details.closing, field: 'closing_balance' },
+                { label: `${ticker} — Buy (${formatAppDate(parseAppDate(row.acquire_date))})`, data: details.initial, field: 'initial_value', eventDate: row.acquire_date_raw || row.acquire_date },
+                { label: `${ticker} — Peak Value (${details.peak && details.peak.peak_date ? formatAppDate(parseAppDate(details.peak.peak_date)) : '?'})`, data: details.peak, field: 'peak_value', eventDate: details.peak?.peak_date },
+                { label: `${ticker} — Closing (Dec 31)`, data: details.closing, field: 'closing_balance', eventDate: details.closing?.components?.rate_date || `${state.portfolio.calendar_year}-12-31` },
             ];
             a3Cols.forEach(entry => {
                 if (!entry.data) return;
@@ -613,6 +613,7 @@ export function collectSbiRates(rows, taxYears = null) {
                         label: entry.label,
                         rate,
                         rateDate,
+                        eventDate: entry.eventDate,
                         source: entry.data.source,
                         origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
                     });
@@ -625,6 +626,7 @@ export function collectSbiRates(rows, taxYears = null) {
                         label: `${ticker} — Dividend A3 (${formatAppDate(parseAppDate(payDate))})`,
                         rate: de.ttbr,
                         rateDate: de.rate_date,
+                        eventDate: payDate,
                         source: de.source,
                         origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
                     });
@@ -636,6 +638,7 @@ export function collectSbiRates(rows, taxYears = null) {
                         label: `${ticker} — Sale A3 (${formatAppDate(parseAppDate(se.sell_date))})`,
                         rate: se.ttbr,
                         rateDate: se.rate_date,
+                        eventDate: se.sell_date,
                         source: se.source,
                         origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
                     });
@@ -658,6 +661,7 @@ export function collectSbiRates(rows, taxYears = null) {
                                     label: `${ticker} — Dividend Tax (${formatAppDate(parseAppDate(d.date))})`,
                                     rate: d.ttbr,
                                     rateDate: d.rate_date,
+                                    eventDate: d.date,
                                     source: d.source,
                                     origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
                                 });
@@ -667,6 +671,7 @@ export function collectSbiRates(rows, taxYears = null) {
                                         label: `${ticker} — Sale Tax (${formatAppDate(parseAppDate(d.date))})`,
                                         rate: d.sell_ttbr,
                                         rateDate: d.sell_rate_date,
+                                        eventDate: d.date,
                                         source: d.source,
                                         origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
                                     });
@@ -676,6 +681,7 @@ export function collectSbiRates(rows, taxYears = null) {
                                         label: `${ticker} — Buy Tax (Lot ${formatAppDate(parseAppDate(d.buy_rate_date))})`,
                                         rate: d.buy_ttbr,
                                         rateDate: d.buy_rate_date,
+                                        eventDate: d.buy_rate_date,
                                         source: d.source,
                                         origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
                                     });
@@ -690,18 +696,51 @@ export function collectSbiRates(rows, taxYears = null) {
 
     state.sbiRatesUsed = [];
     allEntries.forEach(entry => {
-        const { label, rate, rateDate, source } = entry;
+        const { label, rate, rateDate, source, eventDate } = entry;
         if (!rate || !rateDate) return;
         const key = `${label}_${rateDate}`;
         if (seenRates.has(key)) return;
         seenRates.add(key);
         state.sbiRatesUsed.push(entry);
 
-        const src = source || 'cache';
-        const statusClass = src === 'override' ? 'override' : src === 'cache' ? 'cached' : 'missing';
+        // Normalize source for display: only 'override' remains distinct, others become 'cached'
+        const isManual = source === 'override';
+        const displaySource = isManual ? 'override' : 'cached';
+        const statusClass = isManual ? 'override' : 'cached';
+
+        // Calculate event date lookback highlight alert
+        let highlightStyle = "";
+        let warningText = "";
+        if (eventDate) {
+            const ev = parseAppDate(eventDate);
+            const rt = parseAppDate(rateDate);
+            if (ev && rt) {
+                const isTax = label.includes("Tax");
+                let diffDays = 0;
+                let isWarning = false;
+
+                if (!isTax) {
+                    // For A3 (day of event rate): compare with event date directly
+                    const diffTime = Math.abs(ev - rt);
+                    diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    // Warn if rates are more than 5 days older than event date (as per requirements)
+                    if (diffDays > 5) {
+                        isWarning = true;
+                    }
+                }
+
+                if (isWarning) {
+                    highlightStyle = "background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b;";
+                    warningText = ` <span class="rate-status warning" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700; text-transform: uppercase;" title="Rate lookup fell back to nearest date which is ${diffDays} days older than event date.">Lookback warning (${diffDays}d)</span>`;
+                }
+            }
+        }
         
         const tr = document.createElement("tr");
         tr.dataset.rateDate = rateDate;
+        if (highlightStyle) {
+            tr.setAttribute("style", highlightStyle);
+        }
         tr.innerHTML = `
             <td style="display:flex; justify-content:space-between; align-items:center;">
                 <span>${label}</span>
@@ -712,7 +751,10 @@ export function collectSbiRates(rows, taxYears = null) {
                 <span class="rate-val">₹${rate.toFixed(4)}</span>
                 <span class="edit-icon"> ${EDIT_PENCIL_SVG}</span>
             </td>
-            <td><span class="rate-status ${statusClass}">${src}</span></td>
+            <td style="display: flex; align-items: center; gap: 8px;">
+                <span class="rate-status ${statusClass}">${displaySource}</span>
+                ${warningText}
+            </td>
         `;
 
         if (entry.origin) {
@@ -768,7 +810,7 @@ export function collectSbiRates(rows, taxYears = null) {
     });
 }
 
-// ===== Monthly Rates Manager =====
+// ===== SBI TT Rates Calendar Editor =====
 export async function showMonthlyRates() {
     const section = document.getElementById("monthlyRatesSection");
     if (!section.classList.contains("hidden")) {
@@ -776,92 +818,194 @@ export async function showMonthlyRates() {
         return;
     }
     section.classList.remove("hidden");
+
+    // Initialize Year and Month Select elements if not already done
+    const yearSelect = document.getElementById("ratesYearSelect");
+    const monthSelect = document.getElementById("ratesMonthSelect");
+
+    if (yearSelect && yearSelect.options.length === 0) {
+        // Populate years 2010 to current year
+        const currentYear = new Date().getFullYear();
+        yearSelect.innerHTML = "";
+        for (let y = currentYear; y >= 2010; y--) {
+            const opt = document.createElement("option");
+            opt.value = y;
+            opt.textContent = y;
+            yearSelect.appendChild(opt);
+        }
+
+        // Default to active year
+        yearSelect.value = state.portfolio.calendar_year || currentYear;
+
+        // Default month to current month (or January)
+        monthSelect.value = new Date().getMonth() + 1;
+
+        // Listeners for changes to trigger reloading
+        yearSelect.addEventListener("change", () => loadMonthlyRates());
+        monthSelect.addEventListener("change", () => loadMonthlyRates());
+    }
+
     await loadMonthlyRates();
     section.scrollIntoView({ behavior: "smooth" });
 }
 
 export async function loadMonthlyRates() {
-    const year = parseInt(document.getElementById("ratesYearSelect").value) || state.portfolio.calendar_year;
-    const tbody = document.getElementById("monthlyRatesTableBody");
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Loading rates...</td></tr>';
+    const yearSelect = document.getElementById("ratesYearSelect");
+    const monthSelect = document.getElementById("ratesMonthSelect");
+    if (!yearSelect || !monthSelect) return;
+
+    const year = parseInt(yearSelect.value);
+    const month = parseInt(monthSelect.value);
+    const grid = document.getElementById("calendarDaysGrid");
+    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:30px; color:var(--text-muted);">Loading calendar rates...</div>';
 
     try {
-        const data = await apiGet(`/api/monthly-rates?year=${year}`);
-        tbody.innerHTML = "";
+        const data = await apiGet(`/api/daily-rates?year=${year}&month=${month}`);
+        grid.innerHTML = "";
+
         if (!data.success) {
-            tbody.innerHTML = '<tr><td colspan="5" style="color:var(--danger)">Error loading rates</td></tr>';
+            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:30px; color:var(--danger);">Error loading rates</div>';
             return;
         }
 
-        // Update lock button state
-        const lockBtn = document.getElementById("lockRatesBtn");
-        if (data.locked) {
-            lockBtn.innerHTML = UNLOCK_SVG;
-            lockBtn.classList.add("locked");
-        } else {
-            lockBtn.innerHTML = LOCK_SVG;
-            lockBtn.classList.remove("locked");
+
+
+        // Generate calendar days
+        // Get weekday of the 1st day of the month (0 = Sunday, ..., 6 = Saturday)
+        const firstDay = new Date(year, month - 1, 1);
+        const startDayOfWeek = firstDay.getDay(); // 0-6
+
+        // Get total days in this month
+        const totalDays = new Date(year, month, 0).getDate();
+
+        // Render padding cells for empty days before the 1st of the month
+        for (let i = 0; i < startDayOfWeek; i++) {
+            const cell = document.createElement("div");
+            cell.className = "calendar-day empty-day";
+            cell.innerHTML = '<div class="calendar-day-num"></div>';
+            grid.appendChild(cell);
         }
 
-        data.rates.forEach(r => {
-            const statusClass = r.source === 'override' ? 'override' : r.source === 'cache' ? 'cached' : 'missing';
-            const statusLabel = r.source === 'not_found' ? 'Missing — enter manually' : r.source;
-            const rateVal = r.rate !== null ? r.rate : '';
+        // Render each day of the month
+        for (let day = 1; day <= totalDays; day++) {
+            const d = new Date(year, month - 1, day);
+            const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+
+            // Format to YYYY-MM-DD
+            const yyyy = year;
+            const mm = String(month).padStart(2, "0");
+            const dd = String(day).padStart(2, "0");
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            const rInfo = data.rates[dateStr] || { rate: null, source: "not_found" };
+
+            const cell = document.createElement("div");
+            cell.className = `calendar-day${isWeekend ? ' weekend-day' : ''}`;
+            cell.dataset.date = dateStr;
+
+            const hasRate = rInfo.rate !== null;
+            const rateText = hasRate ? `₹${rInfo.rate.toFixed(2)}` : "—";
+            
+            // Normalize source for display: shipped/cache -> cached (Green), override -> override (Yellow)
+            let statusLabel = rInfo.source === "not_found" ? "missing" : rInfo.source;
+            if (statusLabel === "shipped" || statusLabel === "cache") {
+                statusLabel = "cached";
+            }
             const isLocked = data.locked;
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td><strong>${r.month_name}</strong> ${year}</td>
-                <td>${r.rate_date || '—'}</td>
-                <td>
-                    <input type="number" class="monthly-rate-input" step="0.01" value="${rateVal}"
-                           placeholder="Enter ₹ rate" data-rate-date="${r.rate_date}" ${isLocked ? 'disabled' : ''}>
-                </td>
-                <td><span class="rate-status ${statusClass}">${statusLabel}${isLocked ? BADGE_LOCK_SVG : ''}</span></td>
-                <td><button class="btn btn-sm btn-primary save-rate-btn" data-rate-date="${r.rate_date}"
-                    ${isLocked ? 'disabled' : ''}>${SAVE_BTN_HTML}</button></td>
+
+            cell.innerHTML = `
+                <div class="calendar-day-num">${day}</div>
+                <div class="calendar-day-rate-container">
+                    <div class="calendar-day-rate">${rateText}</div>
+                    <span class="calendar-day-status ${statusLabel}">${statusLabel}</span>
+                </div>
             `;
-            // Save button handler
-            tr.querySelector(".save-rate-btn").addEventListener("click", async () => {
-                const input = tr.querySelector(".monthly-rate-input");
-                const val = parseFloat(input.value);
-                if (!val || val <= 0) return showToast("Enter a valid rate", "warning");
-                const rateDate = input.dataset.rateDate;
-                try {
-                    await apiPost("/api/save-manual-rate", { rate_date: rateDate, rate: val });
-                    showToast(`Saved ₹${val} for ${rateDate}`, "success");
-                    const badge = tr.querySelector(".rate-status");
-                    badge.className = "rate-status cached";
-                    badge.textContent = "cache";
-                } catch (e) {
-                    showToast(`Error: ${e.message}`, "error");
-                }
-            });
-            tbody.appendChild(tr);
-        });
-    } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${e.message}</td></tr>`;
-    }
-}
 
-// ===== Lock/Unlock Rates =====
-export async function toggleLockRates() {
-    const year = parseInt(document.getElementById("ratesYearSelect").value) || state.portfolio.calendar_year;
-    const lockBtn = document.getElementById("lockRatesBtn");
-    const isCurrentlyLocked = lockBtn.classList.contains("locked");
-    const action = isCurrentlyLocked ? "unlock" : "lock";
+            // Edit listener if not locked
+            if (!isLocked) {
+                cell.addEventListener("click", () => {
+                    if (cell.querySelector("input")) return; // Already editing
 
-    try {
-        const resp = await apiPost("/api/lock-rates", { year, action });
-        if (resp.success) {
-            showToast(`Rates for ${year} ${action}ed`, "success");
-            await loadMonthlyRates();
-        } else {
-            showToast(resp.error || `Failed to ${action} rates`, "error");
+                    const container = cell.querySelector(".calendar-day-rate-container");
+                    const originalHTML = container.innerHTML;
+
+                    const input = document.createElement("input");
+                    input.type = "number";
+                    input.className = "calendar-day-editor-input";
+                    input.step = "0.01";
+                    input.value = rInfo.rate !== null ? rInfo.rate : "";
+                    input.placeholder = "0.00";
+
+                    container.innerHTML = "";
+                    container.appendChild(input);
+                    input.focus();
+                    input.select();
+
+                    let finished = false;
+                    const save = async () => {
+                        if (finished) return;
+                        finished = true;
+
+                        const newVal = parseFloat(input.value);
+                        if (!isNaN(newVal) && newVal > 0) {
+                            try {
+                                const saveRes = await apiPost("/api/save-manual-rate", { rate_date: dateStr, rate: newVal });
+                                if (saveRes.success) {
+                                    showToast(`Saved rate for ${dateStr}: ₹${newVal}`, "success");
+
+                                    // Update visual representation without full reload
+                                    rInfo.rate = newVal;
+                                    rInfo.source = "override";
+
+                                    container.innerHTML = `
+                                        <div class="calendar-day-rate">₹${newVal.toFixed(2)}</div>
+                                        <span class="calendar-day-status override">override</span>
+                                    `;
+                                    cell.classList.add("rate-updated");
+                                    setTimeout(() => cell.classList.remove("rate-updated"), 800);
+                                } else {
+                                    showToast("Failed to save rate: " + saveRes.error, "error");
+                                    container.innerHTML = originalHTML;
+                                }
+                            } catch (err) {
+                                showToast("Error saving rate: " + err.message, "error");
+                                container.innerHTML = originalHTML;
+                            }
+                        } else {
+                            container.innerHTML = originalHTML;
+                        }
+                    };
+
+                    input.addEventListener("blur", save);
+                    input.addEventListener("keypress", (e) => { if (e.key === "Enter") input.blur(); });
+                    input.addEventListener("keydown", (e) => {
+                        if (e.key === "Escape") {
+                            finished = true;
+                            container.innerHTML = originalHTML;
+                        }
+                    });
+                });
+            }
+
+            grid.appendChild(cell);
         }
+
+        // Fill ending cells of last week with empty padding
+        const totalCells = startDayOfWeek + totalDays;
+        const remainingPadding = (7 - (totalCells % 7)) % 7;
+        for (let i = 0; i < remainingPadding; i++) {
+            const cell = document.createElement("div");
+            cell.className = "calendar-day empty-day";
+            cell.innerHTML = '<div class="calendar-day-num"></div>';
+            grid.appendChild(cell);
+        }
+
     } catch (e) {
-        showToast(`Error: ${e.message}`, "error");
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:var(--danger);">Error: ${e.message}</div>`;
     }
 }
+
+
 
 // ===== ITR Tax Year Capital Gains & Dividend Summary =====
 export async function fetchTaxYearSummary() {
@@ -1514,26 +1658,41 @@ export function jumpToSection(sectionId, targetSelector = null) {
     setTimeout(() => target.classList.remove("highlight-pulse"), 2000);
 }
 
-export function clearSbiOverrides() {
-    if (!confirm("Are you sure you want to clear all manual SBI TT rate overrides? This will revert them to auto-fetched values.")) return;
+export async function clearSbiOverrides() {
+    if (!confirm("Are you sure you want to clear all manual SBI TT rate overrides? This will purge all post-2020 rates, restore modified pre-2020 PDF rates to default, and remove any other custom pre-2020 rates.")) return;
     
-    pushUndoSnapshot("Clear SBI Overrides");
-    state.portfolio.sbi_rate_overrides = {};
-    // Also clear calculated overrides as they likely depend on rates
-    state.portfolio.overrides = {}; 
-    
-    markDirty();
-    showToast("SBI TT overrides cleared", "success");
-    
-    // Refresh UI
-    if (state.calculatedRows && state.calculatedRows.length > 0) {
-        if (typeof window.calculateAll === "function") {
-            window.calculateAll();
+    try {
+        pushUndoSnapshot("Clear SBI Overrides");
+        const res = await apiPost("/api/clear-sbi-rates");
+        if (res.success) {
+            state.portfolio.sbi_rate_overrides = {};
+            // Also clear calculated overrides as they likely depend on rates
+            state.portfolio.overrides = {}; 
+            
+            markDirty();
+            showToast("SBI TT rates database cleared and restored to defaults", "success");
+            
+            // Reload calendar rates if it is visible
+            const ratesSection = document.getElementById("monthlyRatesSection");
+            if (ratesSection && !ratesSection.classList.contains("hidden")) {
+                await loadMonthlyRates();
+            }
+            
+            // Refresh UI
+            if (state.calculatedRows && state.calculatedRows.length > 0) {
+                if (typeof window.calculateAll === "function") {
+                    window.calculateAll();
+                } else {
+                    console.warn("calculateAll not found on window");
+                }
+            } else {
+                dispatchStateChange("portfolio-restored");
+                dispatchStateChange("clear-calculated");
+            }
         } else {
-            console.warn("calculateAll not found on window");
+            showToast("Failed to clear rates: " + res.error, "error");
         }
-    } else {
-        dispatchStateChange("portfolio-restored");
-        dispatchStateChange("clear-calculated");
+    } catch (e) {
+        showToast("Error clearing rates: " + e.message, "error");
     }
 }

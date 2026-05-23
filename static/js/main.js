@@ -53,7 +53,6 @@ import {
     collectSbiRates, 
     showMonthlyRates, 
     loadMonthlyRates, 
-    toggleLockRates, 
     clearSbiOverrides, 
     fetchConsolidatedTaxSummary,
     initFYYearSelector,
@@ -169,17 +168,24 @@ function initYearSelectors() {
         if (y === state.portfolio.calendar_year) opt.selected = true;
         mainSelect.appendChild(opt);
 
-        const rOpt = document.createElement("option");
-        rOpt.value = y;
-        rOpt.textContent = y;
-        if (y === state.portfolio.calendar_year) rOpt.selected = true;
-        rateYearSelect.appendChild(rOpt);
-        
         const iOpt = document.createElement("option");
         iOpt.value = y;
         iOpt.textContent = y;
         if (y === state.portfolio.calendar_year) iOpt.selected = true;
         initialSelect.appendChild(iOpt);
+    }
+
+    for (let y = currentYear; y >= 2010; y--) {
+        const rOpt = document.createElement("option");
+        rOpt.value = y;
+        rOpt.textContent = y;
+        if (y === state.portfolio.calendar_year) rOpt.selected = true;
+        rateYearSelect.appendChild(rOpt);
+    }
+
+    const monthSelect = document.getElementById("ratesMonthSelect");
+    if (monthSelect) {
+        monthSelect.value = new Date().getMonth() + 1;
     }
     
     mainSelect.addEventListener("change", async (e) => {
@@ -419,11 +425,63 @@ function clearCurrentYear() {
 }
 
 // ===== SBI Rates & Cache Tools =====
+function showFetchOptionsDialog() {
+    return new Promise((resolve) => {
+        const backdrop = document.createElement("div");
+        backdrop.className = "modal-backdrop";
+        backdrop.style.zIndex = "11000"; // Ensure it stacks above other modals
+        
+        const box = document.createElement("div");
+        box.className = "modal-box";
+        box.style.maxWidth = "450px";
+        box.style.borderRadius = "12px";
+        box.style.padding = "24px 28px";
+        
+        box.innerHTML = `
+            <div class="modal-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">Fetch SBI TT Rates</h3>
+            </div>
+
+            <div class="modal-body" style="margin-bottom: 20px; color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; text-align: left;">
+                <p style="margin-top: 0; margin-bottom: 14px;">You are fetching fresh SBI TT Buying Rates from GitHub. How would you like to handle rates in the active database?</p>
+                <ul style="padding-left: 20px; margin: 0 0 14px 0;">
+                    <li style="margin-bottom: 8px;"><strong>Overwrite All</strong>: Replaces all active rates including any rates that you manually edited/overrode.</li>
+                    <li><strong>Only Add Missing</strong>: Only downloads new/missing rates from GitHub and preserves all of your manual overrides and edits.</li>
+                </ul>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap;">
+                <button class="btn btn-outline cancel-btn" style="padding: 6px 14px; border-radius: 6px;">Cancel</button>
+                <button class="btn btn-outline missing-btn" style="padding: 6px 14px; border-radius: 6px; border-color: var(--primary); color: var(--primary);">Only Add Missing</button>
+                <button class="btn confirm-btn" style="padding: 6px 14px; border-radius: 6px; background: var(--primary); border-color: var(--primary); color: white;">Overwrite All</button>
+            </div>
+        `;
+        
+        backdrop.appendChild(box);
+        document.body.appendChild(backdrop);
+        
+        const cleanup = (value) => {
+            backdrop.remove();
+            resolve(value);
+        };
+        
+        box.querySelector(".cancel-btn").addEventListener("click", () => cleanup(null));
+        box.querySelector(".missing-btn").addEventListener("click", () => cleanup("missing"));
+        box.querySelector(".confirm-btn").addEventListener("click", () => cleanup("overwrite"));
+        backdrop.addEventListener("click", (e) => {
+            if (e.target === backdrop) cleanup(null);
+        });
+    });
+}
+
 async function fetchSbiRates() {
+    const choice = await showFetchOptionsDialog();
+    if (!choice) return; // User cancelled
+    
+    const overwrite = choice === "overwrite";
     const year = state.portfolio.calendar_year;
     showLoading(`Fetching SBI TT buying rates for CY${year}...`);
     try {
-        const result = await apiPost("/api/fetch-sbi-rates", { year });
+        const result = await apiPost("/api/fetch-sbi-rates", { year, overwrite });
         await hideLoading();
         if (result.success) {
             let msg = `Loaded SBI TT Rates for ${year}.`;
@@ -431,6 +489,19 @@ async function fetchSbiRates() {
                 msg += ` Note: Rates missing/approximated for: ${result.missing.join(", ")}`;
             }
             showToast(msg, "success");
+            
+            // Reload calendar if it is currently visible
+            const ratesSection = document.getElementById("monthlyRatesSection");
+            if (ratesSection && !ratesSection.classList.contains("hidden")) {
+                if (typeof loadMonthlyRates === "function") {
+                    await loadMonthlyRates();
+                }
+            }
+            
+            // Trigger calculation update
+            if (typeof calculateAll === "function") {
+                await calculateAll();
+            }
         } else {
             showToast(result.error || "Failed to fetch rates", "error");
         }
@@ -439,6 +510,81 @@ async function fetchSbiRates() {
         showToast(`Error fetching SBI rates: ${e.message}`, "error");
     }
 }
+
+async function exportSbiRates() {
+    showLoading("Preparing SBI rates export...");
+    try {
+        const res = await apiGet("/api/export-sbi-rates");
+        await hideLoading();
+        if (res.success) {
+            const filename = `sbi_rates_cache.json`;
+            const jsonContent = JSON.stringify(res.data, null, 2);
+            const saveResult = await saveFileRobustly(
+                jsonContent, 
+                filename, 
+                'JSON File', 
+                'application/json', 
+                '.json'
+            );
+            if (saveResult.success) {
+                const msg = saveResult.method === 'browser-download' ? "SBI Rates cache downloaded to your computer." : "SBI Rates cache exported successfully!";
+                showToast(msg, "success");
+            } else if (saveResult.error !== 'Cancelled') {
+                showToast(`Export error: ${saveResult.error}`, "error");
+            }
+        } else {
+            showToast(res.error || "Failed to export rates", "error");
+        }
+    } catch (e) {
+        await hideLoading();
+        showToast(`Error exporting SBI rates: ${e.message}`, "error");
+    }
+}
+
+function openSbiImportFile() {
+    document.getElementById("importSbiFileInput").click();
+}
+
+async function handleSbiImportFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Reset value so same file can be imported again if needed
+    e.target.value = "";
+    
+    showLoading("Importing SBI rates...");
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+            const res = await apiPost("/api/import-sbi-rates", data);
+            await hideLoading();
+            if (res.success) {
+                showToast("SBI TT Rates database imported successfully!", "success");
+                
+                // Reload calendar rates if it is visible
+                const ratesSection = document.getElementById("monthlyRatesSection");
+                if (ratesSection && !ratesSection.classList.contains("hidden")) {
+                    if (typeof loadMonthlyRates === "function") {
+                        await loadMonthlyRates();
+                    }
+                }
+                
+                // Recalculate everything
+                if (typeof calculateAll === "function") {
+                    await calculateAll();
+                }
+            } else {
+                showToast(res.error || "Failed to import rates", "error");
+            }
+        } catch (err) {
+            await hideLoading();
+            showToast(`Failed to parse file: ${err.message}`, "error");
+        }
+    };
+    reader.readAsText(file);
+}
+
 
 async function clearStockCache() {
     if (!confirm("Are you sure you want to clear the local stock data cache? All historical stock info and dividend data will be cleared, forcing fresh queries from Yahoo Finance on your next live fetch.")) return;
@@ -632,6 +778,20 @@ async function selectUser(username) {
     clearCalculatedSections();
     
     await autoLoadForYear(state.portfolio.calendar_year);
+
+    // Check if the SBI rates cache is empty (first-time start check)
+    try {
+        const cacheStatus = await apiGet("/api/sbi-cache-status");
+        if (cacheStatus.success && cacheStatus.empty) {
+            // Trigger the existing fetch rates choice dialog to fetch initial rates from GitHub!
+            showToast("SBI TT rates database is empty. Opening rates fetcher...", "info");
+            setTimeout(() => {
+                fetchSbiRates();
+            }, 800);
+        }
+    } catch (err) {
+        console.warn("Failed to check SBI cache status:", err);
+    }
 }
 
 // ===== Skeletons =====
@@ -811,6 +971,27 @@ async function calculateAll() {
 
         document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
         showToast(`FA Report generated — ${result.rows.length} row(s)`, "success");
+
+        // Check for SBI lookback warnings and notify user
+        if (state.sbiRatesUsed && state.sbiRatesUsed.length > 0) {
+            const hasWarnings = state.sbiRatesUsed.some(entry => {
+                if (entry.eventDate && entry.rateDate && !entry.label.includes("Tax")) {
+                    const ev = parseAppDate(entry.eventDate);
+                    const rt = parseAppDate(entry.rateDate);
+                    if (ev && rt) {
+                        const diffTime = Math.abs(ev - rt);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        return diffDays > 5;
+                    }
+                }
+                return false;
+            });
+            if (hasWarnings) {
+                setTimeout(() => {
+                    showToast("Lookback warnings found in SBI TT rates. Please review 'SBI TT Rates Used' at the bottom of the report.", "warning");
+                }, 800);
+            }
+        }
 
         state.portfolio.stocks.forEach(s => setCardLoading(s.id, false));
         updateDashboard();
@@ -1937,49 +2118,67 @@ document.addEventListener("DOMContentLoaded", async () => {
     initYearSelectors();
     initFYYearSelector();
     
+    const safeAddListener = (id, event, handler) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener(event, handler);
+        } else {
+            console.warn(`Element with ID '${id}' not found. Skipping listener.`);
+        }
+    };
+    
     // Bind programmatic button listeners
-    document.getElementById("lookupBtn").addEventListener("click", lookupStock);
-    document.getElementById("tickerInput").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") lookupStock();
-    });
+    safeAddListener("lookupBtn", "click", lookupStock);
+    const tickerInput = document.getElementById("tickerInput");
+    if (tickerInput) {
+        tickerInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") lookupStock();
+        });
+    }
     
-    document.getElementById("calcFab").addEventListener("click", calculateAll);
-    document.getElementById("saveBtn").addEventListener("click", savePortfolio);
-    document.getElementById("saveAsBtn").addEventListener("click", savePortfolioAs);
-    document.getElementById("loadBtn").addEventListener("click", loadPortfolio);
-    document.getElementById("openFileBtn").addEventListener("click", openPortfolioFile);
-    document.getElementById("fetchRatesBtn").addEventListener("click", fetchSbiRates);
-    document.getElementById("fetchAllDividendsBtn").addEventListener("click", fetchAllDividends);
-    document.getElementById("importPrevBtn").addEventListener("click", importPreviousYear);
-    document.getElementById("clearYearBtn").addEventListener("click", clearCurrentYear);
-    document.getElementById("viewRatesBtn").addEventListener("click", showMonthlyRates);
-    document.getElementById("refreshMonthlyRatesBtn").addEventListener("click", loadMonthlyRates);
-    document.getElementById("ratesYearSelect").addEventListener("change", loadMonthlyRates);
-    document.getElementById("lockRatesBtn").addEventListener("click", toggleLockRates);
-    document.getElementById("clearSbiBtn").addEventListener("click", clearSbiOverrides);
-    document.getElementById("clearCacheBtn").addEventListener("click", clearStockCache);
-    document.getElementById("deleteAllDataBtn").addEventListener("click", deleteAllData);
-    document.getElementById("undoBtn").addEventListener("click", undo);
-    document.getElementById("redoBtn").addEventListener("click", redo);
-    document.getElementById("helpBtn").addEventListener("click", startTutorial);
-    document.getElementById("aboutBtn").addEventListener("click", openAboutModal);
-    document.getElementById("findBtn").addEventListener("click", toggleSearchModal);
-    document.getElementById("generateFYBtn").addEventListener("click", fetchConsolidatedTaxSummary);
-    document.getElementById("uploadDocsBtn").addEventListener("click", openPlatformModal);
-    document.getElementById("etradeImportBtn").addEventListener("click", importEtradeDocs);
-    document.getElementById("ibkrImportBtn").addEventListener("click", importIbkrDocs);
-    document.getElementById("historyBtn").addEventListener("click", toggleHistoryPanel);
-    
-    document.getElementById("switchUserBtn").addEventListener("click", () => {
-        document.getElementById("appHeader").classList.add("hidden");
-        document.getElementById("appMain").classList.add("hidden");
-        document.getElementById("tabNav").classList.add("hidden");
-        document.getElementById("userSelectionScreen").classList.remove("hidden");
-        state.username = null;
-        fetchUsers();
-    });
+    safeAddListener("calcFab", "click", calculateAll);
+    safeAddListener("saveBtn", "click", savePortfolio);
+    safeAddListener("saveAsBtn", "click", savePortfolioAs);
+    safeAddListener("loadBtn", "click", loadPortfolio);
+    safeAddListener("openFileBtn", "click", openPortfolioFile);
+    safeAddListener("fetchRatesBtn", "click", fetchSbiRates);
+    safeAddListener("importSbiRatesBtn", "click", openSbiImportFile);
+    safeAddListener("exportSbiRatesBtn", "click", exportSbiRates);
+    safeAddListener("importSbiFileInput", "change", handleSbiImportFileSelect);
+    safeAddListener("fetchAllDividendsBtn", "click", fetchAllDividends);
+    safeAddListener("importPrevBtn", "click", importPreviousYear);
+    safeAddListener("clearYearBtn", "click", clearCurrentYear);
+    safeAddListener("viewRatesBtn", "click", showMonthlyRates);
+    safeAddListener("ratesYearSelect", "change", loadMonthlyRates);
+    safeAddListener("ratesMonthSelect", "change", loadMonthlyRates);
 
-    document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
+    safeAddListener("clearSbiBtn", "click", clearSbiOverrides);
+    safeAddListener("clearCacheBtn", "click", clearStockCache);
+    safeAddListener("deleteAllDataBtn", "click", deleteAllData);
+    safeAddListener("undoBtn", "click", undo);
+    safeAddListener("redoBtn", "click", redo);
+    safeAddListener("helpBtn", "click", startTutorial);
+    safeAddListener("aboutBtn", "click", openAboutModal);
+    safeAddListener("findBtn", "click", toggleSearchModal);
+    safeAddListener("generateFYBtn", "click", fetchConsolidatedTaxSummary);
+    safeAddListener("uploadDocsBtn", "click", openPlatformModal);
+    safeAddListener("etradeImportBtn", "click", importEtradeDocs);
+    safeAddListener("ibkrImportBtn", "click", importIbkrDocs);
+    safeAddListener("historyBtn", "click", toggleHistoryPanel);
+    
+    const switchUserBtn = document.getElementById("switchUserBtn");
+    if (switchUserBtn) {
+        switchUserBtn.addEventListener("click", () => {
+            document.getElementById("appHeader").classList.add("hidden");
+            document.getElementById("appMain").classList.add("hidden");
+            document.getElementById("tabNav").classList.add("hidden");
+            document.getElementById("userSelectionScreen").classList.remove("hidden");
+            state.username = null;
+            fetchUsers();
+        });
+    }
+
+    safeAddListener("themeToggleBtn", "click", toggleTheme);
 
     document.querySelectorAll(".density-option").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -1987,19 +2186,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
-    document.getElementById("quitAppBtn").addEventListener("click", async () => {
-        if (!confirm("Are you sure you want to quit the application? Any unsaved changes will be lost.")) return;
-        try {
-            await fetch("/api/shutdown", { method: "POST" });
-        } catch (e) {}
-        document.body.innerHTML = `
-            <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background-color:var(--bg-main);color:var(--text-main);font-family:'Inter', sans-serif;">
-                <h1 style="font-size:2rem;margin-bottom:16px;">🛑 App will shut down</h1>
-                <p style="font-size:1.1rem;color:var(--text-muted);">The application session has ended.</p>
+    const quitAppBtn = document.getElementById("quitAppBtn");
+    if (quitAppBtn) {
+        quitAppBtn.addEventListener("click", async () => {
+            if (!confirm("Are you sure you want to quit the application? Any unsaved changes will be lost.")) return;
+            try {
+                await fetch("/api/shutdown", { method: "POST" });
+            } catch (e) {}
+            document.body.innerHTML = `
+                <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background-color:var(--bg-main);color:var(--text-main);font-family:'Inter', sans-serif;">
+                    <h1 style="font-size:2rem;margin-bottom:16px;">🛑 App will shut down</h1>
+                    <p style="font-size:1.1rem;color:var(--text-muted);">The application session has ended.</p>
                 <p style="font-size:1.1rem;color:var(--text-muted);margin-top:8px;">You can now safely close this window.</p>
             </div>`;
-        try { window.close(); } catch(e) {}
-    });
+            try { window.close(); } catch(e) {}
+        });
+    }
 
     // Keyboard Shortcuts
     document.addEventListener("keydown", (e) => {
@@ -2080,6 +2282,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
+    // Hide the initial loading overlay so the disclaimer / user selection modals are fully visible and clickable!
+    await hideLoading();
+
     // Initialize core components & managers
     await checkDisclaimer();
     await initUserSelection();
@@ -2148,9 +2353,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
     });
-
-
-    await hideLoading();
 });
 
 // ===== Subscription to portfolio-state-change event =====
@@ -2228,6 +2430,8 @@ window.savePortfolioAs = savePortfolioAs;
 window.loadPortfolio = loadPortfolio;
 window.openPortfolioFile = openPortfolioFile;
 window.fetchSbiRates = fetchSbiRates;
+window.exportSbiRates = exportSbiRates;
+window.openSbiImportFile = openSbiImportFile;
 window.clearSbiOverrides = clearSbiOverrides;
 window.clearStockCache = clearStockCache;
 window.deleteAllData = deleteAllData;

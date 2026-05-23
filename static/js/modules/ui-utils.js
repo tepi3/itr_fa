@@ -129,6 +129,17 @@ export function toggleSection(id) {
         const icon = header.querySelector(".toggle-icon");
         if (icon) icon.style.transform = isCollapsed ? "rotate(-90deg)" : "";
     }
+
+    // Auto-hide Rates Editor card if collapsed and UNLOCKED
+    if (id === "monthlyRatesContent" && isCollapsed) {
+        const lockCheckbox = document.getElementById("lockRatesCardCheckbox");
+        if (lockCheckbox && !lockCheckbox.checked) {
+            const section = document.getElementById("monthlyRatesSection");
+            if (section) {
+                section.classList.add("hidden");
+            }
+        }
+    }
 }
 
 // ===== Tooltip Helpers =====

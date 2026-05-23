@@ -16,6 +16,9 @@ def test_get_last_day_prev_month():
     assert get_last_day_prev_month(date(2023, 3, 10)) == date(2023, 2, 28)
 
 def test_get_sbi_tt_rate_logic(tmp_path, monkeypatch):
+    # Mock pre-2020 rates to be empty for this test to avoid interference
+    monkeypatch.setattr("core.sbi_rates._load_pre_2020_rates", lambda: {})
+    
     # Setup a temporary cache file
     fake_cache_file = tmp_path / "sbi_cache.json"
     monkeypatch.setattr("core.sbi_rates.SBI_CACHE_FILE", fake_cache_file)
@@ -60,3 +63,43 @@ def test_get_sbi_tt_rate_logic(tmp_path, monkeypatch):
     res = get_sbi_tt_rate(date(2024, 8, 20))
     assert res["rate"] == 83.40
     assert res["rate_date"] == "2024-07-28"
+
+
+def test_clear_sbi_cache(tmp_path, monkeypatch):
+    from core.sbi_rates import clear_sbi_cache, _load_cache
+    fake_cache_file = tmp_path / "sbi_cache.json"
+    monkeypatch.setattr("core.sbi_rates.SBI_CACHE_FILE", fake_cache_file)
+    
+    # Write some mock cache data
+    cache_data = {
+        "rates": {
+            "USD": {
+                "2024-07-31": 83.50, # Post-2020
+                "2010-01-31": 99.99, # Pre-2020 PDF override (original is 45.93)
+                "2015-05-15": 60.00, # Pre-2020 non-PDF custom rate
+            }
+        }
+    }
+    
+    with open(fake_cache_file, "w") as f:
+        json.dump(cache_data, f)
+        
+    # Before clear
+    merged = _load_cache()
+    # Check that override is active
+    assert merged["rates"]["USD"]["2010-01-31"] == 99.99
+    assert merged["rates"]["USD"]["2024-07-31"] == 83.50
+    assert merged["rates"]["USD"]["2015-05-15"] == 60.00
+    
+    # Call clear
+    clear_sbi_cache()
+    
+    # After clear
+    merged_after = _load_cache()
+    # Should restore shipped rates (45.93 for 2010-01-31, 83.32 for 2024-07-31)
+    assert merged_after["rates"]["USD"]["2010-01-31"] == 45.93
+    assert merged_after["rates"]["USD"]["2024-07-31"] == 83.32 # Restored from shipped
+    # Should purge non-shipped pre-2020 rates
+    assert "2015-05-15" not in merged_after["rates"]["USD"]
+
+

@@ -190,7 +190,8 @@ tr:hover td {
     font-weight: 500;
 }
 
-.rate-status.cached {
+.rate-status.cached,
+.rate-status.shipped {
     background: var(--success-light);
     color: var(--success);
 }
@@ -206,8 +207,8 @@ tr:hover td {
 }
 
 .rate-status.override {
-    background: var(--accent-light);
-    color: var(--accent);
+    background: var(--warning-light);
+    color: var(--warning);
 }
 
 .editable-rate {

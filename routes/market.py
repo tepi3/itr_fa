@@ -4,7 +4,8 @@ from flask import Blueprint, jsonify, request
 from core.sbi_rates import (
     get_sbi_tt_rate, get_monthly_rates, save_manual_rate,
     refresh_cache, lock_year_rates, unlock_year_rates, 
-    is_year_locked, get_locked_years
+    is_year_locked, get_locked_years, get_daily_rates,
+    clear_sbi_cache
 )
 from core.stock_data import (
     get_company_info, get_price_on_date, get_dividends,
@@ -113,6 +114,30 @@ def api_monthly_rates():
         "locked": locked,
     })
 
+@market_bp.route("/api/daily-rates", methods=["GET"])
+def api_daily_rates():
+    """Get SBI TT daily rates for a selected calendar year and month (USD only)."""
+    year = request.args.get("year")
+    month = request.args.get("month")
+    if not year or not month:
+        return jsonify({"error": "year and month parameters required"}), 400
+    try:
+        year_int = int(year)
+        month_int = int(month)
+        rates = get_daily_rates(year_int, month_int)
+        locked = is_year_locked(year_int)
+        return jsonify({
+            "success": True,
+            "year": year_int,
+            "month": month_int,
+            "currency": "USD",
+            "rates": rates,
+            "locked": locked,
+        })
+    except Exception as e:
+        logger.exception("Failed to get daily rates")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @market_bp.route("/api/save-manual-rate", methods=["POST"])
 def api_save_manual_rate():
     """Save a manually entered SBI TT rate (USD only)."""
@@ -131,11 +156,80 @@ def api_save_manual_rate():
 def api_fetch_sbi_rates():
     """Force download and cache SBI rates."""
     try:
-        updated = refresh_cache()
+        data = request.get_json() or {}
+        overwrite = data.get("overwrite", True)
+        updated = refresh_cache(overwrite=overwrite)
         return jsonify({"success": True, "updated": updated})
     except Exception as e:
         logger.exception("Failed to fetch SBI rates")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@market_bp.route("/api/clear-sbi-rates", methods=["POST"])
+def api_clear_sbi_rates():
+    """Clear all manual rate overrides and fetched rates from disk cache."""
+    try:
+        clear_sbi_cache()
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.exception("Failed to clear SBI rates cache")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@market_bp.route("/api/export-sbi-rates", methods=["GET"])
+def api_export_sbi_rates():
+    """Export SBI rates cache file as JSON."""
+    try:
+        from config import SBI_CACHE_FILE
+        import json
+        if SBI_CACHE_FILE.exists():
+            with open(SBI_CACHE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        else:
+            data = {"rates": {"USD": {}}}
+        return jsonify({"success": True, "data": data})
+    except Exception as e:
+        logger.exception("Failed to export SBI rates")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@market_bp.route("/api/import-sbi-rates", methods=["POST"])
+def api_import_sbi_rates():
+    """Import SBI rates cache from uploaded JSON."""
+    try:
+        import json
+        from config import SBI_CACHE_FILE
+        from core.sbi_rates import _save_cache
+        data = request.get_json()
+        if not data or "rates" not in data:
+            return jsonify({"success": False, "error": "Invalid format: 'rates' key is required."}), 400
+        
+        # Validation
+        if not isinstance(data["rates"], dict) or "USD" not in data["rates"] or not isinstance(data["rates"]["USD"], dict):
+            return jsonify({"success": False, "error": "Invalid structure: 'rates.USD' must be an object."}), 400
+        
+        cleaned_usd = {}
+        for d_str, val in data["rates"]["USD"].items():
+            try:
+                # Validate format YYYY-MM-DD
+                dt_date.fromisoformat(d_str)
+                cleaned_usd[d_str] = float(val)
+            except ValueError:
+                continue
+                
+        cleaned_data = {
+            "rates": {
+                "USD": cleaned_usd
+            },
+            "locked_years": data.get("locked_years", [])
+        }
+        
+        _save_cache(cleaned_data)
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.exception("Failed to import SBI rates")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @market_bp.route("/api/lock-rates", methods=["POST"])
 def api_lock_rates():
@@ -167,3 +261,26 @@ def api_clear_stock_cache():
     """Clear all cached yfinance data."""
     success = clear_stock_cache()
     return jsonify({"success": success})
+
+
+@market_bp.route("/api/sbi-cache-status", methods=["GET"])
+def api_sbi_cache_status():
+    """Check if the SBI rates cache on disk is empty."""
+    try:
+        from config import SBI_CACHE_FILE
+        import json
+        raw_rates = {}
+        if SBI_CACHE_FILE.exists():
+            try:
+                with open(SBI_CACHE_FILE, "r", encoding="utf-8") as f:
+                    raw_data = json.load(f)
+                    raw_rates = raw_data.get("rates", {}).get("USD", {})
+            except Exception:
+                pass
+        return jsonify({
+            "success": True,
+            "empty": not bool(raw_rates)
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+

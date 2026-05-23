@@ -91,6 +91,10 @@ def test_qcom_vwra():
     res = requests.post(f"{BASE_URL}/fetch-sbi-rates", json={"currency": "USD"})
     assert res.status_code == 200
 
+    # Save a manual rate for July 30th 2021 to satisfy the lookback check (July has a gap in GitHub CSV)
+    res = requests.post(f"{BASE_URL}/save-manual-rate", json={"rate_date": "2021-07-30", "rate": 74.45})
+    assert res.status_code == 200
+
     # Calculate
     print("Calculating A3 rows...")
     res = requests.post(f"{BASE_URL}/calculate", json=portfolio)

@@ -94,12 +94,13 @@ python3 app.py
 
 ### SBI Rates & Currency
 - **Dual-Rate Logic** — Automatically applies the correct SBI TT Buying Rate based on context:
-  - **Schedule FA (A3)**: Uses the rate as of the **actual date of the event** (Buy, Peak, Closing, Dividend, or Sale) with a 10-day automatic walk-back for weekends and holidays. See [Official Guide for Schedule FA](https://www.incometax.gov.in/iec/foportal/sites/default/files/2026-03/Step%20by%20Step%20Guide%20FA%20FSI.pdf).
-  - **Tax Calculation (CG/Dividends)**: Uses the rate on the **last day of the preceding month** as per [Rule 115](https://indiankanoon.org/doc/34257484/). If the rate for the last day is not available, the nearest available rate before that is used.
-- **Interactive Rate Overrides** — Click any rate in the "SBI TT Rates Used in Calculation" table at the bottom of the report to edit it inline. Edits are persisted globally to the cache.
-- **USD-Only SBI TT rates** — Auto-fetches from a community-maintained GitHub archive.
-- **Rate Locking** — Lock rates for a specific year to prevent automatic fetches from overwriting your manual edits.
-- **Historical SBI Rates** — View and edit SBI rates for any month going back to 2000.
+  - **Schedule FA (A3)**: Uses the rate of the **actual event date** (Buy, Peak, Closing, Dividend, Sale) with a lookback limit stopping at the first day of the preceding month. Highlight alerts flag lookup gaps > 7 days.
+  - **Tax Calculation (Rule 115)**: Uses the rate on the **last day of the preceding month** with a strict **5-day lookback window**. Prompts exact date guidelines if rates are missing.
+- **Base PDF rates (pre-2020)**: Shipped with a built-in, verified database of 195 base rates extracted directly from the official decade-long SBI TT buying rate PDF (2010–2019).
+- **SBI TT Rates Calendar Editor**: Populate and edit daily rates for any month/year since 2010 in a modern Sunday-aligned calendar grid. Inline edits from the calendar or report table update the same active database cache.
+- **Fetch Choices (Overwrite vs. Merge)**: Select between *Overwrite All* (updates active database including custom edits on conflicting dates) and *Only Add Missing* (merges fetched rates while fully preserving your manual overrides).
+- **Import & Export**: Backup and restore your customized rates database as JSON using native, secure cross-platform dialogs on both Windows and macOS.
+- **Refined Database Purge**: Click *Clear SBI TT Overrides* to securely restore original pre-2020 PDF rates to default, purge post-2020 fetched rates, and delete custom non-PDF rates in the cache.
 
 ### Dividends
 - **Dividend Auto-Fetch** — Automatically fetches dividend events for the current year when importing data or adding stocks.

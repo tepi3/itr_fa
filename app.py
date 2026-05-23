@@ -126,9 +126,7 @@ def init_flask_app():
         return response
 
 
-    # Initial SBI rates fetch if empty
-    from core.sbi_rates import ensure_rates_cached
-    Thread(target=ensure_rates_cached, daemon=True).start()
+    # Initial SBI rates fetch is triggered on the client side after login if the database is empty
 
     @state.app.route("/api/heartbeat", methods=["POST"])
     def heartbeat():

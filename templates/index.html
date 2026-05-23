@@ -139,9 +139,17 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                             <span>Fetch SBI Rates</span>
                         </button>
-                        <button id="viewRatesBtn" class="btn" title="View & edit monthly SBI rates">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                            <span>Monthly Rates</span>
+                        <button id="viewRatesBtn" class="btn" title="Open interactive SBI TT Rates Editor">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>
+                            <span>SBI TT Rates Editor</span>
+                        </button>
+                        <button id="importSbiRatesBtn" class="btn" title="Import SBI TT rates JSON file">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="14 10 12 12 10 10"></polyline><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                            <span>Import SBI TT Rates</span>
+                        </button>
+                        <button id="exportSbiRatesBtn" class="btn" title="Export SBI TT rates JSON file">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="10 6 12 4 14 6"></polyline><line x1="12" y1="4" x2="12" y2="14"></line></svg>
+                            <span>Export SBI TT Rates</span>
                         </button>
                         <button id="fetchAllDividendsBtn" class="btn" title="Fetch dividends for all stocks in current year">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><line x1="12" y1="10" x2="12" y2="14"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
@@ -285,6 +293,7 @@
                 </div>
 
                 <input type="file" id="openFileInput" accept=".json" style="display: none;">
+                <input type="file" id="importSbiFileInput" accept=".json" style="display: none;">
             </div>
         </div>
     </header>
@@ -304,40 +313,58 @@
 
     <main id="appMain" class="hidden">
 
-        <!-- SBI Monthly Rates Manager (always available) -->
+        <!-- SBI TT Rates Editor (formerly Monthly Rates, always available) -->
         <section id="monthlyRatesSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('monthlyRatesContent')">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>SBI TT Buying Rates — Monthly Overview</h2>
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>SBI TT Rates Editor</h2>
                     <button class="btn-help-inline" onclick="event.stopPropagation(); showTutorialStepByTitle('Tools Menu')" title="How SBI rates are used"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
                 </div>
-                <span class="toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                <div style="display:flex; align-items:center; gap:16px;" onclick="event.stopPropagation();">
+                    <label class="lock-card-container" style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text-muted); cursor:pointer; font-weight:500; user-select:none;">
+                        <input type="checkbox" id="lockRatesCardCheckbox" style="cursor:pointer; accent-color:var(--accent);">
+                        <span>Keep Visible on Screen</span>
+                    </label>
+                    <span class="toggle-icon" onclick="toggleSection('monthlyRatesContent')"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                </div>
             </div>
             <div id="monthlyRatesContent" class="collapsible-content">
                 <div>
-                    <p class="hint" style="margin-bottom: 12px;">
-                        These are the rates used for conversions. For transactions in a given month, the rate from the
-                        <strong>last day of the previous month</strong> is used. Edit any rate if the auto-fetched value is incorrect or missing.
+                    <p class="hint" style="margin-bottom: 16px;">
+                        Manage the database of daily SBI TT buying rates from year 2010. For tax calculations, the rate should be present in the last 5 days of the preceding month. For A3 calculations, the rate will fallback to the nearest preceding date.
                     </p>
-                    <div class="rates-currency-select">
-                        <label for="ratesYearSelect">Year:</label>
-                        <select id="ratesYearSelect"></select>
-                        <button id="refreshMonthlyRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L21 8M21 16a9 9 0 0 1-14.85 3.36L3 18"></path></svg>Load Rates</button>
-                        <button id="lockRatesBtn" class="btn btn-sm btn-outline" style="margin-left: 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Lock Year</button>
+                    <div class="rates-editor-controls" style="display:flex; gap:16px; align-items:center; margin-bottom:20px; flex-wrap:wrap;">
+                        <div class="control-item" style="display:flex; align-items:center; gap:8px;">
+                            <label for="ratesYearSelect" style="font-weight:600; font-size:0.9rem;">Year:</label>
+                            <select id="ratesYearSelect" style="padding:6px 12px; border-radius:6px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-main); font-weight:500; outline:none;"></select>
+                        </div>
+                        <div class="control-item" style="display:flex; align-items:center; gap:8px;">
+                            <label for="ratesMonthSelect" style="font-weight:600; font-size:0.9rem;">Month:</label>
+                            <select id="ratesMonthSelect" style="padding:6px 12px; border-radius:6px; border:1px solid var(--border); background:var(--bg-input); color:var(--text-main); font-weight:500; outline:none;">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="table-wrapper">
-                        <table id="monthlyRatesTable">
-                            <thead>
-                                <tr>
-                                    <th>Month</th>
-                                    <th>Rate Date (Last WD Prev Month)</th>
-                                    <th>TT Buy Rate (₹)</th>
-                                    <th>Source</th>
-                                    <th>Edit</th>
-                                </tr>
-                            </thead>
-                            <tbody id="monthlyRatesTableBody"></tbody>
-                        </table>
+                    
+                    <!-- Calendar Month View Grid -->
+                    <div class="calendar-editor-container" style="border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg-input);">
+                        <div class="calendar-header-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); text-align:center; font-weight:600; font-size:0.85rem; color:var(--text-muted); background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border); padding:10px 0;">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                        <div id="calendarDaysGrid" class="calendar-days-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; background:var(--border);">
+                            <!-- Populated day-by-day by JS -->
+                        </div>
                     </div>
                 </div>
             </div>

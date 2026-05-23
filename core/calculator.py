@@ -13,7 +13,7 @@ import logging
 from datetime import date, timedelta, datetime
 from typing import Optional
 
-from core.sbi_rates import get_sbi_tt_rate
+from core.sbi_rates import get_sbi_tt_rate, get_last_day_prev_month
 from core.stock_data import get_historical_prices, get_price_on_date
 from core.utils import parse_sort_date
 
@@ -51,11 +51,14 @@ def _get_rate_value(d: date, overrides: dict, use_event_date: bool = False) -> t
     if rate is None or rate == 0:
         rate_date_str = result.get("rate_date")
         if use_event_date:
-            d_str = d.strftime("%d %B %Y")
-            raise ValueError(f"SBI TT buying rate is missing or zero for {d_str} (needed for calculation). Please go to 'Monthly Rates' and update it.")
+            d_str = d.strftime("%d/%m/%Y")
+            last_day = get_last_day_prev_month(d)
+            limit_date = (last_day - timedelta(days=4)).strftime("%d/%m/%Y")
+            raise ValueError(f"SBI TT buying rate is missing for event day {d_str} and its lookback window (down to {limit_date}). Please add a rate for a date within this range in the SBI TT Rates Editor.")
         else:
-            month_name = date.fromisoformat(rate_date_str).strftime("%B %Y")
-            raise ValueError(f"SBI TT buying rate is missing or zero for {month_name} (needed for calculation). Please go to 'Monthly Rates' and update it.")
+            last_day = get_last_day_prev_month(d)
+            month_name = last_day.strftime("%B %Y")
+            raise ValueError(f"SBI TT Buying Rate is missing for the last 5 days of preceding month ({month_name}). Please add a rate for a date within this window (e.g., last day {last_day.isoformat()}) in the SBI TT Rates Editor.")
     return rate, result.get("rate_date"), result.get("source")
 
 
@@ -372,7 +375,7 @@ def calculate_sale_proceeds(
         sell_qty = float(sell["quantity"])
         sell_id = sell.get("id")
 
-        rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=False)
+        rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True)
         if rate is None:
             sale_entries.append({
                 "sell_id": sell_id,
