@@ -320,11 +320,27 @@ def run_webview_mode(state):
         background_color='#0f1117'
     )
 
+    # Calculate center of the screen for the splash window
+    splash_w, splash_h = 420, 340
+    try:
+        # Try to get screen dimensions to center splash
+        screens = webview.screens
+        if screens:
+            primary = screens[0]
+            sx = (primary.width - splash_w) // 2
+            sy = (primary.height - splash_h) // 2
+        else:
+            sx, sy = None, None
+    except Exception:
+        sx, sy = None, None
+
     splash_window = webview.create_window(
         title="FA Desk - Starting",
         html=get_splash_html(),
-        width=420,
-        height=300,
+        width=splash_w,
+        height=splash_h,
+        x=sx,
+        y=sy,
         frameless=True,
         on_top=True,
         background_color='#0b0b14'

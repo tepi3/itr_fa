@@ -391,3 +391,46 @@
     justify-content: center;
 }
 
+/* Responsive adjustments for shorter viewports to avoid scrolling in About */
+@media (max-height: 700px) {
+    .about-modal-content {
+        padding: 0 24px 20px;
+    }
+    .about-accent-bar {
+        margin-bottom: 12px;
+    }
+    .about-icon canvas {
+        width: 80px !important;
+        height: 80px !important;
+        margin-top: -8px !important;
+    }
+    .about-title {
+        font-size: 1.4rem;
+    }
+    .about-subtitle {
+        margin-bottom: 10px;
+        font-size: 0.8rem;
+    }
+    .about-description {
+        margin-bottom: 12px;
+        font-size: 0.78rem;
+    }
+    .about-version-badge {
+        margin-bottom: 12px;
+        padding: 3px 12px;
+        font-size: 0.78rem;
+    }
+    .about-update-section {
+        margin-bottom: 12px;
+    }
+    .about-divider {
+        margin-bottom: 12px;
+    }
+    .about-meta {
+        margin-bottom: 14px;
+    }
+    .about-meta p {
+        font-size: 0.7rem;
+    }
+}
+

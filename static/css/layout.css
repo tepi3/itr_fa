@@ -743,9 +743,9 @@ label {
 /* ===== Responsive Main Card Scrolling for Smaller Viewports ===== */
 @media (max-height: 800px), (max-width: 1200px) {
     #appMain .card {
-        max-height: calc(100vh - 180px);
-        overflow-y: auto;
-        overflow-x: hidden; /* Force table-wrapper to scroll instead of entire card */
+        max-height: none;
+        overflow-y: visible;
+        overflow-x: visible;
         scroll-behavior: smooth;
     }
 }
