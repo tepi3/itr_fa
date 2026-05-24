@@ -336,45 +336,54 @@ export function updateCalcButtonVisibility(stocksCount) {
 }
 
 // ===== Custom Confirm Dialog (Pywebview Safe) =====
-export function showConfirm(message, title = "Confirm Action") {
-    return new Promise((resolve) => {
-        const backdrop = document.createElement("div");
-        backdrop.className = "modal-backdrop";
-        backdrop.style.zIndex = "11000"; // Ensure it stacks above all other panels/modals
-        
-        const box = document.createElement("div");
-        box.className = "modal-box";
-        box.style.maxWidth = "420px";
-        box.style.borderRadius = "12px";
-        box.style.padding = "24px 28px";
-        
-        box.innerHTML = `
-            <div class="modal-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">${title}</h3>
-            </div>
-
-            <div class="modal-body" style="margin-bottom: 20px; color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; text-align: left;">
-                ${message}
-            </div>
-            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
-                <button class="btn btn-outline cancel-btn" style="padding: 6px 14px; border-radius: 6px;">Cancel</button>
-                <button class="btn btn-danger confirm-btn" style="padding: 6px 14px; border-radius: 6px; background: var(--danger); border-color: var(--danger); color: white;">Confirm</button>
+export function showConfirm(message, confirmLabel = "OK") {
+    return new Promise(resolve => {
+        let resolved = false;
+        const cleanup = (result) => {
+            if (resolved) return;
+            resolved = true;
+            document.body.removeChild(overlay);
+            resolve(result);
+        };
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position:fixed;inset:0;background:rgba(0,0,0,0.5);
+            z-index:9999;display:flex;align-items:center;justify-content:center;
+            backdrop-filter: blur(2px);
+        `;
+        overlay.innerHTML = `
+            <div id="sc-box" style="background:var(--bg-secondary);color:var(--text-primary);
+                        border:1px solid var(--border);border-radius:12px;padding:24px 28px;max-width:360px;width:90%;
+                        box-shadow:var(--shadow-lg);font-family:var(--font);">
+                <p style="margin:0 0 20px;font-size:0.95rem;line-height:1.5">${message}</p>
+                <div style="display:flex;justify-content:flex-end;gap:12px;">
+                    <button id="sc-cancel"
+                        style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);
+                               background:transparent;color:var(--text-secondary);cursor:pointer;font-size:0.875rem;font-weight:500;transition:var(--transition);">
+                        Cancel
+                    </button>
+                    <button id="sc-ok"
+                        style="padding:8px 16px;border-radius:8px;border:none;
+                               background:var(--danger);color:#fff;cursor:pointer;font-size:0.875rem;font-weight:500;transition:var(--transition);">
+                        ${confirmLabel}
+                    </button>
+                </div>
             </div>
         `;
+        document.body.appendChild(overlay);
         
-        backdrop.appendChild(box);
-        document.body.appendChild(backdrop);
+        const okBtn = overlay.querySelector('#sc-ok');
+        const cancelBtn = overlay.querySelector('#sc-cancel');
         
-        const cleanup = (value) => {
-            backdrop.remove();
-            resolve(value);
-        };
+        okBtn.onclick = (e) => { e.stopPropagation(); cleanup(true); };
+        cancelBtn.onclick = (e) => { e.stopPropagation(); cleanup(false); };
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
         
-        box.querySelector(".cancel-btn").addEventListener("click", () => cleanup(false));
-        box.querySelector(".confirm-btn").addEventListener("click", () => cleanup(true));
-        backdrop.addEventListener("click", (e) => {
-            if (e.target === backdrop) cleanup(false);
-        });
+        // Simple hover effects
+        okBtn.onmouseenter = () => okBtn.style.opacity = '0.9';
+        okBtn.onmouseleave = () => okBtn.style.opacity = '1';
+        cancelBtn.onmouseenter = () => cancelBtn.style.background = 'var(--bg-hover)';
+        cancelBtn.onmouseleave = () => cancelBtn.style.background = 'transparent';
     });
 }
 

@@ -91,6 +91,56 @@ import {
 // Global state / references
 let aboutGlobeAnimationId = null;
 
+function showConfirm(message, confirmLabel = "OK") {
+    return new Promise(resolve => {
+        let resolved = false;
+        const cleanup = (result) => {
+            if (resolved) return;
+            resolved = true;
+            document.body.removeChild(overlay);
+            resolve(result);
+        };
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position:fixed;inset:0;background:rgba(0,0,0,0.5);
+            z-index:9999;display:flex;align-items:center;justify-content:center;
+            backdrop-filter: blur(2px);
+        `;
+        overlay.innerHTML = `
+            <div id="sc-box" style="background:var(--bg-secondary);color:var(--text-primary);
+                        border:1px solid var(--border);border-radius:12px;padding:24px 28px;max-width:360px;width:90%;
+                        box-shadow:var(--shadow-lg);font-family:var(--font);">
+                <p style="margin:0 0 20px;font-size:0.95rem;line-height:1.5">${message}</p>
+                <div style="display:flex;justify-content:flex-end;gap:12px;">
+                    <button id="sc-cancel"
+                        style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);
+                               background:transparent;color:var(--text-secondary);cursor:pointer;font-size:0.875rem;font-weight:500;transition:var(--transition);">
+                        Cancel
+                    </button>
+                    <button id="sc-ok"
+                        style="padding:8px 16px;border-radius:8px;border:none;
+                               background:var(--danger);color:#fff;cursor:pointer;font-size:0.875rem;font-weight:500;transition:var(--transition);">
+                        ${confirmLabel}
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        
+        const okBtn = overlay.querySelector('#sc-ok');
+        const cancelBtn = overlay.querySelector('#sc-cancel');
+        
+        okBtn.onclick = (e) => { e.stopPropagation(); cleanup(true); };
+        cancelBtn.onclick = (e) => { e.stopPropagation(); cleanup(false); };
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup(false); };
+        
+        okBtn.onmouseenter = () => okBtn.style.opacity = '0.9';
+        okBtn.onmouseleave = () => okBtn.style.opacity = '1';
+        cancelBtn.onmouseenter = () => cancelBtn.style.background = 'var(--bg-hover)';
+        cancelBtn.onmouseleave = () => cancelBtn.style.background = 'transparent';
+    });
+}
+
 // ===== Disclaimer Check =====
 async function checkDisclaimer() {
     return new Promise(async (resolve) => {
@@ -344,7 +394,8 @@ async function autoLoadForYear(year) {
         if (draft && draft.portfolio && draft.portfolio.stocks && draft.portfolio.stocks.length > 0) {
             await hideLoading();
             const ago = Math.round((Date.now() - draft.timestamp) / 60000);
-            if (confirm(`Found unsaved draft from ${ago} min ago with ${draft.portfolio.stocks.length} stock(s). Restore it?`)) {
+            const confirmedRestore = await showConfirm(`Found unsaved draft from ${ago} min ago with ${draft.portfolio.stocks.length} stock(s). Restore it?`, "Restore Draft");
+            if (confirmedRestore) {
                 state.portfolio = draft.portfolio;
                 document.getElementById("stockCards").innerHTML = "";
                 state.portfolio.stocks.forEach(stock => renderStockCard(stock));
@@ -414,8 +465,9 @@ async function importPreviousYear() {
     }
 }
 
-function clearCurrentYear() {
-    if (!confirm(`Are you sure you want to clear all data for CY${state.portfolio.calendar_year}? This will remove all stocks and overrides currently loaded on screen.`)) return;
+async function clearCurrentYear() {
+    const confirmed = await showConfirm(`Are you sure you want to clear all data for CY${state.portfolio.calendar_year}? This will remove all stocks and overrides currently loaded on screen.`, "Clear Data");
+    if (!confirmed) return;
     pushUndoSnapshot("Clear Year Data");
     state.portfolio.stocks = [];
     state.portfolio.overrides = {};
@@ -582,7 +634,8 @@ async function handleSbiImportFileSelect(e) {
 
 
 async function clearStockCache() {
-    if (!confirm("Are you sure you want to clear the local stock data cache? All historical stock info and dividend data will be cleared, forcing fresh queries from Yahoo Finance on your next live fetch.")) return;
+    const confirmed = await showConfirm("Are you sure you want to clear the local stock data cache? All historical stock info and dividend data will be cleared, forcing fresh queries from Yahoo Finance on your next live fetch.", "Clear Cache");
+    if (!confirmed) return;
 
     showLoading("Clearing stock data cache...");
     try {
@@ -602,10 +655,12 @@ async function clearStockCache() {
 
 async function deleteAllData() {
     const msg = "DANGER: This will delete ALL application data, including all saved portfolios, profiles, cached SBI rates, and settings. This action cannot be undone.\n\nAre you sure you want to proceed?";
-    if (!confirm(msg)) return;
+    const confirmed1 = await showConfirm(msg, "Proceed with Deletion");
+    if (!confirmed1) return;
 
     const confirm2 = "Final confirmation: Delete EVERYTHING in ~/.fa_desk_data?";
-    if (!confirm(confirm2)) return;
+    const confirmed2 = await showConfirm(confirm2, "Delete Everything");
+    if (!confirmed2) return;
 
     showLoading("Deleting all app data...");
     try {
@@ -737,7 +792,8 @@ function renderUserList(users) {
         item.querySelector(".delete-user-btn").addEventListener("click", async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (confirm(`Are you sure you want to delete user '${username}' AND all their saved data? This cannot be undone.`)) {
+            const confirmed = await showConfirm(`Are you sure you want to delete user '${username}' AND all their saved data? This cannot be undone.`, "Delete User");
+            if (confirmed) {
                 showLoading("Deleting...");
                 const resp = await fetch(`/api/users/${encodeURIComponent(username)}`, { method: "DELETE" }).then(r => r.json());
                 if (resp.success) await fetchUsers();
@@ -1122,9 +1178,10 @@ function saveCalcResultsForYoY() {
 function addYearChangeGuard() {
     const mainSelect = document.getElementById("yearSelect");
     if (!mainSelect) return;
-    mainSelect.addEventListener("change", function guardHandler(e) {
+    mainSelect.addEventListener("change", async function guardHandler(e) {
         if (state.isDirty) {
-            if (!confirm("You have unsaved changes. Switch year and discard them?")) {
+            const confirmed = await showConfirm("You have unsaved changes. Switch year and discard them?", "Discard Changes");
+            if (!confirmed) {
                 e.stopImmediatePropagation();
                 mainSelect.value = state.portfolio.calendar_year;
                 return;
@@ -2249,7 +2306,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const quitAppBtn = document.getElementById("quitAppBtn");
     if (quitAppBtn) {
         quitAppBtn.addEventListener("click", async () => {
-            if (!confirm("Are you sure you want to quit the application? Any unsaved changes will be lost.")) return;
+            const confirmed = await showConfirm("Are you sure you want to quit the application? Any unsaved changes will be lost.", "Quit Application");
+            if (!confirmed) return;
             try {
                 await fetch("/api/shutdown", { method: "POST" });
             } catch (e) {}

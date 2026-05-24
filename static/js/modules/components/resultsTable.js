@@ -4,7 +4,7 @@ import { formatINR, formatAppDate, parseAppDate } from '../utils.js';
 import {
     showToast, showLoading, hideLoading, toggleSection,
     showCalcTooltip, hideCalcTooltip, buildTooltipHTML, mapCalcDetailsToTooltip,
-    saveFileRobustly
+    saveFileRobustly, showConfirm
 } from '../ui-utils.js';
 import {
     EDIT_PENCIL_SVG, UNLOCK_SVG, LOCK_SVG, SAVE_BTN_HTML,
@@ -836,11 +836,11 @@ export async function collectSbiRates(rows, taxYears = null) {
                                 await collectSbiRates(state.calculatedRows, state.lastTaxYears);
                             }
                         } else {
-                            alert("Failed to save rate: " + data.error);
+                            showToast("Failed to save rate: " + data.error, "error");
                             rateCell.innerHTML = originalContent;
                         }
                     } catch (err) {
-                        alert("Error saving rate: " + err);
+                        showToast("Error saving rate: " + err, "error");
                         rateCell.innerHTML = originalContent;
                     }
                 } else {
@@ -1701,7 +1701,8 @@ export function jumpToSection(sectionId, targetSelector = null) {
 }
 
 export async function clearSbiOverrides() {
-    if (!confirm("Are you sure you want to reset the SBI TT rates database? This will clear all manual overrides and restore the database to its default state (pre-2020 PDF rates + fresh fetch from GitHub).")) return;
+    const confirmed = await showConfirm("Are you sure you want to reset the SBI TT rates database? This will clear all manual overrides and restore the database to its default state (pre-2020 PDF rates + fresh fetch from GitHub).", "Reset Rates");
+    if (!confirmed) return;
     
     try {
         pushUndoSnapshot("Reset SBI TT Rates");
