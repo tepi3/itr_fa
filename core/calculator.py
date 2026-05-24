@@ -81,7 +81,13 @@ def calculate_initial_value(lot: dict, sbi_overrides: dict, mode: str = 'split')
 
     rate, rate_date, source, is_lookback, error = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
 
-    if rate is None:
+    # In split mode, also validate Rule 115 rate for tax consistency
+    if mode == 'split' and rate is not None:
+        _, _, _, _, tax_error = _get_rate_value(buy_date, sbi_overrides, use_event_date=False, mode=mode)
+        if tax_error:
+            error = tax_error
+
+    if rate is None or error:
         return {
             "value": None,
             "rate": None,
@@ -335,7 +341,14 @@ def calculate_dividends(
 
         # Get TTBR (Use actual date of payment for A3)
         rate, rate_date, source, is_lookback, error = _get_rate_value(pay_date, sbi_overrides, use_event_date=True, mode=mode)
-        if rate is None:
+
+        # In split mode, also validate Rule 115 rate to ensure consistency with Tax Summary
+        if mode == 'split' and rate is not None:
+            _, _, _, _, tax_error = _get_rate_value(pay_date, sbi_overrides, use_event_date=False, mode=mode)
+            if tax_error:
+                error = tax_error
+
+        if rate is None or error:
             entries.append({
                 "ex_date": div["ex_date"],
                 "payment_date": pay_date_str,
@@ -397,7 +410,14 @@ def calculate_sale_proceeds(
         sell_id = sell.get("id")
 
         rate, rate_date, source, is_lookback, error = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
-        if rate is None:
+        
+        # In split mode, also validate Rule 115 rate (prev month) for tax consistency
+        if mode == 'split' and rate is not None:
+            _, _, _, _, tax_error = _get_rate_value(sell_date, sbi_overrides, use_event_date=False, mode=mode)
+            if tax_error:
+                error = tax_error
+
+        if rate is None or error:
             sale_entries.append({
                 "sell_id": sell_id,
                 "sell_date": sell["sell_date"],
@@ -442,6 +462,7 @@ def calculate_sale_proceeds(
         "value": round(total_proceeds_inr),
         "sale_entries": sale_entries,
         "is_lookback": any(e.get("is_lookback") for e in sale_entries),
+        "error": buy_error if buy_rate is None else None
     }
 
 
@@ -710,9 +731,9 @@ def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
         is_long_term = holding_days >= 730
 
         # TTBR at buy date
-        buy_rate, buy_rate_date, _, buy_error = _get_rate_value(buy_date, sbi_overrides, mode=mode)
+        buy_rate, buy_rate_date, _, _, buy_error = _get_rate_value(buy_date, sbi_overrides, mode=mode)
         # TTBR at sell date
-        sell_rate, sell_rate_date, _, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
+        sell_rate, sell_rate_date, _, _, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
 
         result = {
             "ticker":       ticker,
@@ -739,12 +760,12 @@ def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
 
         # Actual TTBR (use_event_date=True)
         try:
-            buy_rate_actual, buy_rate_actual_date, _, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
+            buy_rate_actual, buy_rate_actual_date, _, _, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
         except Exception:
             buy_rate_actual, buy_rate_actual_date = None, None
 
         try:
-            sell_rate_actual, sell_rate_actual_date, _, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
+            sell_rate_actual, sell_rate_actual_date, _, _, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
         except Exception:
             sell_rate_actual, sell_rate_actual_date = None, None
 
@@ -1159,7 +1180,7 @@ def calculate_current_balance(portfolio: dict, mode: str = 'split') -> dict:
             continue
 
         # Get SBI TT rate for snapshot date (latest in cache)
-        rate, _, _, error = _get_rate_value(snapshot_date, sbi_overrides, use_event_date=True, mode=mode)
+        rate, _, _, _, error = _get_rate_value(snapshot_date, sbi_overrides, use_event_date=True, mode=mode)
         if rate is None:
             logger.warning(f"No SBI rate for {snapshot_date}: {error}")
             continue
