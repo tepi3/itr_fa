@@ -582,6 +582,8 @@ def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> dict:
             rows.append(row)
             sl_no += 1
 
+    if errors:
+        return {"rows": [], "errors": errors}
     return {"rows": rows, "errors": errors}
 
 
@@ -677,39 +679,9 @@ def _round_quarters(bucket: dict) -> dict:
 
 def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
     """
-    Simulate the capital gains tax impact of hypothetical sells.
-
-    Accepts a list of simulated sells (with buy lot info) and returns:
-      - per-sell breakdown (gain/loss, type, TTBR rates)
-      - yearly totals (STCG / LTCL / STCG / STCL)
-      - §70/74 offset result
-
-    This does NOT modify any portfolio data.
-
-    Args:
-        payload: {
-            "calendar_year": int,
-            "sbi_rate_overrides": dict,
-            "simulated_sells": [
-                {
-                    "ticker":        str,
-                    "lot_id":        str,
-                    "buy_date":      "YYYY-MM-DD",
-                    "buy_price":     float,   # in USD
-                    "sell_qty":      float,
-                    "sell_price":    float,   # in USD
-                    "sell_date":     "YYYY-MM-DD",
-                }
-            ]
-        }
-
-    Returns:
-        {
-            "sells": [ per-sell result dicts ],
-            "totals": { "stcg": int, "stcl": int, "ltcg": int, "ltcl": int },
-            "offset": { ... same as compute_offset_summary }
-        }
+    Simulate the capital gains tax impact of hypothetical sells. Always operates in 'split' mode.
     """
+    mode = 'split'
     sbi_overrides = payload.get("sbi_rate_overrides", {})
     simulated_sells = payload.get("simulated_sells", [])
 
@@ -731,9 +703,22 @@ def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
         is_long_term = holding_days >= 730
 
         # TTBR at buy date
-        buy_rate, buy_rate_date, _, _, buy_error = _get_rate_value(buy_date, sbi_overrides, mode=mode)
+        buy_rate, buy_rate_date, buy_source, buy_is_lookback, buy_error = _get_rate_value(buy_date, sbi_overrides, mode=mode)
         # TTBR at sell date
-        sell_rate, sell_rate_date, _, _, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
+        sell_rate, sell_rate_date, sell_source, sell_is_lookback, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
+
+        # In split mode, also validate Actual rates to be consistent with main A3 report
+        if mode == 'split':
+            if buy_rate is not None:
+                _, _, _, _, buy_actual_error = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
+                if buy_actual_error:
+                    buy_error = buy_actual_error
+                    buy_rate = None
+            if sell_rate is not None:
+                _, _, _, _, sell_actual_error = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
+                if sell_actual_error:
+                    sell_error = sell_actual_error
+                    sell_rate = None
 
         result = {
             "ticker":       ticker,
@@ -749,6 +734,7 @@ def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
             "ttbr_buy_date":buy_rate_date,
             "ttbr_sell":    sell_rate,
             "ttbr_sell_date": sell_rate_date,
+            "is_lookback":  (mode == 'split' and (buy_is_lookback or sell_is_lookback))
         }
 
         if buy_rate is None or sell_rate is None:
@@ -760,16 +746,16 @@ def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
 
         # Actual TTBR (use_event_date=True)
         try:
-            buy_rate_actual, buy_rate_actual_date, _, _, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
+            buy_rate_actual, buy_rate_actual_date, _, buy_is_lookback_actual, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
         except Exception:
-            buy_rate_actual, buy_rate_actual_date = None, None
+            buy_rate_actual, buy_rate_actual_date, buy_is_lookback_actual = None, None, False
 
         try:
-            sell_rate_actual, sell_rate_actual_date, _, _, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
+            sell_rate_actual, sell_rate_actual_date, _, sell_is_lookback_actual, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
         except Exception:
-            sell_rate_actual, sell_rate_actual_date = None, None
+            sell_rate_actual, sell_rate_actual_date, sell_is_lookback_actual = None, None, False
 
-        # Fallback to Rule 115 rates if actual rates not found
+        # Fallback to Rule 115 rates if actual rates not found (mostly for Uniform mode)
         if buy_rate_actual is None:
             buy_rate_actual, buy_rate_actual_date = buy_rate, buy_rate_date
         if sell_rate_actual is None:
@@ -798,6 +784,8 @@ def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
         result["ttbr_buy_actual_date"]      = buy_rate_actual_date
         result["ttbr_sell_actual"]          = sell_rate_actual
         result["ttbr_sell_actual_date"]     = sell_rate_actual_date
+        if mode == 'split':
+            result["is_lookback"] = buy_is_lookback or sell_is_lookback or buy_is_lookback_actual or sell_is_lookback_actual
 
         if is_long_term:
             category = "ltcg" if gain_inr >= 0 else "ltcl"
@@ -1134,6 +1122,13 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
 
     # Apply Indian ITR Section 70/74 set-off rules (yearly totals per tax year)
     compute_offset_summary(tax_years)
+
+    if errors:
+        # Clear data if errors present
+        for ty in tax_years.values():
+            ty["totals"] = {k: _empty_quarters() for k in ["ltcg", "ltcl", "stcg", "stcl", "dividends"]}
+            ty["stocks"] = {}
+            ty["offset"] = {}
 
     return {"tax_years": tax_years, "errors": errors}
 

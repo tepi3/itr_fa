@@ -745,16 +745,22 @@ export async function shRunSimulation() {
 
     if (simSells.length === 0) return showToast("No valid sells to simulate", "warning");
 
+    const forcedSplit = state.sbi_tt_mode !== 'split';
     showLoading("Simulating tax impact...");
     try {
         const result = await apiPost("/api/sell-helper/simulate", {
             calendar_year: state.portfolio.calendar_year,
             sbi_rate_overrides: state.portfolio.sbi_rate_overrides || {},
             simulated_sells: simSells,
-            sbi_tt_mode: state.sbi_tt_mode
+            sbi_tt_mode: 'split'
         });
         await hideLoading();
         if (!result.success) return showToast(`Simulation error: ${result.error}`, "error");
+        
+        if (forcedSplit) {
+            showToast("Sell Simulator operates in 'Split' mode for higher accuracy. Mode switched for this simulation.", "info");
+        }
+        
         shRenderResults(result);
     } catch (e) {
         await hideLoading();

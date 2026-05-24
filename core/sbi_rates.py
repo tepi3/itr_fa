@@ -208,6 +208,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
 
         lookup_date = d
         while lookup_date >= limit_date:
+            days_diff = (d - lookup_date).days
             # Check manual overrides first (local portfolio overrides)
             override_key = f"{lookup_date.isoformat()}_USD"
             if overrides and override_key in overrides:
