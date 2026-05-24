@@ -47,11 +47,13 @@ def _format_date_display(date_str: str) -> str:
 def _get_rate_value(d: date, overrides: dict, use_event_date: bool = False, mode: str = 'split') -> tuple:
     """
     Get SBI TT rate value and metadata (USD only).
-    Returns: (rate, rate_date, source, error_msg)
+    Returns: (rate, rate_date, source, is_lookback, error_msg)
     """
     effective_use_event_date = False if mode == 'uniform' else use_event_date
     result = get_sbi_tt_rate(d, overrides, use_event_date=effective_use_event_date)
     rate = result.get("rate")
+    source = result.get("source")
+    is_lookback = result.get("is_lookback", False)
     error_msg = None
 
     if rate is None or rate == 0:
@@ -63,9 +65,9 @@ def _get_rate_value(d: date, overrides: dict, use_event_date: bool = False, mode
             d_str = d.strftime("%d/%m/%Y")
             last_day = get_last_day_prev_month(d)
             limit_date = (last_day - timedelta(days=3)).strftime("%d/%m/%Y")
-            error_msg = f"Missing SBI TT rate for transaction on {d_str}. Please add a rate for this date or within its lookback window (down to {limit_date}) in the Rates Editor."
+            error_msg = f"Missing SBI TT rate for transaction on {d_str}. Please add an SBI TT rate for this date or within its lookback window (down to {limit_date}) in the Rates Editor."
             
-    return rate, result.get("rate_date"), result.get("source"), error_msg
+    return rate, result.get("rate_date"), source, is_lookback, error_msg
 
 
 def calculate_initial_value(lot: dict, sbi_overrides: dict, mode: str = 'split') -> dict:
@@ -77,7 +79,7 @@ def calculate_initial_value(lot: dict, sbi_overrides: dict, mode: str = 'split')
     buy_price = float(lot["buy_price"])
     quantity = float(lot["quantity"])
 
-    rate, rate_date, source, error = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
+    rate, rate_date, source, is_lookback, error = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
 
     if rate is None:
         return {
@@ -93,6 +95,7 @@ def calculate_initial_value(lot: dict, sbi_overrides: dict, mode: str = 'split')
         "rate": rate,
         "rate_date": rate_date,
         "source": source,
+        "is_lookback": (mode == 'split' and is_lookback),
         "components": {
             "buy_price": buy_price,
             "quantity": quantity,
@@ -143,7 +146,7 @@ def calculate_peak_value(
     # Sort sells by date
     sorted_sells = sorted(sells_in_cy, key=lambda s: parse_sort_date(s["sell_date"]))
 
-    # Cache daily TTBR as (rate, rate_date) to avoid repeated lookups
+    # Cache daily TTBR as (rate, rate_date, source) to avoid repeated lookups
     daily_ttbr_cache = {}
 
     peak_value = 0
@@ -152,6 +155,7 @@ def calculate_peak_value(
     peak_qty = None
     peak_rate = None
     peak_rate_date = None
+    peak_source = None
 
     for price_entry in prices:
         trading_date = _parse_date(price_entry["date"])
@@ -174,18 +178,18 @@ def calculate_peak_value(
 
         close_price = price_entry["close"]
 
-        # Get TTBR for this day (cached as tuple)
+        # Get TTBR for this day
         date_key = trading_date.isoformat()
         if date_key not in daily_ttbr_cache:
-            rate, rate_date_str, _, error = _get_rate_value(trading_date, sbi_overrides, use_event_date=True, mode=mode)
+            rate, rate_date_str, source, is_lookback_daily, error = _get_rate_value(trading_date, sbi_overrides, use_event_date=True, mode=mode)
             if not error:
-                daily_ttbr_cache[date_key] = (rate, rate_date_str)
+                daily_ttbr_cache[date_key] = (rate, rate_date_str, source, is_lookback_daily)
             else:
                 # If rate not found for a specific day, skip it for peak calculation
                 # (usually shouldn't happen if historical data exists)
                 continue
 
-        ttbr, ttbr_rate_date = daily_ttbr_cache.get(date_key, (None, None))
+        ttbr, ttbr_rate_date, source, is_lookback_daily = daily_ttbr_cache.get(date_key, (None, None, None, None))
         if ttbr is None:
             continue
 
@@ -198,12 +202,16 @@ def calculate_peak_value(
             peak_qty = qty
             peak_rate = ttbr
             peak_rate_date = ttbr_rate_date
+            peak_source = source
+            peak_is_lookback = is_lookback_daily
 
     return {
         "value": round(peak_value) if peak_value > 0 else 0,
         "peak_date": peak_date,
         "rate": peak_rate,
         "rate_date": peak_rate_date,
+        "source": peak_source,
+        "is_lookback": (mode == 'split' and peak_is_lookback) if peak_date else False,
         "components": {
             "peak_price": peak_price,
             "qty_on_peak_date": peak_qty,
@@ -251,7 +259,7 @@ def calculate_closing_balance(
         return {"value": None, "error": "Could not fetch Dec 31 price"}
 
     # Get TTBR
-    rate, rate_date, _, error = _get_rate_value(dec31, sbi_overrides, use_event_date=True, mode=mode)
+    rate, rate_date, source, is_lookback, error = _get_rate_value(dec31, sbi_overrides, use_event_date=True, mode=mode)
     if rate is None:
         return {"value": None, "error": error}
 
@@ -259,6 +267,8 @@ def calculate_closing_balance(
     return {
         "value": value,
         "remaining_qty": qty,
+        "source": source,
+        "is_lookback": (mode == 'split' and is_lookback),
         "components": {
             "close_price_dec31": close_price,
             "remaining_qty": qty,
@@ -326,7 +336,7 @@ def calculate_dividends(
             continue
 
         # Get TTBR (Use actual date of payment for A3)
-        rate, rate_date, source, error = _get_rate_value(pay_date, sbi_overrides, use_event_date=True, mode=mode)
+        rate, rate_date, source, is_lookback, error = _get_rate_value(pay_date, sbi_overrides, use_event_date=True, mode=mode)
         if rate is None:
             entries.append({
                 "ex_date": div["ex_date"],
@@ -350,12 +360,14 @@ def calculate_dividends(
             "rate_date": rate_date,
             "ttbr": rate,
             "source": source,
+            "is_lookback": (mode == 'split' and is_lookback),
             "value_inr": div_inr,
         })
 
     return {
         "value": round(total_div_inr),
         "dividend_entries": entries,
+        "is_lookback": any(e.get("is_lookback") for e in entries),
     }
 
 
@@ -375,7 +387,7 @@ def calculate_sale_proceeds(
 
     buy_price = float(lot.get("buy_price", 0))
     buy_date = _parse_date(lot["buy_date"])
-    buy_rate, buy_rate_date, _, buy_error = _get_rate_value(buy_date, sbi_overrides, use_event_date=False, mode=mode)
+    buy_rate, buy_rate_date, _, buy_is_lookback, buy_error = _get_rate_value(buy_date, sbi_overrides, use_event_date=False, mode=mode)
 
     for sell in lot.get("sells", []):
         sell_date = _parse_date(sell["sell_date"])
@@ -386,7 +398,7 @@ def calculate_sale_proceeds(
         sell_qty = float(sell["quantity"])
         sell_id = sell.get("id")
 
-        rate, rate_date, _, error = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
+        rate, rate_date, source, is_lookback, error = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
         if rate is None:
             sale_entries.append({
                 "sell_id": sell_id,
@@ -418,6 +430,8 @@ def calculate_sale_proceeds(
             "is_long_term": is_long_term,
             "ttbr": rate,
             "rate_date": rate_date,
+            "source": source,
+            "is_lookback": (mode == 'split' and is_lookback),
             "proceeds_inr": round(proceeds_inr),
             "buy_cost_inr": buy_cost_inr,
             "gain_loss_usd": pl_usd,
@@ -429,6 +443,7 @@ def calculate_sale_proceeds(
     return {
         "value": round(total_proceeds_inr),
         "sale_entries": sale_entries,
+        "is_lookback": any(e.get("is_lookback") for e in sale_entries),
     }
 
 
@@ -941,7 +956,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
             buy_price = float(lot["buy_price"])
 
             # Get buy TTBR once for this lot
-            buy_rate, buy_rate_date, _, buy_error = _get_rate_value(buy_date, sbi_overrides, mode=mode)
+            buy_rate, buy_rate_date, buy_source, buy_is_lookback, buy_error = _get_rate_value(buy_date, sbi_overrides, mode=mode)
             if buy_rate is None:
                 if buy_error not in logged_errors:
                     logger.warning(buy_error)
@@ -971,7 +986,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                 _is_long_term = holding_days >= 730  # ≥ 2 years
 
                 # TTBR at sell date
-                sell_rate, sell_rate_date, _, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
+                sell_rate, sell_rate_date, sell_source, sell_is_lookback, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
                 if sell_rate is None:
                     if sell_error not in logged_errors:
                         logger.warning(sell_error)
@@ -994,13 +1009,18 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                     "lot_id": lot.get("id"),
                     "sell_id": sell.get("id"),
                     "date": sell_date.isoformat(),
+                    "buy_date": buy_date.isoformat(),
                     "qty": sell_qty,
                     "sell_price": sell_price,
                     "sell_ttbr": sell_rate,
                     "sell_rate_date": sell_rate_date,
+                    "sell_source": sell_source,
+                    "sell_is_lookback": sell_is_lookback,
                     "buy_price": buy_price,
                     "buy_ttbr": buy_rate,
                     "buy_rate_date": buy_rate_date,
+                    "buy_source": buy_source,
+                    "buy_is_lookback": buy_is_lookback,
                     "proceeds_inr": sell_price * sell_rate * sell_qty,
                     "buy_cost_inr": buy_price * buy_rate * sell_qty,
                     "gain_inr": gain_inr,
@@ -1049,7 +1069,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                 qkey = _get_quarter_key(pay_date, ty_key)
 
                 # Rate for Tax Summary (Rule 115: Last day of prev month)
-                rate, rate_date, source, error = _get_rate_value(pay_date, sbi_overrides, use_event_date=False, mode=mode)
+                rate, rate_date, source, is_lookback, error = _get_rate_value(pay_date, sbi_overrides, use_event_date=False, mode=mode)
                 if rate is None:
                     if error not in logged_errors:
                         logger.warning(error)
@@ -1069,6 +1089,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                     "ttbr": rate,
                     "rate_date": rate_date,
                     "source": source,
+                    "is_lookback": is_lookback,
                     "value_inr": div_inr,
                     "rule": "Rule 115 (Prev Month)"
                 }

@@ -98,11 +98,11 @@ export function renderResultsTable(rows) {
 
         // Columns 8-12 (numeric, editable)
         const numFields = [
-            { key: "initial_value", val: row.initial_value },
-            { key: "peak_value", val: row.peak_value, peak: row.calculation_details?.peak },
-            { key: "closing_balance", val: row.closing_balance },
-            { key: "total_dividends", val: row.total_dividends },
-            { key: "sale_proceeds", val: row.sale_proceeds },
+            { key: "initial_value", val: row.initial_value, detailKey: "initial" },
+            { key: "peak_value", val: row.peak_value, detailKey: "peak" },
+            { key: "closing_balance", val: row.closing_balance, detailKey: "closing" },
+            { key: "total_dividends", val: row.total_dividends, detailKey: "dividends" },
+            { key: "sale_proceeds", val: row.sale_proceeds, detailKey: "sales" },
         ];
 
         numFields.forEach(field => {
@@ -112,10 +112,17 @@ export function renderResultsTable(rows) {
                 td.classList.add("overridden");
             }
             
+            const detail = row.calculation_details?.[field.detailKey];
+            if (detail?.is_lookback) {
+                td.classList.add("lookback-warning-cell");
+            }
+            
             const val = field.val != null ? Math.round(field.val) : 0;
             const textVal = val > 0 ? formatINR(val) : "0";
             
-            td.innerHTML = `<span class="val-link">${textVal}</span><span class="edit-icon" title="Click to manually override value">${EDIT_PENCIL_SVG}</span>`;
+            const warningIcon = detail?.is_lookback ? `<span class="lookback-icon" title="Lookback rate used for this calculation">⚠</span>` : "";
+            
+            td.innerHTML = `<span class="val-link">${textVal}</span>${warningIcon}<span class="edit-icon" title="Click to manually override value">${EDIT_PENCIL_SVG}</span>`;
             
             td.dataset.lotId = row.lot_id;
             td.dataset.field = field.key;
@@ -634,6 +641,7 @@ export async function collectSbiRates(rows, taxYears = null) {
                         rateDate,
                         eventDate: entry.eventDate,
                         source: isManual ? "override" : (entry.data.source || "cache"),
+                        is_lookback: entry.data.is_lookback,
                         origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
                     });
                 }
@@ -650,6 +658,7 @@ export async function collectSbiRates(rows, taxYears = null) {
                             rateDate,
                             eventDate: payDate,
                             source: isManual ? "override" : (de.source || "cache"),
+                            is_lookback: de.is_lookback,
                             origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
                         });
                     }
@@ -666,6 +675,7 @@ export async function collectSbiRates(rows, taxYears = null) {
                             rateDate,
                             eventDate: se.sell_date,
                             source: isManual ? "override" : (se.source || "cache"),
+                            is_lookback: se.is_lookback,
                             origin: { section: 'resultsSection', selector: `tr[data-lot-id="${row.lot_id}"]` }
                         });
                     }
@@ -698,24 +708,28 @@ export async function collectSbiRates(rows, taxYears = null) {
                                 }
                             } else {
                                 if (d.sell_ttbr && d.sell_rate_date) {
-                                    const isManual = manualSet.has(d.sell_rate_date);
+                                    const sellSource = d.sell_source || d.source || "cache";
+                                    const isManual = manualSet.has(d.sell_rate_date) || sellSource === 'override';
                                     allEntries.push({
                                         label: `${ticker} — Sale Tax (${formatAppDate(parseAppDate(d.date))})`,
                                         rate: usdCache[d.sell_rate_date] || d.sell_ttbr,
                                         rateDate: d.sell_rate_date,
                                         eventDate: d.date,
-                                        source: isManual ? "override" : (d.source || "cache"),
+                                        source: isManual ? "override" : sellSource,
+                                        is_lookback: d.sell_is_lookback,
                                         origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
                                     });
                                 }
                                 if (d.buy_ttbr && d.buy_rate_date) {
-                                    const isManual = manualSet.has(d.buy_rate_date);
+                                    const buySource = d.buy_source || d.source || "cache";
+                                    const isManual = manualSet.has(d.buy_rate_date) || buySource === 'override';
                                     allEntries.push({
-                                        label: `${ticker} — Buy Tax (Lot ${formatAppDate(parseAppDate(d.buy_rate_date))})`,
+                                        label: `${ticker} — Buy Tax (Lot ${formatAppDate(parseAppDate(d.buy_date || d.buy_rate_date))})`,
                                         rate: usdCache[d.buy_rate_date] || d.buy_ttbr,
                                         rateDate: d.buy_rate_date,
-                                        eventDate: d.buy_rate_date,
-                                        source: isManual ? "override" : (d.source || "cache"),
+                                        eventDate: d.buy_date || d.date,
+                                        source: isManual ? "override" : buySource,
+                                        is_lookback: d.buy_is_lookback,
                                         origin: { section: 'taxYearSection', selector: `tr[data-ticker="${ticker}"]` }
                                     });
                                 }
@@ -736,49 +750,33 @@ export async function collectSbiRates(rows, taxYears = null) {
         seenRates.add(key);
         state.sbiRatesUsed.push(entry);
 
-        // Normalize source for display: only 'override' remains distinct, others become 'cached'
+        const isTax = label.includes("Tax");
         const isManual = source === 'override';
-        const displaySource = isManual ? 'override' : 'cached';
-        const statusClass = isManual ? 'override' : 'cached';
-
-        // Calculate event date lookback highlight alert
+        // Only show lookback if backend says so AND we are in split mode AND it's not a tax entry
+        const isLookback = !isTax && (state.sbi_tt_mode === 'split' && entry.is_lookback);
+        
+        let badgesHtml = "";
         let highlightStyle = "";
-        let warningText = "";
-        if (eventDate) {
-            const ev = parseAppDate(eventDate);
-            const rt = parseAppDate(rateDate);
-            if (ev && rt) {
-                const isTax = label.includes("Tax");
-                let diffDays = 0;
-                let isWarning = false;
+        let warningSuffix = "";
 
-                if (state.sbi_tt_mode !== 'uniform') {
-                    if (!isTax) {
-                        // For A3 (day of event rate): compare with event date directly
-                        const diffTime = Math.abs(ev - rt);
-                        diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        // Warn if rates are more than 4 days older than event date (4-day lookback window without warning)
-                        if (diffDays > 4) {
-                            isWarning = true;
-                        }
-                    } else {
-                        // For Tax (Rule 115): eventDate is usually the payment date
-                        // rt is the actual rate date used.
-                        // We need to compare rt with the LAST DAY of the preceding month of ev.
-                        const lastDayPrev = new Date(ev.getFullYear(), ev.getMonth(), 0);
-                        const diffTime = Math.abs(lastDayPrev - rt);
-                        diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        if (diffDays > 3) {
-                            isWarning = true;
-                        }
-                    }
-                }
+        if (isManual) {
+            badgesHtml += `<span class="rate-status override">override</span>`;
+        } else {
+            badgesHtml += `<span class="rate-status cached">cached</span>`;
+        }
 
-                if (isWarning) {
-                    highlightStyle = "background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b;";
-                    warningText = ` <span class="rate-status warning" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700; text-transform: uppercase;" title="Rate lookup fell back to nearest date which is ${diffDays} days older than event date.">Lookback warning (${diffDays}d)</span>`;
+        if (isLookback) {
+            highlightStyle = "background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b;";
+            if (eventDate) {
+                const ev = parseAppDate(eventDate);
+                const rt = parseAppDate(rateDate);
+                if (ev && rt) {
+                    const diffTime = Math.abs(ev - rt);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    warningSuffix = ` (${diffDays}d)`;
                 }
             }
+            badgesHtml += `<span class="rate-status warning" title="Rate lookup fell back to nearest date older than event date">lookback${warningSuffix}</span>`;
         }
         
         const tr = document.createElement("tr");
@@ -797,8 +795,7 @@ export async function collectSbiRates(rows, taxYears = null) {
                 <span class="edit-icon"> ${EDIT_PENCIL_SVG}</span>
             </td>
             <td style="display: flex; align-items: center; gap: 8px;">
-                <span class="rate-status ${statusClass}">${displaySource}</span>
-                ${warningText}
+                ${badgesHtml}
             </td>
         `;
 

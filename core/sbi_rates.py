@@ -194,7 +194,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
         use_event_date: If True, use rate on date 'd'. If False, use last day of prev month.
 
     Returns:
-        dict with keys: rate, rate_date, source ("cache", "override", "not_found")
+        dict with keys: rate, rate_date, source ("cache", "override", "lookback", "not_found")
     """
     if use_event_date:
         # A3 (day of event rate): reverse traverse to nearest date
@@ -215,6 +215,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
                     "rate": float(overrides[override_key]),
                     "rate_date": lookup_date.isoformat(),
                     "source": "override",
+                    "is_lookback": days_diff >= 4,
                 }
 
             # Check cache
@@ -222,11 +223,12 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
             if date_str in currency_rates:
                 rate = currency_rates[date_str]
                 if rate > 0:
-                    source = "override" if date_str in manual_usd else "cache"
+                    days_diff = (d - lookup_date).days
                     return {
                         "rate": rate,
                         "rate_date": date_str,
-                        "source": source,
+                        "source": "override" if date_str in manual_usd else "cache",
+                        "is_lookback": days_diff >= 4,
                     }
             lookup_date -= timedelta(days=1)
 
@@ -234,6 +236,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
             "rate": None,
             "rate_date": d.isoformat(),
             "source": "not_found",
+            "is_lookback": False,
         }
     else:
         # Tax (last working day of preceding month, with a strict 4-day lookback)
@@ -255,6 +258,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
                     "rate": float(overrides[override_key]),
                     "rate_date": lookup_date.isoformat(),
                     "source": "override",
+                    "is_lookback": False,
                 }
 
             # Check cache
@@ -267,12 +271,14 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
                         "rate": rate,
                         "rate_date": date_str,
                         "source": source,
+                        "is_lookback": False,
                     }
 
         return {
             "rate": None,
             "rate_date": last_day_prev.isoformat(),
             "source": "not_found",
+            "is_lookback": False,
         }
 
 

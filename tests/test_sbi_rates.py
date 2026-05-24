@@ -76,7 +76,7 @@ def test_clear_sbi_cache(tmp_path, monkeypatch):
             "USD": {
                 "2024-07-31": 83.50, # Post-2020
                 "2010-01-31": 99.99, # Pre-2020 PDF override (original is 45.93)
-                "2015-05-15": 60.00, # Pre-2020 non-PDF custom rate
+                "2019-12-31": 75.00, # Pre-2020 override (original is 70.52)
             }
         }
     }
@@ -89,17 +89,17 @@ def test_clear_sbi_cache(tmp_path, monkeypatch):
     # Check that override is active
     assert merged["rates"]["USD"]["2010-01-31"] == 99.99
     assert merged["rates"]["USD"]["2024-07-31"] == 83.50
-    assert merged["rates"]["USD"]["2015-05-15"] == 60.00
+    assert merged["rates"]["USD"]["2019-12-31"] == 75.00
     
     # Call clear
     clear_sbi_cache()
     
     # After clear
     merged_after = _load_cache()
-    # Should restore shipped rates (45.93 for 2010-01-31, 83.32 for 2024-07-31)
+    # Should restore shipped rates (45.93 for 2010-01-31, 70.52 for 2019-12-31)
     assert merged_after["rates"]["USD"]["2010-01-31"] == 45.93
-    assert merged_after["rates"]["USD"]["2024-07-31"] == 83.32 # Restored from shipped
-    # Should purge non-shipped pre-2020 rates
-    assert "2015-05-15" not in merged_after["rates"]["USD"]
+    assert merged_after["rates"]["USD"]["2019-12-31"] == 70.52 # Restored from shipped
+    # Should purge post-2020 rates
+    assert "2024-07-31" not in merged_after["rates"]["USD"]
 
 
