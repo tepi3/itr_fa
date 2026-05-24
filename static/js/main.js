@@ -1852,9 +1852,9 @@ async function switchTab(tab) {
         }
         showToast(infoMsg, "info");
 
-        const bannerSpan = document.querySelector("#shRunningYearBanner span");
+        const bannerSpan = document.getElementById("shBannerContent");
         if (bannerSpan) {
-            bannerSpan.innerHTML = `The Sell Simulator works exclusively for the active running calendar year (<strong id="shBannerYear">CY${targetYear}</strong>). Previous years are not editable. <span style="opacity:0.85; display:block; margin-top:2px;">${infoMsg}</span>`;
+            bannerSpan.innerHTML = `<strong>CY${targetYear}</strong>: ${infoMsg}`;
         }
 
         if (state.portfolio.calendar_year !== targetYear) {

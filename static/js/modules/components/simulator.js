@@ -3,6 +3,7 @@ import { parseAppDate, formatAppDate, formatINR, initDatePicker } from '../utils
 import { apiPost, apiGet } from '../api.js';
 import { showToast, showLoading, hideLoading } from '../ui-utils.js';
 import { LIVE_BTN_HTML, CROSS_SVG, FETCH_LOADING_HTML } from '../constants.js';
+import { setSbiTTMode } from './dashboard.js';
 
 // ===== Sell Simulator State =====
 export const simState = {
@@ -758,7 +759,8 @@ export async function shRunSimulation() {
         if (!result.success) return showToast(`Simulation error: ${result.error}`, "error");
         
         if (forcedSplit) {
-            showToast("Sell Simulator operates in 'Split' mode for higher accuracy. Mode switched for this simulation.", "info");
+            setSbiTTMode('split');
+            showToast("Sell Simulator operates in 'Split' mode for higher accuracy. Mode switched.", "info");
         }
         
         shRenderResults(result);
