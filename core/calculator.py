@@ -185,9 +185,7 @@ def calculate_peak_value(
             if not error:
                 daily_ttbr_cache[date_key] = (rate, rate_date_str, source, is_lookback_daily)
             else:
-                # If rate not found for a specific day, skip it for peak calculation
-                # (usually shouldn't happen if historical data exists)
-                continue
+                return {"value": None, "error": error}
 
         ttbr, ttbr_rate_date, source, is_lookback_daily = daily_ttbr_cache.get(date_key, (None, None, None, None))
         if ttbr is None:
