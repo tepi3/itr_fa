@@ -447,19 +447,21 @@ def calculate_sale_proceeds(
     }
 
 
-def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> list:
+def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> dict:
     """
     Calculate all A3 rows for the entire portfolio.
 
     Args:
-        portfolio: Full portfolio data dict (see data model in APPLICATION_PLAN.md)
+        portfolio: Full portfolio data dict
 
     Returns:
-        List of row dicts, one per lot, each with all 12 columns + metadata.
+        { "rows": [...], "errors": [...] }
     """
     calendar_year = portfolio.get("calendar_year", 2024)
     sbi_overrides = portfolio.get("sbi_rate_overrides", {})
     overrides = portfolio.get("overrides", {})
+    errors = []
+    seen_errors = set()
 
     rows = []
     sl_no = 1
@@ -472,6 +474,24 @@ def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> list:
 
         for lot in stock.get("lots", []):
             lot_id = lot.get("id", f"{ticker}_{lot['buy_date']}")
+            
+            # Helper to collect errors
+            def collect_errors(details):
+                for k, v in details.items():
+                    if isinstance(v, dict) and v.get("error"):
+                        err = v["error"]
+                        if err not in seen_errors:
+                            errors.append(err)
+                            seen_errors.add(err)
+                    # Handle dividends/sales lists
+                    if isinstance(v, dict) and k in ["dividends", "sales"]:
+                        entries = v.get("dividend_entries") or v.get("sale_entries") or []
+                        for entry in entries:
+                            if entry.get("error"):
+                                err = entry["error"]
+                                if err not in seen_errors:
+                                    errors.append(err)
+                                    seen_errors.add(err)
 
             # Filter sells for this calendar year
             sells_in_cy = [
@@ -499,6 +519,15 @@ def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> list:
             dividends = calculate_dividends(lot, stock, calendar_year, sbi_overrides, skip_divs, mode=mode)
             sales = calculate_sale_proceeds(lot, calendar_year, sbi_overrides, mode=mode)
 
+            calc_details = {
+                "initial": initial,
+                "peak": peak,
+                "closing": closing,
+                "dividends": dividends,
+                "sales": sales,
+            }
+            collect_errors(calc_details)
+
             # Apply overrides
             lot_overrides = overrides.get(lot_id, {})
 
@@ -520,13 +549,7 @@ def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> list:
                 "total_dividends": lot_overrides.get("total_dividends") if lot_overrides.get("total_dividends") is not None else dividends.get("value"),
                 "sale_proceeds": lot_overrides.get("sale_proceeds") if lot_overrides.get("sale_proceeds") is not None else sales.get("value"),
                 # Metadata for display
-                "calculation_details": {
-                    "initial": initial,
-                    "peak": peak,
-                    "closing": closing,
-                    "dividends": dividends,
-                    "sales": sales,
-                },
+                "calculation_details": calc_details,
                 # Track which fields are overridden
                 "is_overridden": {
                     "initial_value": lot_overrides.get("initial_value") is not None,
@@ -540,7 +563,7 @@ def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> list:
             rows.append(row)
             sl_no += 1
 
-    return rows
+    return {"rows": rows, "errors": errors}
 
 
 # ===== ITR Tax Year Capital Gains & Dividend Summary =====
@@ -878,33 +901,12 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
     """
     Calculate a per-stock, per-quarter LTCG/LTCL/STCG/STCL and Dividend breakdown
     mapped to the two applicable Indian tax years.
-
-    Indian tax year mapping rule (events in Calendar Year CY):
-        Jan-Mar → "prev" tax year: Apr(CY-1) – Mar(CY)
-        Apr-Dec → "curr" tax year: Apr(CY)   – Mar(CY+1)
-
-    Capital Gain classification:
-        Holding period < 2 years  → Short-Term (STCG/STCL)
-        Holding period ≥ 2 years  → Long-Term  (LTCG/LTCL)
-
-    Gain = (sell_price × qty × TTBR_sell) − (buy_price × qty × TTBR_buy)
-    Dividend contribution = amount_per_share × qty_on_ex_date × TTBR_ex_date
-
-    Returns:
-        {
-          "tax_years": {
-            "prev": {
-              "label": "Apr 2023 – Mar 2024",
-              "stocks": { <ticker>: { ltcg, ltcl, stcg, stcl, dividends } },
-              "totals": { ltcg, ltcl, stcg, stcl, dividends }
-            },
-            "curr": { ... }
-          }
-        }
+    ...
     """
     calendar_year = portfolio.get("calendar_year", 2024)
     sbi_overrides = portfolio.get("sbi_rate_overrides", {})
     logged_errors = set()
+    errors = []
 
     prev_cy = calendar_year - 1
     curr_cy = calendar_year
@@ -938,9 +940,9 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
         stock_entry = _ensure_stock(ty_key, ticker)
 
         if net_inr >= 0:
-            bucket_key = "ltcg" if _is_long_term else "stcg"
+            bucket_key = "ltcg" if detail and detail.get("is_long_term") else "stcg"
         else:
-            bucket_key = "ltcl" if _is_long_term else "stcl"
+            bucket_key = "ltcl" if detail and detail.get("is_long_term") else "stcl"
             net_inr = abs(net_inr)  # store as positive loss amount
 
         _add_to_quarter(stock_entry[bucket_key], qkey, net_inr, detail)
@@ -961,6 +963,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                 if buy_error not in logged_errors:
                     logger.warning(buy_error)
                     logged_errors.add(buy_error)
+                    errors.append(buy_error)
                 buy_rate_inr_per_share = None
             else:
                 buy_rate_inr_per_share = buy_price * buy_rate  # INR cost per share at buy
@@ -983,7 +986,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
 
                 # Holding period
                 holding_days = (sell_date - buy_date).days
-                _is_long_term = holding_days >= 730  # ≥ 2 years
+                is_long_term = holding_days >= 730  # ≥ 2 years
 
                 # TTBR at sell date
                 sell_rate, sell_rate_date, sell_source, sell_is_lookback, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
@@ -991,10 +994,11 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                     if sell_error not in logged_errors:
                         logger.warning(sell_error)
                         logged_errors.add(sell_error)
+                        errors.append(sell_error)
                     continue
 
                 if buy_rate_inr_per_share is None:
-                    logger.warning(f"No buy TTBR for {ticker} lot {lot['buy_date']}, skipping")
+                    # Already logged/added buy_error above
                     continue
 
                 # INR gain = (sell_price × TTBR_sell − buy_price × TTBR_buy) × qty
@@ -1024,7 +1028,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                     "proceeds_inr": sell_price * sell_rate * sell_qty,
                     "buy_cost_inr": buy_price * buy_rate * sell_qty,
                     "gain_inr": gain_inr,
-                    "is_long_term": _is_long_term
+                    "is_long_term": is_long_term
                 }
 
                 _accumulate_gain(ty_key, ticker, qkey, gain_inr, detail)
@@ -1074,6 +1078,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                     if error not in logged_errors:
                         logger.warning(error)
                         logged_errors.add(error)
+                        errors.append(error)
                     continue
 
                 div_inr = amount * qty * rate
@@ -1111,7 +1116,7 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
     # Apply Indian ITR Section 70/74 set-off rules (yearly totals per tax year)
     compute_offset_summary(tax_years)
 
-    return {"tax_years": tax_years}
+    return {"tax_years": tax_years, "errors": errors}
 
 
 def calculate_current_balance(portfolio: dict, mode: str = 'split') -> dict:

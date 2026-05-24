@@ -927,6 +927,25 @@ async function calculateAll() {
             return showToast(`Calculation error: ${result.error}`, "error");
         }
 
+        if (result.errors && result.errors.length > 0) {
+            result.errors.forEach(err => showToast(err, "error"));
+            
+            // Abort full report generation
+            state.portfolio.stocks.forEach(s => setCardLoading(s.id, false));
+            updateDashboard();
+            
+            // Still populate Used Rates so user knows what's missing
+            await collectSbiRates(result.rows);
+            document.getElementById("sbiRatesSection").classList.remove("hidden");
+            
+            // Scroll to the Rates Editor to prompt fix
+            const ratesEditor = document.getElementById("monthlyRatesSection");
+            ratesEditor.classList.remove("hidden");
+            ratesEditor.scrollIntoView({ behavior: "smooth" });
+            
+            return showToast("Report generation blocked due to missing SBI rates. Please check the Rates Editor.", "warning");
+        }
+
         state.calculatedRows = result.rows;
         renderResultsTable(result.rows);
         

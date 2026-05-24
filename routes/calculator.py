@@ -97,7 +97,8 @@ def api_consolidated_tax_summary():
                 "stcg": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
                 "stcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
                 "dividends": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
-            }
+            },
+            "errors": []
         }
 
         def merge_ty(source_ty):
@@ -123,8 +124,13 @@ def api_consolidated_tax_summary():
 
         if cy_start_res:
             merge_ty(cy_start_res["tax_years"]["curr"])
+            consolidated["errors"].extend(cy_start_res.get("errors", []))
         if cy_end_res:
             merge_ty(cy_end_res["tax_years"]["prev"])
+            consolidated["errors"].extend(cy_end_res.get("errors", []))
+
+        # Unique errors
+        consolidated["errors"] = sorted(list(set(consolidated["errors"])))
 
         # Re-run offset logic on consolidated data
         from core.calculator import compute_offset_summary
@@ -147,8 +153,8 @@ def api_calculate():
     try:
         portfolio = data
         mode = data.get("sbi_tt_mode", "split")
-        rows = calculate_a3_rows(portfolio, mode=mode)
-        return jsonify({"success": True, "rows": rows})
+        result = calculate_a3_rows(portfolio, mode=mode)
+        return jsonify({"success": True, **result})
     except Exception as e:
         logger.exception("Calculation error")
         return jsonify({"success": False, "error": str(e)}), 500

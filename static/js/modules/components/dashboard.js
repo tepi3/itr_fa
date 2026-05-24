@@ -2,6 +2,7 @@ import { state } from '../state.js';
 import { parseAppDate } from '../utils.js';
 import { apiPost } from '../api.js';
 import { BOX_SVG, BRIEFCASE_SVG, TREND_UP_SVG, CURRENCY_SVG, PIE_CHART_SVG } from '../constants.js';
+import { updateSbiModeHints } from './resultsTable.js';
 
 /**
  * Portfolio Dashboard view controller, theme/density selectors, and SVG chart generator
@@ -225,6 +226,8 @@ export function setSbiTTMode(mode, skipSave = false) {
         const isActive = btn.dataset.mode === mode;
         btn.classList.toggle("active", isActive);
     });
+
+    updateSbiModeHints();
 
     if (!skipSave) {
         apiPost("/api/settings", { sbi_tt_mode: mode }).catch(e => console.error("Failed to save SBI mode to settings", e));

@@ -116,13 +116,17 @@ export function renderResultsTable(rows) {
             if (detail?.is_lookback) {
                 td.classList.add("lookback-warning-cell");
             }
+            if (detail?.error) {
+                td.classList.add("error-cell");
+            }
             
             const val = field.val != null ? Math.round(field.val) : 0;
             const textVal = val > 0 ? formatINR(val) : "0";
             
             const warningIcon = detail?.is_lookback ? `<span class="lookback-icon" title="Lookback rate used for this calculation">⚠</span>` : "";
+            const errorIcon = detail?.error ? `<span class="error-icon" title="${detail.error}">✖</span>` : "";
             
-            td.innerHTML = `<span class="val-link">${textVal}</span>${warningIcon}<span class="edit-icon" title="Click to manually override value">${EDIT_PENCIL_SVG}</span>`;
+            td.innerHTML = `<span class="val-link">${textVal}</span>${warningIcon}${errorIcon}<span class="edit-icon" title="Click to manually override value">${EDIT_PENCIL_SVG}</span>`;
             
             td.dataset.lotId = row.lot_id;
             td.dataset.field = field.key;
@@ -595,7 +599,7 @@ export function enableCellEdit(td, row, fieldKey) {
 }
 
 // ===== SBI Rates Used in Calculation =====
-export async function collectSbiRates(rows, taxYears = null) {
+export function updateSbiModeHints() {
     // Update Editor hint text based on mode
     const editorHint = document.querySelector("#monthlyRatesSection .hint");
     if (editorHint) {
@@ -615,6 +619,10 @@ export async function collectSbiRates(rows, taxYears = null) {
             sectionHint.innerHTML = `In Uniform mode, all calculations (A3 and Tax) use the SBI TT Buying rate of the last working day of the preceding month.`;
         }
     }
+}
+
+export async function collectSbiRates(rows, taxYears = null) {
+    updateSbiModeHints();
 
     if (taxYears) {
         state.lastTaxYears = taxYears;
@@ -764,7 +772,7 @@ export async function collectSbiRates(rows, taxYears = null) {
     state.sbiRatesUsed = [];
     allEntries.forEach(entry => {
         const { label, rate, rateDate, source, eventDate } = entry;
-        if (!rate || !rateDate) return;
+        if (!rateDate) return;
         const key = `${label}_${rateDate}`;
         if (seenRates.has(key)) return;
         seenRates.add(key);
@@ -772,6 +780,7 @@ export async function collectSbiRates(rows, taxYears = null) {
 
         const isTax = label.includes("Tax");
         const isManual = source === 'override';
+        const isMissing = !rate;
         // Only show lookback if backend says so AND we are in split mode AND it's not a tax entry
         const isLookback = !isTax && (state.sbi_tt_mode === 'split' && entry.is_lookback);
         
@@ -779,13 +788,16 @@ export async function collectSbiRates(rows, taxYears = null) {
         let highlightStyle = "";
         let warningSuffix = "";
 
-        if (isManual) {
+        if (isMissing) {
+            badgesHtml += `<span class="rate-status missing">missing</span>`;
+            highlightStyle = "background: rgba(239, 68, 68, 0.08); border-left: 3px solid var(--danger);";
+        } else if (isManual) {
             badgesHtml += `<span class="rate-status override">override</span>`;
         } else {
             badgesHtml += `<span class="rate-status cached">cached</span>`;
         }
 
-        if (isLookback) {
+        if (isLookback && !isMissing) {
             highlightStyle = "background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b;";
             if (eventDate) {
                 const ev = parseAppDate(eventDate);
@@ -811,7 +823,7 @@ export async function collectSbiRates(rows, taxYears = null) {
             </td>
             <td>${formatAppDate(parseAppDate(rateDate))}</td>
             <td class="editable-rate" data-date="${rateDate}" title="Click to edit rate">
-                <span class="rate-val">₹${rate.toFixed(4)}</span>
+                <span class="rate-val">${rate ? '₹' + rate.toFixed(4) : '<span style="color:var(--danger); font-weight:700;">Missing</span>'}</span>
                 <span class="edit-icon"> ${EDIT_PENCIL_SVG}</span>
             </td>
             <td style="display: flex; align-items: center; gap: 8px;">
@@ -1084,6 +1096,19 @@ export async function fetchTaxYearSummary() {
         const payload = { ...state.portfolio, sbi_tt_mode: state.sbi_tt_mode };
         const result = await apiPost("/api/tax-year-summary", payload);
         if (result.success && result.tax_years) {
+            if (result.errors && result.errors.length > 0) {
+                result.errors.forEach(err => showToast(err, "error"));
+                
+                // Abort rendering tables
+                await collectSbiRates(state.calculatedRows, result.tax_years);
+                document.getElementById("sbiRatesSection").classList.remove("hidden");
+                
+                const ratesEditor = document.getElementById("monthlyRatesSection");
+                ratesEditor.classList.remove("hidden");
+                ratesEditor.scrollIntoView({ behavior: "smooth" });
+                
+                return showToast("Tax Summary blocked due to missing SBI rates. Please check the Rates Editor.", "warning");
+            }
             state.taxYears = result.tax_years;
             renderTaxYearSummary(result.tax_years);
             renderTaxValidationTable(result.tax_years);
@@ -1443,7 +1468,23 @@ export async function fetchConsolidatedTaxSummary() {
         });
         await hideLoading();
         if (!result.success) return showToast(result.error || "Failed", "error");
+
+        if (result.consolidated && result.consolidated.errors && result.consolidated.errors.length > 0) {
+            result.consolidated.errors.forEach(err => showToast(err, "error"));
+
+            // Abort rendering consolidated view
+            await collectSbiRates(state.calculatedRows, result.consolidated);
+            document.getElementById("sbiRatesSection").classList.remove("hidden");
+
+            const ratesEditor = document.getElementById("monthlyRatesSection");
+            ratesEditor.classList.remove("hidden");
+            ratesEditor.scrollIntoView({ behavior: "smooth" });
+
+            return showToast("Consolidated Tax Summary blocked due to missing SBI rates. Please check the Rates Editor.", "warning");
+        }
+
         renderConsolidatedTaxSummary(result.consolidated);
+
         document.getElementById("consolidatedFYBlocks").scrollIntoView({ behavior: "smooth" });
     } catch (e) {
         await hideLoading();

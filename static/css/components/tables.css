@@ -122,6 +122,11 @@ tr:hover td {
     color: var(--warning);
 }
 
+.editable-cell.error-cell {
+    background: rgba(239, 68, 68, 0.08) !important;
+    color: var(--danger);
+}
+
 .editable-cell.lookback-warning-cell {
     background: rgba(245, 158, 11, 0.05) !important;
 }
@@ -131,6 +136,15 @@ tr:hover td {
     margin-left: 6px;
     color: #d97706;
     font-size: 0.8rem;
+    cursor: help;
+    font-weight: bold;
+}
+
+.error-icon {
+    display: inline-block;
+    margin-left: 6px;
+    color: var(--danger);
+    font-size: 0.85rem;
     cursor: help;
     font-weight: bold;
 }
