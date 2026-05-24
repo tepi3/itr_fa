@@ -191,9 +191,9 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
     """
     if use_event_date:
         # A3 (day of event rate): reverse traverse to nearest date
-        # Lookback Limit: Stop searching if we reach past the 5th day from the end of the preceding month
+        # Lookback Limit: Stop searching if we reach past the 4th day from the end of the preceding month
         last_day_prev = get_last_day_prev_month(d)
-        limit_date = last_day_prev - timedelta(days=4) # Last 5 days of prev month starts here
+        limit_date = last_day_prev - timedelta(days=3) # Last 4 days of prev month starts here
 
         cache = _load_cache()
         currency_rates = cache.get("rates", {}).get("USD", {})
@@ -229,17 +229,17 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
             "source": "not_found",
         }
     else:
-        # Tax (last working day of preceding month, with a strict 5-day lookback)
+        # Tax (last working day of preceding month, with a strict 4-day lookback)
         last_day_prev = get_last_day_prev_month(d)
 
         cache = _load_cache()
         currency_rates = cache.get("rates", {}).get("USD", {})
         manual_usd = set(cache.get("manual_USD", []))
 
-        # Walk backward up to 5 days from the last day of preceding month
+        # Walk backward up to 4 days from the last day of preceding month
         # Rule 115: Use rate on last day of preceding month. 
-        # If not available, we look back up to 5 days.
-        for i in range(5):
+        # If not available, we look back up to 4 days.
+        for i in range(4):
             lookup_date = last_day_prev - timedelta(days=i)
             # Check manual overrides first (local portfolio overrides)
             override_key = f"{lookup_date.isoformat()}_USD"

@@ -93,11 +93,13 @@ def api_list_saves():
 @portfolio_bp.route("/api/current-balance", methods=["POST"])
 def api_current_balance():
     """Calculate current-month portfolio value snapshot for in-progress calendar years."""
-    portfolio = request.get_json()
-    if not portfolio:
+    data = request.get_json()
+    if not data:
         return jsonify({"error": "Portfolio data required"}), 400
     try:
-        result = calculate_current_balance(portfolio)
+        portfolio = data
+        mode = data.get("sbi_tt_mode", "split")
+        result = calculate_current_balance(portfolio, mode=mode)
         return jsonify({"success": True, **result})
     except Exception as e:
         logger.exception("Current balance error")

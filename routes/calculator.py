@@ -22,6 +22,7 @@ def api_consolidated_tax_summary():
         fy_start_year = data.get("fy_start_year")
         username = data.get("username", "Default")
         current_portfolio = data.get("current_portfolio")
+        sbi_tt_mode = data.get("sbi_tt_mode", "split")
 
         if not fy_start_year:
             return jsonify({"error": "fy_start_year required"}), 400
@@ -75,7 +76,7 @@ def api_consolidated_tax_summary():
                                     "amount": fd["amount"],
                                     "is_manual": False
                                 })
-                return calculate_tax_year_summary(portfolio)
+                return calculate_tax_year_summary(portfolio, mode=sbi_tt_mode)
             return None
 
         # Load both years
@@ -140,11 +141,13 @@ def api_consolidated_tax_summary():
 @calculator_bp.route("/api/calculate", methods=["POST"])
 def api_calculate():
     """Calculate all A3 columns for the entire portfolio."""
-    portfolio = request.get_json()
-    if not portfolio:
+    data = request.get_json()
+    if not data:
         return jsonify({"error": "Portfolio data required"}), 400
     try:
-        rows = calculate_a3_rows(portfolio)
+        portfolio = data
+        mode = data.get("sbi_tt_mode", "split")
+        rows = calculate_a3_rows(portfolio, mode=mode)
         return jsonify({"success": True, "rows": rows})
     except Exception as e:
         logger.exception("Calculation error")
@@ -157,7 +160,8 @@ def api_tax_year_summary():
     if not data:
         return jsonify({"error": "Data required"}), 400
     try:
-        result = calculate_tax_year_summary(data)
+        mode = data.get("sbi_tt_mode", "split")
+        result = calculate_tax_year_summary(data, mode=mode)
         return jsonify({"success": True, **result})
     except Exception as e:
         logger.exception("Tax year summary error")
@@ -170,7 +174,8 @@ def api_sell_helper_simulate():
     if not payload:
         return jsonify({"error": "Payload required"}), 400
     try:
-        result = simulate_sell_impact(payload)
+        mode = payload.get("sbi_tt_mode", "split")
+        result = simulate_sell_impact(payload, mode=mode)
         return jsonify({"success": True, **result})
     except Exception as e:
         logger.exception("Sell helper simulation error")

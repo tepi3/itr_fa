@@ -102,3 +102,20 @@
 
 .btn-large { padding: 14px 36px; font-size: 1rem; width: 100%; justify-content: center; }
 
+/* SBI TT Mode Toggles */
+.sbi-mode-option {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+}
+.sbi-mode-option:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+.sbi-mode-option.active {
+    background: var(--bg-main);
+    color: var(--accent);
+    border-color: var(--border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+

@@ -217,6 +217,34 @@ export function filterStockCards() {
     if (countEl) countEl.textContent = query ? `${shown} / ${cards.length}` : "";
 }
 
+export function setSbiTTMode(mode, skipSave = false) {
+    state.sbi_tt_mode = mode;
+    try { localStorage.setItem("fa_desk_sbi_mode", mode); } catch(e) {}
+    
+    document.querySelectorAll(".sbi-mode-option").forEach(btn => {
+        const isActive = btn.dataset.mode === mode;
+        btn.classList.toggle("active", isActive);
+    });
+
+    if (!skipSave) {
+        apiPost("/api/settings", { sbi_tt_mode: mode }).catch(e => console.error("Failed to save SBI mode to settings", e));
+    }
+}
+
+export function restoreSbiTTMode() {
+    try {
+        const backendMode = document.documentElement.dataset.sbiMode;
+        if (backendMode && backendMode !== "{{ sbi_tt_mode }}") {
+            setSbiTTMode(backendMode, true);
+            return;
+        }
+        const saved = localStorage.getItem("fa_desk_sbi_mode");
+        setSbiTTMode(saved || "split", true);
+    } catch(e) {
+        setSbiTTMode("split", true);
+    }
+}
+
 export function toggleTheme() {
     const root = document.documentElement;
     const current = root.dataset.theme || "dark";
@@ -325,7 +353,8 @@ export async function renderAssetPieChart(rows) {
         });
     } else {
         try {
-            const result = await apiPost("/api/current-balance", state.portfolio);
+            const payload = { ...state.portfolio, sbi_tt_mode: state.sbi_tt_mode };
+            const result = await apiPost("/api/current-balance", payload);
             if (result.success && result.stock_balances) {
                 const snapshotDate = result.snapshot_date;
                 const d = new Date(snapshotDate + "T00:00:00");

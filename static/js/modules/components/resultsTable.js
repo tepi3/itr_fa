@@ -752,13 +752,25 @@ export async function collectSbiRates(rows, taxYears = null) {
                 let diffDays = 0;
                 let isWarning = false;
 
-                if (!isTax) {
-                    // For A3 (day of event rate): compare with event date directly
-                    const diffTime = Math.abs(ev - rt);
-                    diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    // Warn if rates are more than 5 days older than event date (as per requirements)
-                    if (diffDays > 5) {
-                        isWarning = true;
+                if (state.sbi_tt_mode !== 'uniform') {
+                    if (!isTax) {
+                        // For A3 (day of event rate): compare with event date directly
+                        const diffTime = Math.abs(ev - rt);
+                        diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        // Warn if rates are more than 3 days older than event date (4-day window)
+                        if (diffDays > 3) {
+                            isWarning = true;
+                        }
+                    } else {
+                        // For Tax (Rule 115): eventDate is usually the payment date
+                        // rt is the actual rate date used.
+                        // We need to compare rt with the LAST DAY of the preceding month of ev.
+                        const lastDayPrev = new Date(ev.getFullYear(), ev.getMonth(), 0);
+                        const diffTime = Math.abs(lastDayPrev - rt);
+                        diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (diffDays > 3) {
+                            isWarning = true;
+                        }
                     }
                 }
 
@@ -1052,7 +1064,8 @@ export async function loadMonthlyRates() {
 // ===== ITR Tax Year Capital Gains & Dividend Summary =====
 export async function fetchTaxYearSummary() {
     try {
-        const result = await apiPost("/api/tax-year-summary", state.portfolio);
+        const payload = { ...state.portfolio, sbi_tt_mode: state.sbi_tt_mode };
+        const result = await apiPost("/api/tax-year-summary", payload);
         if (result.success && result.tax_years) {
             state.taxYears = result.tax_years;
             renderTaxYearSummary(result.tax_years);
@@ -1408,7 +1421,8 @@ export async function fetchConsolidatedTaxSummary() {
         const result = await apiPost("/api/consolidated-tax-summary", {
             fy_start_year: fyStart, 
             username: state.username,
-            current_portfolio: state.portfolio
+            current_portfolio: state.portfolio,
+            sbi_tt_mode: state.sbi_tt_mode
         });
         await hideLoading();
         if (!result.success) return showToast(result.error || "Failed", "error");

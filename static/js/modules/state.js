@@ -7,6 +7,7 @@ import { showToast, showConfirm } from './ui-utils.js';
 
 export const state = {
     username: null,
+    sbi_tt_mode: 'split', // 'split' or 'uniform'
     portfolio: {
         calendar_year: new Date().getFullYear() - 1,
         stocks: [],

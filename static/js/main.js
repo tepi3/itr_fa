@@ -69,6 +69,8 @@ import {
     restoreTheme, 
     setDensity, 
     restoreDensity, 
+    setSbiTTMode,
+    restoreSbiTTMode,
     autoSaveDraft, 
     checkForDraft, 
     clearDraft,
@@ -913,7 +915,8 @@ async function calculateAll() {
     startSmoothProgress("Generating FA Report...\nThis may take a moment (fetching prices & rates)", estimatedSecs);
 
     try {
-        const result = await apiPost("/api/calculate", state.portfolio);
+        const payload = { ...state.portfolio, sbi_tt_mode: state.sbi_tt_mode };
+        const result = await apiPost("/api/calculate", payload);
         stopSmoothProgress();
         showLoading("Generating FA Report...\nThis may take a moment (fetching prices & rates)", 100);
         setTimeout(() => hideLoading(), 200);
@@ -1029,7 +1032,7 @@ async function calculateAll() {
         showToast(`FA Report generated — ${result.rows.length} row(s)`, "success");
 
         // Check for SBI lookback warnings and notify user
-        if (state.sbiRatesUsed && state.sbiRatesUsed.length > 0) {
+        if (state.sbi_tt_mode !== 'uniform' && state.sbiRatesUsed && state.sbiRatesUsed.length > 0) {
             const hasWarnings = state.sbiRatesUsed.some(entry => {
                 if (entry.eventDate && entry.rateDate && !entry.label.includes("Tax")) {
                     const ev = parseAppDate(entry.eventDate);
@@ -1037,7 +1040,7 @@ async function calculateAll() {
                     if (ev && rt) {
                         const diffTime = Math.abs(ev - rt);
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        return diffDays > 5;
+                        return diffDays > 3; // 4-day window limit
                     }
                 }
                 return false;
@@ -2411,7 +2414,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     initQuickJump();
     restoreTheme();
     restoreDensity();
+    restoreSbiTTMode();
     addYearChangeGuard();
+
+    // SBI TT Mode Toggles
+    document.querySelectorAll(".sbi-mode-option").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const mode = btn.dataset.mode;
+            if (state.sbi_tt_mode === mode) return;
+
+            if (mode === 'uniform') {
+                const confirmed = await showConfirm("I have read the attached documents and want to switch to Uniform mode", "Switch to Uniform");
+                if (!confirmed) return;
+            }
+
+            setSbiTTMode(mode);
+            showToast(`SBI TT Mode set to: ${mode === 'split' ? 'Split' : 'Uniform'}`, "info");
+            
+            // Highlight that re-calculation is needed without marking portfolio as dirty
+            const calcFab = document.getElementById("calcFab");
+            if (calcFab) {
+                calcFab.classList.add("highlight-pulse");
+                setTimeout(() => calcFab.classList.remove("highlight-pulse"), 5000);
+            }
+        });
+    });
+
+    // SBI Reference Docs Dropdown
+    const sbiRefBtn = document.getElementById("sbiRefDocsBtn");
+    const sbiRefMenu = document.getElementById("sbiRefDocsMenu");
+    if (sbiRefBtn && sbiRefMenu) {
+        sbiRefBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            sbiRefMenu.classList.toggle("hidden");
+        });
+        document.addEventListener("click", () => sbiRefMenu.classList.add("hidden"));
+    }
 
     // Heartbeat to keep server alive (native desktop mode)
     setInterval(sendHeartbeat, 15000);

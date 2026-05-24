@@ -751,6 +751,7 @@ export async function shRunSimulation() {
             calendar_year: state.portfolio.calendar_year,
             sbi_rate_overrides: state.portfolio.sbi_rate_overrides || {},
             simulated_sells: simSells,
+            sbi_tt_mode: state.sbi_tt_mode
         });
         await hideLoading();
         if (!result.success) return showToast(`Simulation error: ${result.error}`, "error");

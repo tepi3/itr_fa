@@ -152,7 +152,8 @@ def init_flask_app():
         from core.utils import load_app_settings
         settings = load_app_settings()
         theme = settings.get("theme", "dark")
-        return render_template("index.html", theme=theme)
+        sbi_tt_mode = settings.get("sbi_tt_mode", "split")
+        return render_template("index.html", theme=theme, sbi_tt_mode=sbi_tt_mode)
 
     @state.app.route("/api/settings", methods=["GET", "POST"])
     def manage_settings():

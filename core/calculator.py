@@ -44,25 +44,29 @@ def _format_date_display(date_str: str) -> str:
         return date_str
 
 
-def _get_rate_value(d: date, overrides: dict, use_event_date: bool = False) -> tuple:
-    """Get SBI TT rate value and metadata (USD only)."""
-    result = get_sbi_tt_rate(d, overrides, use_event_date=use_event_date)
+def _get_rate_value(d: date, overrides: dict, use_event_date: bool = False, mode: str = 'split') -> tuple:
+    """
+    Get SBI TT rate value and metadata (USD only).
+    Returns: (rate, rate_date, source, error_msg)
+    """
+    effective_use_event_date = False if mode == 'uniform' else use_event_date
+    result = get_sbi_tt_rate(d, overrides, use_event_date=effective_use_event_date)
     rate = result.get("rate")
+    error_msg = None
+
     if rate is None or rate == 0:
-        rate_date_str = result.get("rate_date")
-        if use_event_date:
-            d_str = d.strftime("%d/%m/%Y")
-            last_day = get_last_day_prev_month(d)
-            limit_date = (last_day - timedelta(days=4)).strftime("%d/%m/%Y")
-            raise ValueError(f"SBI TT buying rate is missing for event day {d_str} and its lookback window (down to {limit_date}). Please add a rate for a date within this range in the SBI TT Rates Editor.")
-        else:
+        if mode == 'uniform' or not effective_use_event_date:
             last_day = get_last_day_prev_month(d)
             month_name = last_day.strftime("%B %Y")
-            raise ValueError(f"SBI TT Buying Rate is missing for the last 5 days of preceding month ({month_name}). Please add a rate for a date within this window (e.g., last day {last_day.isoformat()}) in the SBI TT Rates Editor.")
-    return rate, result.get("rate_date"), result.get("source")
+            error_msg = f"Missing SBI TT rate for month-end {month_name}. Please add a rate for the last 4 days of {month_name.split()[0]} in the Rates Editor."
+        else:
+            d_str = d.strftime("%d/%m/%Y")
+            error_msg = f"Missing SBI TT rate for transaction on {d_str}. Please add a rate for this date (or up to 4 days prior) in the SBI TT Rates Editor."
+            
+    return rate, result.get("rate_date"), result.get("source"), error_msg
 
 
-def calculate_initial_value(lot: dict, sbi_overrides: dict) -> dict:
+def calculate_initial_value(lot: dict, sbi_overrides: dict, mode: str = 'split') -> dict:
     """
     Calculate column 8: Initial value of the investment (₹).
     = buy_price × quantity × TTBR(date_of_buy_event)
@@ -71,14 +75,14 @@ def calculate_initial_value(lot: dict, sbi_overrides: dict) -> dict:
     buy_price = float(lot["buy_price"])
     quantity = float(lot["quantity"])
 
-    rate, rate_date, source = _get_rate_value(buy_date, sbi_overrides, use_event_date=True)
+    rate, rate_date, source, error = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
 
     if rate is None:
         return {
             "value": None,
             "rate": None,
             "rate_date": rate_date,
-            "error": f"SBI rate not found for {rate_date}",
+            "error": error,
         }
 
     value = round(buy_price * quantity * rate)
@@ -102,6 +106,7 @@ def calculate_peak_value(
     yahoo_ticker: str,
     calendar_year: int,
     sbi_overrides: dict,
+    mode: str = 'split',
 ) -> dict:
     """
     Calculate column 9: Peak value of investment during the period (₹).
@@ -170,15 +175,15 @@ def calculate_peak_value(
         # Get TTBR for this day (cached as tuple)
         date_key = trading_date.isoformat()
         if date_key not in daily_ttbr_cache:
-            try:
-                rate, rate_date_str, _ = _get_rate_value(trading_date, sbi_overrides, use_event_date=True)
+            rate, rate_date_str, _, error = _get_rate_value(trading_date, sbi_overrides, use_event_date=True, mode=mode)
+            if not error:
                 daily_ttbr_cache[date_key] = (rate, rate_date_str)
-            except ValueError:
+            else:
                 # If rate not found for a specific day, skip it for peak calculation
                 # (usually shouldn't happen if historical data exists)
                 continue
 
-        ttbr, ttbr_rate_date = daily_ttbr_cache[date_key]
+        ttbr, ttbr_rate_date = daily_ttbr_cache.get(date_key, (None, None))
         if ttbr is None:
             continue
 
@@ -211,6 +216,7 @@ def calculate_closing_balance(
     yahoo_ticker: str,
     calendar_year: int,
     sbi_overrides: dict,
+    mode: str = 'split',
 ) -> dict:
     """
     Calculate column 10: Closing balance (₹).
@@ -243,9 +249,9 @@ def calculate_closing_balance(
         return {"value": None, "error": "Could not fetch Dec 31 price"}
 
     # Get TTBR
-    rate, rate_date, _ = _get_rate_value(dec31, sbi_overrides, use_event_date=True)
+    rate, rate_date, _, error = _get_rate_value(dec31, sbi_overrides, use_event_date=True, mode=mode)
     if rate is None:
-        return {"value": None, "error": f"SBI rate not found for {rate_date}"}
+        return {"value": None, "error": error}
 
     value = round(close_price * qty * rate)
     return {
@@ -267,6 +273,7 @@ def calculate_dividends(
     calendar_year: int,
     sbi_overrides: dict,
     skip_dividends: bool = False,
+    mode: str = 'split',
 ) -> dict:
     """
     Calculate column 11: Total gross dividends (₹).
@@ -317,14 +324,14 @@ def calculate_dividends(
             continue
 
         # Get TTBR (Use actual date of payment for A3)
-        rate, rate_date, source = _get_rate_value(pay_date, sbi_overrides, use_event_date=True)
+        rate, rate_date, source, error = _get_rate_value(pay_date, sbi_overrides, use_event_date=True, mode=mode)
         if rate is None:
             entries.append({
                 "ex_date": div["ex_date"],
                 "payment_date": pay_date_str,
                 "amount_foreign": amount,
                 "qty": qty,
-                "error": f"SBI rate not found",
+                "error": error,
             })
             continue
 
@@ -354,6 +361,7 @@ def calculate_sale_proceeds(
     lot: dict,
     calendar_year: int,
     sbi_overrides: dict,
+    mode: str = 'split',
 ) -> dict:
     """
     Calculate column 12: Total sale proceeds (₹).
@@ -365,7 +373,7 @@ def calculate_sale_proceeds(
 
     buy_price = float(lot.get("buy_price", 0))
     buy_date = _parse_date(lot["buy_date"])
-    buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=False)
+    buy_rate, buy_rate_date, _, buy_error = _get_rate_value(buy_date, sbi_overrides, use_event_date=False, mode=mode)
 
     for sell in lot.get("sells", []):
         sell_date = _parse_date(sell["sell_date"])
@@ -376,7 +384,7 @@ def calculate_sale_proceeds(
         sell_qty = float(sell["quantity"])
         sell_id = sell.get("id")
 
-        rate, rate_date, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True)
+        rate, rate_date, _, error = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
         if rate is None:
             sale_entries.append({
                 "sell_id": sell_id,
@@ -384,7 +392,7 @@ def calculate_sale_proceeds(
                 "sell_price": sell_price,
                 "quantity": sell_qty,
                 "buy_price": buy_price,
-                "error": f"SBI rate not found",
+                "error": error,
             })
             continue
 
@@ -422,7 +430,7 @@ def calculate_sale_proceeds(
     }
 
 
-def calculate_a3_rows(portfolio: dict) -> list:
+def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> list:
     """
     Calculate all A3 rows for the entire portfolio.
 
@@ -468,11 +476,11 @@ def calculate_a3_rows(portfolio: dict) -> list:
                 continue  # Fully sold in prior year, skip
 
             # Calculate all columns
-            initial = calculate_initial_value(lot, sbi_overrides)
-            peak = calculate_peak_value(lot, sells_in_cy, yahoo_ticker, calendar_year, sbi_overrides)
-            closing = calculate_closing_balance(lot, yahoo_ticker, calendar_year, sbi_overrides)
-            dividends = calculate_dividends(lot, stock, calendar_year, sbi_overrides, skip_divs)
-            sales = calculate_sale_proceeds(lot, calendar_year, sbi_overrides)
+            initial = calculate_initial_value(lot, sbi_overrides, mode=mode)
+            peak = calculate_peak_value(lot, sells_in_cy, yahoo_ticker, calendar_year, sbi_overrides, mode=mode)
+            closing = calculate_closing_balance(lot, yahoo_ticker, calendar_year, sbi_overrides, mode=mode)
+            dividends = calculate_dividends(lot, stock, calendar_year, sbi_overrides, skip_divs, mode=mode)
+            sales = calculate_sale_proceeds(lot, calendar_year, sbi_overrides, mode=mode)
 
             # Apply overrides
             lot_overrides = overrides.get(lot_id, {})
@@ -608,7 +616,7 @@ def _round_quarters(bucket: dict) -> dict:
     return res
 
 
-def simulate_sell_impact(payload: dict) -> dict:
+def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
     """
     Simulate the capital gains tax impact of hypothetical sells.
 
@@ -664,9 +672,9 @@ def simulate_sell_impact(payload: dict) -> dict:
         is_long_term = holding_days >= 730
 
         # TTBR at buy date
-        buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides)
+        buy_rate, buy_rate_date, _, buy_error = _get_rate_value(buy_date, sbi_overrides, mode=mode)
         # TTBR at sell date
-        sell_rate, sell_rate_date, _ = _get_rate_value(sell_date, sbi_overrides)
+        sell_rate, sell_rate_date, _, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
 
         result = {
             "ticker":       ticker,
@@ -685,7 +693,7 @@ def simulate_sell_impact(payload: dict) -> dict:
         }
 
         if buy_rate is None or sell_rate is None:
-            result["error"] = f"TTBR not found (buy: {buy_rate_date}, sell: {sell_rate_date})"
+            result["error"] = buy_error or sell_error
             result["gain_inr"] = None
             result["category"] = None
             sell_results.append(result)
@@ -693,12 +701,12 @@ def simulate_sell_impact(payload: dict) -> dict:
 
         # Actual TTBR (use_event_date=True)
         try:
-            buy_rate_actual, buy_rate_actual_date, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True)
+            buy_rate_actual, buy_rate_actual_date, _, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
         except Exception:
             buy_rate_actual, buy_rate_actual_date = None, None
 
         try:
-            sell_rate_actual, sell_rate_actual_date, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True)
+            sell_rate_actual, sell_rate_actual_date, _, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
         except Exception:
             sell_rate_actual, sell_rate_actual_date = None, None
 
@@ -849,7 +857,7 @@ def compute_offset_summary(tax_years: dict) -> dict:
     return tax_years
 
 
-def calculate_tax_year_summary(portfolio: dict) -> dict:
+def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
     """
     Calculate a per-stock, per-quarter LTCG/LTCL/STCG/STCL and Dividend breakdown
     mapped to the two applicable Indian tax years.
@@ -879,6 +887,7 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
     """
     calendar_year = portfolio.get("calendar_year", 2024)
     sbi_overrides = portfolio.get("sbi_rate_overrides", {})
+    logged_errors = set()
 
     prev_cy = calendar_year - 1
     curr_cy = calendar_year
@@ -930,9 +939,11 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
             buy_price = float(lot["buy_price"])
 
             # Get buy TTBR once for this lot
-            buy_rate, buy_rate_date, _ = _get_rate_value(buy_date, sbi_overrides)
+            buy_rate, buy_rate_date, _, buy_error = _get_rate_value(buy_date, sbi_overrides, mode=mode)
             if buy_rate is None:
-                logger.warning(f"No TTBR for buy date {buy_date} on {ticker}, skipping gains")
+                if buy_error not in logged_errors:
+                    logger.warning(buy_error)
+                    logged_errors.add(buy_error)
                 buy_rate_inr_per_share = None
             else:
                 buy_rate_inr_per_share = buy_price * buy_rate  # INR cost per share at buy
@@ -958,9 +969,11 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 _is_long_term = holding_days >= 730  # ≥ 2 years
 
                 # TTBR at sell date
-                sell_rate, sell_rate_date, _ = _get_rate_value(sell_date, sbi_overrides)
+                sell_rate, sell_rate_date, _, sell_error = _get_rate_value(sell_date, sbi_overrides, mode=mode)
                 if sell_rate is None:
-                    logger.warning(f"No TTBR for sell date {sell_date} on {ticker}, skipping")
+                    if sell_error not in logged_errors:
+                        logger.warning(sell_error)
+                        logged_errors.add(sell_error)
                     continue
 
                 if buy_rate_inr_per_share is None:
@@ -1034,8 +1047,11 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
                 qkey = _get_quarter_key(pay_date, ty_key)
 
                 # Rate for Tax Summary (Rule 115: Last day of prev month)
-                rate, rate_date, source = _get_rate_value(pay_date, sbi_overrides, use_event_date=False)
+                rate, rate_date, source, error = _get_rate_value(pay_date, sbi_overrides, use_event_date=False, mode=mode)
                 if rate is None:
+                    if error not in logged_errors:
+                        logger.warning(error)
+                        logged_errors.add(error)
                     continue
 
                 div_inr = amount * qty * rate
@@ -1075,7 +1091,7 @@ def calculate_tax_year_summary(portfolio: dict) -> dict:
     return {"tax_years": tax_years}
 
 
-def calculate_current_balance(portfolio: dict) -> dict:
+def calculate_current_balance(portfolio: dict, mode: str = 'split') -> dict:
     """
     Calculate portfolio value as-of the last calendar day of the previous month.
 
@@ -1117,9 +1133,9 @@ def calculate_current_balance(portfolio: dict) -> dict:
             continue
 
         # Get SBI TT rate for snapshot date (latest in cache)
-        rate, _, _ = _get_rate_value(snapshot_date, sbi_overrides, use_event_date=True)
+        rate, _, _, error = _get_rate_value(snapshot_date, sbi_overrides, use_event_date=True, mode=mode)
         if rate is None:
-            logger.warning(f"No SBI rate for {snapshot_date}")
+            logger.warning(f"No SBI rate for {snapshot_date}: {error}")
             continue
 
         # Sum remaining qty across all lots as-of snapshot date
