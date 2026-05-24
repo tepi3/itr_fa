@@ -596,6 +596,26 @@ export function enableCellEdit(td, row, fieldKey) {
 
 // ===== SBI Rates Used in Calculation =====
 export async function collectSbiRates(rows, taxYears = null) {
+    // Update Editor hint text based on mode
+    const editorHint = document.querySelector("#monthlyRatesSection .hint");
+    if (editorHint) {
+        if (state.sbi_tt_mode === 'split') {
+            editorHint.innerHTML = `Manage the database of daily SBI TT buying rates from year 2010. <strong>A3 calculations</strong> use the rate on date of event, with a fallback window extending back to the last 4 days of the preceding month. <strong>Tax calculations</strong> use the rate of the last working day of the preceding month.`;
+        } else {
+            editorHint.innerHTML = `Manage the database of daily SBI TT buying rates from year 2010. In Uniform mode, <strong>all calculations (A3 and Tax)</strong> use the SBI TT buying rate of the last working day of the preceding month.`;
+        }
+    }
+
+    // Update Section hint text based on mode
+    const sectionHint = document.querySelector("#sbiRatesSection .hint");
+    if (sectionHint) {
+        if (state.sbi_tt_mode === 'split') {
+            sectionHint.innerHTML = `These are the specific SBI TT Buying rates applied to each calculation step. A3 columns use event-date rates (with lookback), while Tax Summary columns use preceding month-end rates.`;
+        } else {
+            sectionHint.innerHTML = `In Uniform mode, all calculations (A3 and Tax) use the SBI TT Buying rate of the last working day of the preceding month.`;
+        }
+    }
+
     if (taxYears) {
         state.lastTaxYears = taxYears;
     }
