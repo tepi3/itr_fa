@@ -757,8 +757,8 @@ export async function collectSbiRates(rows, taxYears = null) {
                         // For A3 (day of event rate): compare with event date directly
                         const diffTime = Math.abs(ev - rt);
                         diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        // Warn if rates are more than 3 days older than event date (4-day window)
-                        if (diffDays > 3) {
+                        // Warn if rates are more than 4 days older than event date (4-day lookback window without warning)
+                        if (diffDays > 4) {
                             isWarning = true;
                         }
                     } else {

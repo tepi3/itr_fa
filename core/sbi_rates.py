@@ -24,9 +24,16 @@ from config import SBI_CACHE_FILE, SBI_CSV_URL
 logger = logging.getLogger(__name__)
 
 
+import sys
+
 def _load_pre_2020_rates() -> dict:
     """Load the shipped pre-2020 rates database."""
-    pre_2020_file = Path(__file__).parent / "pre_2020_rates.json"
+    if getattr(sys, 'frozen', False):
+        base_dir = Path(sys._MEIPASS)
+    else:
+        base_dir = Path(__file__).parent.parent
+        
+    pre_2020_file = base_dir / "static" / "pre_2020_rates.json"
     if pre_2020_file.exists():
         try:
             with open(pre_2020_file, "r", encoding="utf-8") as f:
