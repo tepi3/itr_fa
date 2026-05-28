@@ -170,7 +170,7 @@ def api_clear_sbi_rates():
     """Reset SBI TT rates: clear overrides, restore baseline, and fetch fresh rates."""
     try:
         from core.sbi_rates import clear_sbi_cache, refresh_cache
-        # 1. Clear disk cache and restore pre-2020 PDF rates
+        # 1. Clear disk cache and restore baseline PDF rates
         clear_sbi_cache()
         # 2. Perform a fresh fetch from GitHub with overwrite=True to restore modern rates
         refresh_cache(overwrite=True)

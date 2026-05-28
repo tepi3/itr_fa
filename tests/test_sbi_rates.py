@@ -16,8 +16,8 @@ def test_get_last_day_prev_month():
     assert get_last_day_prev_month(date(2023, 3, 10)) == date(2023, 2, 28)
 
 def test_get_sbi_tt_rate_logic(tmp_path, monkeypatch):
-    # Mock pre-2020 rates to be empty for this test to avoid interference
-    monkeypatch.setattr("core.sbi_rates._load_pre_2020_rates", lambda: {})
+    # Mock baseline rates to be empty for this test to avoid interference
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: {})
     
     # Setup a temporary cache file
     fake_cache_file = tmp_path / "sbi_cache.json"
@@ -115,7 +115,7 @@ def test_normalize_and_import_rbi_rates(tmp_path, monkeypatch):
         json.dump({"rates": {"USD": {}}, "manual_USD": [], "rbi_USD": []}, f)
         
     # 2. Mock static files paths using monkeypatch
-    sbi_mock_file = tmp_path / "pre_2020_rates.json"
+    sbi_mock_file = tmp_path / "sbi_baseline_rates.json"
     rbi_mock_file = tmp_path / "rbi_reference_rates_2010_2019.json"
     
     sbi_mock_data = {
@@ -135,7 +135,7 @@ def test_normalize_and_import_rbi_rates(tmp_path, monkeypatch):
         json.dump(rbi_mock_data, f)
         
     def mock_get_static_path(filename):
-        if filename == "data/pre_2020_rates.json":
+        if filename == "data/sbi_baseline_rates.json":
             return sbi_mock_file
         if filename == "data/rbi_reference_rates_2010_2019.json":
             return rbi_mock_file
@@ -143,8 +143,8 @@ def test_normalize_and_import_rbi_rates(tmp_path, monkeypatch):
         
     monkeypatch.setattr("core.sbi_rates._get_static_path", mock_get_static_path)
     
-    # Mock _load_pre_2020_rates to return our mock SBI data
-    monkeypatch.setattr("core.sbi_rates._load_pre_2020_rates", lambda: sbi_mock_data)
+    # Mock _load_baseline_rates to return our mock SBI data
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: sbi_mock_data)
     
     # 3. Perform import
     count = normalize_and_import_rbi_rates()

@@ -270,8 +270,8 @@ def flask_app(tmp_data_dir, monkeypatch):
     Create a Flask app instance for route testing.
     Uses tmp_data_dir so tests don't touch real data.
     """
-    # Prevent pre-2020 rate loading from interfering with tests
-    monkeypatch.setattr("core.sbi_rates._load_pre_2020_rates", lambda: {})
+    # Prevent baseline rate loading from interfering with tests
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: {})
 
     import app as main_app
     main_app.init_flask_app()
