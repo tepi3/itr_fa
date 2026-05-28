@@ -15,17 +15,17 @@ jobs:
           - os: macos-latest
             name: fa_desk_macOS
             sep: ":"
-            icon: "static/icon.png"
+            icon: "static/img/icon.png"
             build_mode: "--onedir"
           - os: windows-latest
             name: fa_desk_Windows
             sep: ";"
-            icon: "static/icon.ico"
+            icon: "static/img/icon.ico"
             build_mode: "--onefile"
           - os: ubuntu-latest
             name: fa_desk_Linux
             sep: ":"
-            icon: "static/icon.png"
+            icon: "static/img/icon.png"
             build_mode: "--onefile"
     runs-on: ${{ matrix.os }}
 

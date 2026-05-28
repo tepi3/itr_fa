@@ -97,13 +97,13 @@ python3 app.py
   - **Schedule FA (A3)**: Uses the rate of the **actual event date** (Buy, Peak, Closing, Dividend, Sale) with a lookback limit extending into the **last 5 days of the preceding month**. Highlight alerts flag lookup gaps > 5 days.
   - **Tax Calculation (Rule 115)**: Uses the rate on the **last day of the preceding month** with a strict **5-day lookback window**. Prompts exact date guidelines if rates are missing.
 - **Technical References**:
-  - [Rule 115 / 206 in Income Tax Rules](static/Income_Tax_Rules_Rule_115_206.pdf) — Rule for conversion of income into Rupees.
-  - [Guide to Fill FSI, TR, and FA Schedule in ITR](static/Guide_to_Fill_FSI_TR_FA_Schedule.pdf) — Official guide from the Income Tax Department.
-- **Base rates (pre-2020)**: Shipped with a built-in, verified database of 120 base rates extracted directly from the official decade-long SBI TT buying rate data (2010–2019) (the original PDF itself is not shipped with the app).
+  - [Rule 115 / 206 in Income Tax Rules](static/docs/Income_Tax_Rules_Rule_115_206.pdf) — Rule for conversion of income into Rupees.
+  - [Guide to Fill FSI, TR, and FA Schedule in ITR](static/docs/Guide_to_Fill_FSI_TR_FA_Schedule.pdf) — Official guide from the Income Tax Department.
+- **Base rates (pre-2020)**: Shipped with a built-in, verified database of 120 base rates extracted directly from the official decade-long SBI TT buying rate data (2010–2019) (shipped in `static/data/`, the original PDF itself is not shipped with the app).
 - **SBI TT Rates Calendar Editor**: Populate and edit daily rates for any month/year since 2010 in a modern Sunday-aligned calendar grid. Inline edits from the calendar or report table update the same active database cache.
 - **Fetch Choices (Overwrite vs. Merge)**: Select between *Overwrite All* (updates active database including custom edits on conflicting dates) and *Only Add Missing* (merges fetched rates while fully preserving your manual overrides).
 - **Import & Export**: Backup and restore your customized rates database as JSON using native, secure cross-platform dialogs on both Windows and macOS.
-- **Refined Database Purge**: Click *Clear SBI TT Overrides* to securely restore original pre-2020 base rates to default, purge post-2020 fetched rates, and delete custom overrides in the cache.
+- **Refined Database Purge**: Click *Clear SBI TT Overrides* to securely restore original pre-2020 base rates to default, purge post-2020 fetched rates, and delete custom overrides and RBI fallback rates in the cache. Only official SBI TT rates will be retained.
 
 ### Dividends
 - **Dividend Auto-Fetch** — Automatically fetches dividend events for the current year when importing data or adding stocks.

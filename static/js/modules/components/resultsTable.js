@@ -1783,7 +1783,7 @@ export function jumpToSection(sectionId, targetSelector = null) {
 }
 
 export async function clearSbiOverrides() {
-    const confirmed = await showConfirm("Are you sure you want to reset the SBI TT rates database? This will clear all manual overrides and restore the database to its default state (pre-2020 PDF rates + fresh fetch from GitHub).", "Reset Rates");
+    const confirmed = await showConfirm("Are you sure you want to reset the SBI TT rates database? This will clear all manual overrides and RBI fallback rates. Only official SBI TT rates will be retained.", "Reset Rates");
     if (!confirmed) return;
     
     try {

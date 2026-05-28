@@ -135,9 +135,9 @@ def test_normalize_and_import_rbi_rates(tmp_path, monkeypatch):
         json.dump(rbi_mock_data, f)
         
     def mock_get_static_path(filename):
-        if filename == "pre_2020_rates.json":
+        if filename == "data/pre_2020_rates.json":
             return sbi_mock_file
-        if filename == "rbi_reference_rates_2010_2019.json":
+        if filename == "data/rbi_reference_rates_2010_2019.json":
             return rbi_mock_file
         return tmp_path / filename
         

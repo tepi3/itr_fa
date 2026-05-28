@@ -5,7 +5,7 @@ Copyright (c) 2026 Piyush Tewari (tepi3). All rights reserved.
 Licensed for personal, non-commercial use only.
 
 Data source: sahilgupta/sbi-fx-ratekeeper GitHub repo (free, no login).
-CSV format: DATE,PDF FILE,TT BUY,TT SELL,BILL BUY,BILL SELL,...
+CSV format: DATE,TT BUY,TT SELL,BILL BUY,BILL SELL,...
 - DATE is "YYYY-MM-DD HH:MM"
 - TT BUY is 0.00 on weekends/holidays (skip these)
 """
@@ -33,7 +33,7 @@ def _load_pre_2020_rates() -> dict:
     else:
         base_dir = Path(__file__).parent.parent
         
-    pre_2020_file = base_dir / "static" / "pre_2020_rates.json"
+    pre_2020_file = base_dir / "static" / "data" / "pre_2020_rates.json"
     if pre_2020_file.exists():
         try:
             with open(pre_2020_file, "r", encoding="utf-8") as f:
@@ -533,9 +533,9 @@ def get_daily_rates(year: int, month: int) -> dict:
 
 def clear_sbi_cache():
     """
-    Clear all manual and fetched SBI rates from the disk cache.
-    This purges all post-2020 rates, resets pre-2020 PDF rates to default,
-    and removes any custom pre-2020 rates.
+    Clear all manual overrides, RBI fallback rates, and fetched SBI rates from the disk cache.
+    This purges all post-2020 rates, resets pre-2020 base rates to default,
+    and removes any custom overrides.
     """
     cache = {}
     if SBI_CACHE_FILE.exists():
@@ -566,13 +566,13 @@ def _get_static_path(filename: str) -> Path:
 
 def normalize_and_import_rbi_rates() -> int:
     """
-    Load pre_2020_rates.json and rbi_reference_rates_2010_2019.json,
+    Load pre_2020_rates.json and rbi_reference_rates_2010_2019.json from static/data/,
     calculate chronological spread/delta for each month, and import
     normalized RBI rates to fill missing SBI TT rates.
     Returns: count of filled rates.
     """
-    sbi_file = _get_static_path("pre_2020_rates.json")
-    rbi_file = _get_static_path("rbi_reference_rates_2010_2019.json")
+    sbi_file = _get_static_path("data/pre_2020_rates.json")
+    rbi_file = _get_static_path("data/rbi_reference_rates_2010_2019.json")
     
     if not sbi_file.exists() or not rbi_file.exists():
         logger.error(f"SBI baseline or RBI Reference Rate static files are missing: SBI={sbi_file.exists()}, RBI={rbi_file.exists()}")
