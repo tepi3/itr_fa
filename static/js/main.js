@@ -240,6 +240,20 @@ function initYearSelectors() {
     if (monthSelect) {
         monthSelect.value = new Date().getMonth() + 1;
     }
+
+    // Initialize RBI Import Modal Date Selectors
+    const importRbiYearSelect = document.getElementById("importRbiYearSelect");
+    const importRbiMonthSelect = document.getElementById("importRbiMonthSelect");
+    if (importRbiYearSelect && importRbiMonthSelect) {
+        for (let y = currentYear; y >= 2010; y--) {
+            const opt = document.createElement("option");
+            opt.value = y;
+            opt.textContent = y;
+            if (y === state.portfolio.calendar_year) opt.selected = true;
+            importRbiYearSelect.appendChild(opt);
+        }
+        importRbiMonthSelect.value = new Date().getMonth() + 1;
+    }
     
     mainSelect.addEventListener("change", async (e) => {
         state.portfolio.calendar_year = parseInt(e.target.value);
@@ -566,12 +580,17 @@ async function fetchSbiRates(overwriteChoice = null) {
 }
 
 async function importRbiRates() {
+    const yearSelect = document.getElementById("importRbiYearSelect");
+    const monthSelect = document.getElementById("importRbiMonthSelect");
+    const year = yearSelect ? parseInt(yearSelect.value) : null;
+    const month = monthSelect ? parseInt(monthSelect.value) : null;
+
     document.getElementById("rbiRatesModal").classList.add("hidden");
-    showLoading("Normalizing & Importing RBI Reference Rates...");
+    showLoading(`Normalizing & Importing RBI Reference Rates up to ${month}/${year}...`);
     try {
-        const res = await apiPost("/api/import-rbi-rates");
+        const res = await apiPost("/api/import-rbi-rates", { year, month });
         if (res.success) {
-            showToast(`Successfully normalized and imported RBI Reference rates! Filled ${res.imported} missing rate entries.`, "success");
+            showToast(`Successfully normalized and imported RBI Reference rates up to ${month}/${year}! Filled ${res.imported} missing rate entries.`, "success");
             
             // Sync Rates Editor if visible
             const ratesSection = document.getElementById("monthlyRatesSection");

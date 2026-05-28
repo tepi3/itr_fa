@@ -161,9 +161,22 @@ def refresh_cache(overwrite: bool = True):
         if calc_year in locked_years or y in locked_years:
             continue
             
-        # Overwrite protection: if overwrite is False, do NOT overwrite user manual edits
-        if not overwrite and date_str in manual_usd:
-            continue
+        # Overwrite protection:
+        # 1. If overwrite is False (Missing Mode), only overwrite missing and rbi rates.
+        #    Leave manual overrides and existing official cache rates untouched.
+        # 2. If overwrite is True (Overwrite Mode), overwrite missing, rbi, AND manual overrides.
+        
+        is_manual = date_str in manual_usd
+        is_rbi = date_str in rbi_usd
+        is_missing = date_str not in cache["rates"]["USD"]
+        
+        if not overwrite:
+            # Missing Mode: only proceed if it is missing OR it's an RBI fallback
+            if not (is_missing or is_rbi):
+                continue
+            # Also strictly leave manual untouched
+            if is_manual:
+                continue
             
         cache["rates"]["USD"][date_str] = rate
         # If we are overwriting with a fetched rate, it is no longer "manual" or "rbi"
@@ -564,15 +577,20 @@ def _get_static_path(filename: str) -> Path:
     return base_dir / "static" / filename
 
 
-def normalize_and_import_rbi_rates() -> int:
+def normalize_and_import_rbi_rates(till_year: int = None, till_month: int = None) -> int:
     """
-    Load sbi_baseline_rates.json and rbi_reference_rates_2010_2019.json from static/data/,
+    Load sbi_baseline_rates.json and rbi_reference_rates.json from static/data/,
     calculate chronological spread/delta for each month, and import
     normalized RBI rates to fill missing SBI TT rates.
+    
+    Args:
+        till_year: Optional cutoff year (inclusive).
+        till_month: Optional cutoff month (inclusive, only if till_year is provided).
+    
     Returns: count of filled rates.
     """
     sbi_file = _get_static_path("data/sbi_baseline_rates.json")
-    rbi_file = _get_static_path("data/rbi_reference_rates_2010_2019.json")
+    rbi_file = _get_static_path("data/rbi_reference_rates.json")
     
     if not sbi_file.exists() or not rbi_file.exists():
         logger.error(f"SBI baseline or RBI Reference Rate static files are missing: SBI={sbi_file.exists()}, RBI={rbi_file.exists()}")
@@ -594,6 +612,17 @@ def normalize_and_import_rbi_rates() -> int:
         usd = entry["usd"]
         if usd is None:
             continue
+            
+        y = int(date_str[:4])
+        m = int(date_str[5:7])
+        
+        # Apply date filter
+        if till_year is not None:
+            if y > till_year:
+                continue
+            if y == till_year and till_month is not None and m > till_month:
+                continue
+                
         ym = date_str[:7]
         if ym not in rbi_by_month:
             rbi_by_month[ym] = []
@@ -603,42 +632,64 @@ def normalize_and_import_rbi_rates() -> int:
     for ym in rbi_by_month:
         rbi_by_month[ym].sort(key=lambda x: x[0])
         
-    # Group SBI month-end rates by year-month: { "YYYY-MM": rate }
+    # Group SBI rates by year-month: { "YYYY-MM": { "YYYY-MM-DD": rate, ... } }
     sbi_by_month = {}
-    for k, v in sbi_data.items():
-        ym = k[:7]
-        sbi_by_month[ym] = v
+    # We use the merged cache for SBI rates to get as many real data points as possible
+    cache_for_ref = _load_cache()
+    all_sbi_rates = cache_for_ref.get("rates", {}).get("USD", {})
+    rbi_usd_cache = set(cache_for_ref.get("rbi_USD", []))
+    manual_usd = set(cache_for_ref.get("manual_USD", []))
+    
+    for d_str, val in all_sbi_rates.items():
+        # Only use official or manual SBI rates for delta calculation, skip existing RBI fallbacks
+        if d_str in rbi_usd_cache:
+            continue
+        ym = d_str[:7]
+        if ym not in sbi_by_month:
+            sbi_by_month[ym] = {}
+        sbi_by_month[ym][d_str] = val
         
-    # Calculate deltas chronologically from 2010-01 to 2019-12
+    # Calculate average deltas per month
     last_delta = 0.0
     deltas = {}
     
-    years = range(2010, 2020)
-    months = range(1, 13)
-    
-    for y in years:
-        for m in months:
+    # Get range of years from baseline and RBI data
+    all_years = sorted(set(int(k[:4]) for k in all_sbi_rates.keys()) | set(int(ym[:4]) for ym in rbi_by_month.keys()))
+    if not all_years:
+        return 0
+        
+    for y in all_years:
+        for m in range(1, 13):
             ym = f"{y}-{m:02d}"
             rbi_entries = rbi_by_month.get(ym, [])
             if not rbi_entries:
                 continue
-            # Month-end RBI rate is the last entry in that month
-            last_rbi_date, last_rbi_usd = rbi_entries[-1]
+                
+            sbi_entries = sbi_by_month.get(ym, {})
             
-            sbi_usd = sbi_by_month.get(ym)
-            if sbi_usd is not None:
-                delta = last_rbi_usd - sbi_usd
+            # Find common dates where we have both RBI and SBI rates
+            month_deltas = []
+            for rbi_date, rbi_val in rbi_entries:
+                if rbi_date in sbi_entries:
+                    month_deltas.append(rbi_val - sbi_entries[rbi_date])
+            
+            if month_deltas:
+                # Use average delta for this month
+                delta = sum(month_deltas) / len(month_deltas)
                 last_delta = delta
             else:
+                # If no common dates, fall back to last known delta
                 delta = last_delta
                 
             deltas[ym] = delta
 
     # Import normalized rates to sbi cache
-    cache = _load_cache() # Already has rates and rbi_USD initialized
+    cache = _load_cache()
     locked_years = set(cache.get("locked_years", []))
     baseline = _load_baseline_rates()
+    # Re-fetch manual_usd and rbi_usd_cache for the final loop
     manual_usd = set(cache.get("manual_USD", []))
+    rbi_usd_cache = set(cache.get("rbi_USD", []))
     
     # Load raw cached rates to identify what is truly missing
     # We only want to fill in where rates are missing in the merged cache

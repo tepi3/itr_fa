@@ -281,7 +281,14 @@ def api_locked_years():
 def api_import_rbi_rates():
     """Normalize and import RBI Reference Rates to fill missing cache rates."""
     try:
-        count = normalize_and_import_rbi_rates()
+        data = request.get_json() or {}
+        year = data.get("year")
+        month = data.get("month")
+        
+        till_year = int(year) if year else None
+        till_month = int(month) if month else None
+        
+        count = normalize_and_import_rbi_rates(till_year=till_year, till_month=till_month)
         return jsonify({"success": True, "imported": count})
     except Exception as e:
         logger.exception("Failed to import RBI Reference Rates")

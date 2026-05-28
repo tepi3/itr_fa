@@ -1393,25 +1393,52 @@
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <strong style="display: block; color: var(--text-secondary); margin-bottom: 4px;">Layman Normalization Explanation</strong>
+                    <strong style="display: block; color: var(--text-secondary); margin-bottom: 4px;">Normalization Explanation</strong>
                     <p style="margin: 0 0 8px; color: var(--text-muted); font-size: 0.82rem;">
-                        Since RBI Reference rates have a positive spread (generally higher by **₹0.20 to ₹0.40**) over SBI TT Buying rates, they cannot be used directly without distortion. We **normalize** them using month-end values to match the official SBI TT baseline:
+                        Since RBI Reference rates have a positive spread (generally higher by **₹0.20 to ₹0.40**) over SBI TT Buying rates, they cannot be used directly without distortion. We **normalize** them using a calculated spread to match the official SBI TT baseline:
                     </p>
                     <ol style="margin: 0; padding-left: 20px; color: var(--text-muted); font-size: 0.82rem;">
-                        <li><strong>Calculate Monthly Spread:</strong> For each month, we compute the exact difference between the month-end RBI rate and the month-end SBI TT rate.</li>
-                        <li><strong>Scale Daily Rates:</strong> We subtract this computed spread from all daily RBI rates within that specific month.</li>
-                        <li><strong>Carry-forward Fallback:</strong> If the SBI TT rate is missing for a month, we use the spread from the previous month.</li>
+                        <li><strong>Calculate Average Monthly Spread:</strong> For each month, we identify all dates where both SBI and RBI rates are available and compute their **average difference**.</li>
+                        <li><strong>Scale Daily Rates:</strong> We subtract this average spread from all daily RBI rates within that specific month.</li>
+                        <li><strong>Carry-forward Fallback:</strong> If no common dates exist for a month, we use the spread from the previous available month.</li>
                     </ol>
                     <p style="margin: 6px 0 0; color: var(--accent); font-size: 0.8rem; font-weight: 600;">
-                        This preserves daily market fluctuations while scaling the baseline down to align with official SBI TT guidelines.
+                        This ensures the normalized rates follow daily market fluctuations while aligning the monthly baseline with official SBI TT guidelines.
                     </p>
                 </div>
 
                 <!-- Lookback Notice -->
-                <div style="padding: 10px 14px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border);">
+                <div style="padding: 10px 14px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
                     <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">
                         💡 <strong>No Import Fallback:</strong> If you choose not to import, calculations will automatically look back up to the <strong>last 5 working days</strong> of the preceding day to locate an official SBI TT rate.
                     </p>
+                </div>
+
+                <!-- Date Filter Section -->
+                <div style="padding: 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; gap: 16px;">
+                    <div style="flex-grow: 1;">
+                        <strong style="display: block; font-size: 0.85rem; color: var(--text-primary); margin-bottom: 4px;">Import Up To:</strong>
+                        <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">Only gaps before this date will be filled.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="importRbiMonthSelect" class="form-control" style="width: 120px; font-size: 0.85rem; height: 32px; padding: 0 8px;">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <select id="importRbiYearSelect" class="form-control" style="width: 90px; font-size: 0.85rem; height: 32px; padding: 0 8px;">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
                 </div>
             </div>
 
