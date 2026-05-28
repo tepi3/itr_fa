@@ -99,7 +99,7 @@ python3 app.py
 - **Technical References**:
   - [Rule 115 / 206 in Income Tax Rules](static/docs/Income_Tax_Rules_Rule_115_206.pdf) — Rule for conversion of income into Rupees.
   - [Guide to Fill FSI, TR, and FA Schedule in ITR](static/docs/Guide_to_Fill_FSI_TR_FA_Schedule.pdf) — Official guide from the Income Tax Department.
-- **Base rates (pre-2020)**: Shipped with a built-in, verified database of 120 base rates extracted directly from the official decade-long SBI TT buying rate data (2010–2019) (shipped in `static/data/`, the original PDF itself is not shipped with the app).
+- **Base rates (pre-2020)**: Shipped with a built-in, verified database of 120 base rates extracted directly from the official decade-long SBI TT buying rate data (2010–2019).
 - **SBI TT Rates Calendar Editor**: Populate and edit daily rates for any month/year since 2010 in a modern Sunday-aligned calendar grid. Inline edits from the calendar or report table update the same active database cache.
 - **Fetch Choices (Overwrite vs. Merge)**: Select between *Overwrite All* (updates active database including custom edits on conflicting dates) and *Only Add Missing* (merges fetched rates while fully preserving your manual overrides).
 - **Import & Export**: Backup and restore your customized rates database as JSON using native, secure cross-platform dialogs on both Windows and macOS.
