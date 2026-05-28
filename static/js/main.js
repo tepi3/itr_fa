@@ -1061,9 +1061,9 @@ async function calculateAll() {
                             if (glContainer) {
                                 const usdVal = sellEntry.gain_loss_usd || 0;
                                 const inrVal = sellEntry.gain_loss_inr || 0;
-                                const isProfit = usdVal >= 0;
+                                const isProfit = inrVal >= 0;
                                 const cls = isProfit ? "profit" : "loss";
-                                const usdText = (isProfit ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
+                                const usdText = (usdVal >= 0 ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
                                 const inrText = (inrVal >= 0 ? "+₹" : "-₹") + Math.abs(inrVal).toLocaleString("en-IN");
                                 
                                 glContainer.innerHTML = `

@@ -129,7 +129,7 @@ def test_calculate_peak_value_top_candidates_structure(tmp_path, monkeypatch):
     fake_cache_file = tmp_path / "sbi_cache.json"
     monkeypatch.setattr("core.sbi_rates.SBI_CACHE_FILE", fake_cache_file)
 
-    # 6 days of prices — should result in max 5 candidates (TOP_N = 5)
+    # 6 days of prices — should result in max 3 candidates (TOP_N = 3)
     mock_prices = [
         {"date": "2024-06-10", "close": 100.0},  # 100 * 10 * 83 = 83000
         {"date": "2024-06-11", "close": 110.0},  # 110 * 10 * 83 = 91300
@@ -164,7 +164,7 @@ def test_calculate_peak_value_top_candidates_structure(tmp_path, monkeypatch):
 
     # Top candidates
     tc = res["top_candidates"]
-    assert len(tc) == 5  # Capped at TOP_N=5 even though 6 days
+    assert len(tc) == 3  # Capped at TOP_N=3 even though 6 days
 
     # Verify sorted descending by value_inr
     for i in range(len(tc) - 1):
@@ -181,6 +181,6 @@ def test_calculate_peak_value_top_candidates_structure(tmp_path, monkeypatch):
         assert required_fields.issubset(candidate.keys()), \
             f"Missing fields in candidate: {required_fields - candidate.keys()}"
 
-    # The lowest day ($95 * 10 * 84 = 79800) should be excluded (6th of 6, but TOP_N=5)
+    # The lowest day ($95 * 10 * 84 = 79800) should be excluded (6th of 6, but TOP_N=3)
     candidate_dates = [c["date"] for c in tc]
-    assert "2024-06-17" not in candidate_dates, "Lowest value day should be excluded from top 5"
+    assert "2024-06-17" not in candidate_dates, "Lowest value day should be excluded from top 3"

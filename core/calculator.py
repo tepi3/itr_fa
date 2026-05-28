@@ -164,7 +164,7 @@ def calculate_peak_value(
     peak_source = None
 
     # Track top N candidate days for validation/audit trail
-    TOP_N = 5
+    TOP_N = 3
     top_candidates = []
 
     for price_entry in prices:
