@@ -1,9 +1,11 @@
 import requests
 import json
 import os
+import pytest
 
 BASE_URL = "http://127.0.0.1:5001/api"
 
+@pytest.mark.integration
 def test_qcom_vwra():
     print("Testing QCOM and VWRA flow...")
 

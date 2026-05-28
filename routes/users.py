@@ -38,7 +38,9 @@ def api_rename_user(old_username):
     if not old_dir.exists() or not old_dir.is_dir():
         return jsonify({"error": "User not found"}), 404
         
-    _, safe_new_name = get_user_dir(new_username)
+    safe_new_name = "".join(c for c in new_username if c.isalnum() or c in (' ', '-', '_')).strip()
+    if not safe_new_name:
+        safe_new_name = "Default"
     new_dir = PORTFOLIOS_DIR / safe_new_name
     
     if new_dir.exists() and new_dir != old_dir:

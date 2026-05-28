@@ -51,7 +51,10 @@ def tax_round(value, places=2) -> float:
         rounded = decimal.Decimal(val_str).quantize(quantizer, rounding=decimal.ROUND_HALF_UP)
         return float(rounded)
     except (decimal.InvalidOperation, ValueError, TypeError):
-        return float(value) if value else 0.0
+        try:
+            return float(value) if value else 0.0
+        except (ValueError, TypeError):
+            return 0.0
 
 def init_user_storage():
     """Migrate any loose portfolio files to a Default user directory."""
