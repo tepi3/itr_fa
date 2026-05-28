@@ -782,12 +782,6 @@ def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
         except Exception:
             sell_rate_actual, sell_rate_actual_date, sell_is_lookback_actual = None, None, False
 
-        # Fallback to Rule 115 rates if actual rates not found (mostly for Uniform mode)
-        if buy_rate_actual is None:
-            buy_rate_actual, buy_rate_actual_date = buy_rate, buy_rate_date
-        if sell_rate_actual is None:
-            sell_rate_actual, sell_rate_actual_date = sell_rate, sell_rate_date
-
         buy_inr_per_share  = buy_price  * buy_rate
         sell_inr_per_share = sell_price * sell_rate
         gain_inr = (sell_inr_per_share - buy_inr_per_share) * sell_qty
