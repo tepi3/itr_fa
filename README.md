@@ -94,8 +94,8 @@ python3 app.py
 
 ### SBI Rates & Currency
 - **Dual-Rate Logic** — Automatically applies the correct SBI TT Buying Rate based on context:
-  - **Schedule FA (A3)**: Uses the rate of the **actual event date** (Buy, Peak, Closing, Dividend, Sale) with a lookback limit extending into the **last 4 days of the preceding month**. Highlight alerts flag lookup gaps > 4 days.
-  - **Tax Calculation (Rule 115)**: Uses the rate on the **last day of the preceding month** with a strict **4-day lookback window**. Prompts exact date guidelines if rates are missing.
+  - **Schedule FA (A3)**: Uses the rate of the **actual event date** (Buy, Peak, Closing, Dividend, Sale) with a lookback limit extending into the **last 5 days of the preceding month**. Highlight alerts flag lookup gaps > 5 days.
+  - **Tax Calculation (Rule 115)**: Uses the rate on the **last day of the preceding month** with a strict **5-day lookback window**. Prompts exact date guidelines if rates are missing.
 - **Technical References**:
   - [Rule 115 / 206 in Income Tax Rules](static/Income_Tax_Rules_Rule_115_206.pdf) — Rule for conversion of income into Rupees.
   - [Guide to Fill FSI, TR, and FA Schedule in ITR](static/Guide_to_Fill_FSI_TR_FA_Schedule.pdf) — Official guide from the Income Tax Department.

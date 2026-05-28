@@ -60,11 +60,11 @@ def _get_rate_value(d: date, overrides: dict, use_event_date: bool = False, mode
         if mode == 'uniform' or not effective_use_event_date:
             last_day = get_last_day_prev_month(d)
             month_name = last_day.strftime("%B %Y")
-            error_msg = f"Missing SBI TT rate for month-end {month_name}. Please add a rate for the last 4 days of {month_name.split()[0]} in the Rates Editor."
+            error_msg = f"Missing SBI TT rate for month-end {month_name}. Please add a rate for the last 5 days of {month_name.split()[0]} in the Rates Editor."
         else:
             d_str = d.strftime("%d/%m/%Y")
             last_day = get_last_day_prev_month(d)
-            limit_date = (last_day - timedelta(days=3)).strftime("%d/%m/%Y")
+            limit_date = (last_day - timedelta(days=4)).strftime("%d/%m/%Y")
             error_msg = f"Missing SBI TT rate for transaction on {d_str}. Please add an SBI TT rate for this date or within its lookback window (down to {limit_date}) in the Rates Editor."
             
     return rate, result.get("rate_date"), source, is_lookback, error_msg

@@ -1059,7 +1059,7 @@ async function calculateAll() {
                     if (ev && rt) {
                         const diffTime = Math.abs(ev - rt);
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        return diffDays > 4; // 4-day lookback window without warning
+                        return diffDays > 5; // 5-day lookback window without warning
                     }
                 }
                 return false;

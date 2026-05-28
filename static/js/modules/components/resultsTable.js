@@ -604,7 +604,7 @@ export function updateSbiModeHints() {
     const editorHint = document.querySelector("#monthlyRatesSection .hint");
     if (editorHint) {
         if (state.sbi_tt_mode === 'split') {
-            editorHint.innerHTML = `Manage the database of daily SBI TT buying rates from year 2010. <strong>A3 calculations</strong> use the rate on date of event, with a fallback window extending back to the last 4 days of the preceding month. <strong>Tax calculations</strong> use the rate of the last working day of the preceding month.`;
+            editorHint.innerHTML = `Manage the database of daily SBI TT buying rates from year 2010. <strong>A3 calculations</strong> use the rate on date of event, with a fallback window extending back to the last 5 days of the preceding month. <strong>Tax calculations</strong> use the rate of the last working day of the preceding month.`;
         } else {
             editorHint.innerHTML = `Manage the database of daily SBI TT buying rates from year 2010. In Uniform mode, <strong>all calculations (A3 and Tax)</strong> use the SBI TT buying rate of the last working day of the preceding month.`;
         }
