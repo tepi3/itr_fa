@@ -5,7 +5,7 @@ from core.sbi_rates import (
     get_sbi_tt_rate, get_monthly_rates, save_manual_rate,
     refresh_cache, lock_year_rates, unlock_year_rates, 
     is_year_locked, get_locked_years, get_daily_rates,
-    clear_sbi_cache
+    clear_sbi_cache, normalize_and_import_rbi_rates
 )
 from core.stock_data import (
     get_company_info, get_price_on_date, get_dividends,
@@ -190,6 +190,7 @@ def api_get_all_rates():
             "success": True,
             "rates": data.get("rates", {}),
             "manual_USD": data.get("manual_USD", []),
+            "rbi_USD": data.get("rbi_USD", []),
             "locked_years": data.get("locked_years", [])
         })
     except Exception as e:
@@ -240,6 +241,7 @@ def api_import_sbi_rates():
                 "USD": cleaned_usd
             },
             "manual_USD": data.get("manual_USD", []),
+            "rbi_USD": data.get("rbi_USD", []),
             "locked_years": data.get("locked_years", [])
         }
         
@@ -274,6 +276,17 @@ def api_unlock_rates():
 def api_locked_years():
     """Get list of locked years."""
     return jsonify({"locked_years": get_locked_years()})
+
+@market_bp.route("/api/import-rbi-rates", methods=["POST"])
+def api_import_rbi_rates():
+    """Normalize and import RBI Reference Rates to fill missing cache rates."""
+    try:
+        count = normalize_and_import_rbi_rates()
+        return jsonify({"success": True, "imported": count})
+    except Exception as e:
+        logger.exception("Failed to import RBI Reference Rates")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @market_bp.route("/api/clear-stock-cache", methods=["POST"])
 def api_clear_stock_cache():

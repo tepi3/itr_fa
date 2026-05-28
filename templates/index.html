@@ -174,6 +174,10 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="14 10 12 12 10 10"></polyline><line x1="12" y1="2" x2="12" y2="12"></line></svg>
                             <span>Import SBI TT Rates</span>
                         </button>
+                        <button id="importRbiRatesBtn" class="btn" title="Import & Normalize RBI Reference Rates">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="14 10 12 12 10 10"></polyline><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                            <span>Import RBI Reference Rates</span>
+                        </button>
                         <button id="exportSbiRatesBtn" class="btn" title="Export SBI TT rates JSON file">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="10 6 12 4 14 6"></polyline><line x1="12" y1="4" x2="12" y2="14"></line></svg>
                             <span>Export SBI TT Rates</span>
@@ -1361,7 +1365,64 @@
             </div>
         </div>
     </div>
-    <!-- ===== END First-Time Disclaimer Acceptance Modal ===== -->
+
+    <!-- ===== RBI Reference Rates Import & Warning Modal ===== -->
+    <div id="rbiRatesModal" class="modal-backdrop hidden" onclick="if(event.target===this) this.classList.add('hidden')">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 style="margin:0; color: var(--warning); display: flex; align-items: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span>Import RBI Reference Rates</span>
+                </h2>
+            </div>
+            
+            <div class="modal-body" style="padding: 16px 0; font-size: 0.88rem; line-height: 1.6; color: var(--text-primary);">
+                <!-- Warning Block -->
+                <div style="padding: 12px 16px; background: rgba(245, 158, 11, 0.08); border-radius: 8px; border-left: 4px solid var(--warning); margin-bottom: 20px;">
+                    <strong style="display: block; color: var(--warning); font-size: 0.92rem; margin-bottom: 6px;">Official Guidelines Warning</strong>
+                    <p style="margin: 0; font-size: 0.82rem; color: var(--text-secondary);">
+                        The Income Tax Department of India specifies the use of official **SBI TT Buying Rates** for all calculations. Importing **RBI Reference Rates** is an **unofficial fallback mechanism** intended only to fill in gaps where official SBI TT daily/month-end rates are completely missing.
+                    </p>
+                </div>
+
+                <!-- Explanation Section -->
+                <div style="margin-bottom: 20px;">
+                    <strong style="display: block; color: var(--text-secondary); margin-bottom: 4px;">What is the RBI Reference Rate?</strong>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 0.82rem;">
+                        The RBI Reference Rate is the daily benchmark rate compiled by the Financial Benchmarks India Pvt Ltd (FBIL) / Reserve Bank of India, representing the actual wholesale market exchange rate on domestic banking days.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <strong style="display: block; color: var(--text-secondary); margin-bottom: 4px;">Layman Normalization Explanation</strong>
+                    <p style="margin: 0 0 8px; color: var(--text-muted); font-size: 0.82rem;">
+                        Since RBI Reference rates have a positive spread (generally higher by **₹0.20 to ₹0.40**) over SBI TT Buying rates, they cannot be used directly without distortion. We **normalize** them using month-end values to match the official SBI TT baseline:
+                    </p>
+                    <ol style="margin: 0; padding-left: 20px; color: var(--text-muted); font-size: 0.82rem;">
+                        <li><strong>Calculate Monthly Spread:</strong> For each month, we compute the exact difference between the month-end RBI rate and the month-end SBI TT rate.</li>
+                        <li><strong>Scale Daily Rates:</strong> We subtract this computed spread from all daily RBI rates within that specific month.</li>
+                        <li><strong>Carry-forward Fallback:</strong> If the SBI TT rate is missing for a month, we use the spread from the previous month.</li>
+                    </ol>
+                    <p style="margin: 6px 0 0; color: var(--accent); font-size: 0.8rem; font-weight: 600;">
+                        This preserves daily market fluctuations while scaling the baseline down to align with official SBI TT guidelines.
+                    </p>
+                </div>
+
+                <!-- Lookback Notice -->
+                <div style="padding: 10px 14px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border);">
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">
+                        💡 <strong>No Import Fallback:</strong> If you choose not to import, calculations will automatically look back up to the <strong>last 5 working days</strong> of the preceding day to locate an official SBI TT rate.
+                    </p>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="cancelRbiRatesBtn" class="btn btn-outline" onclick="document.getElementById('rbiRatesModal').classList.add('hidden')">Cancel</button>
+                <button id="confirmRbiRatesBtn" class="btn btn-primary">Normalize & Import Gaps</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END RBI Reference Rates Warning Modal ===== -->
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script type="module" src="/static/js/main.js?v=1.1.6"></script>

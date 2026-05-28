@@ -780,6 +780,7 @@ export async function collectSbiRates(rows, taxYears = null) {
 
         const isTax = label.includes("Tax");
         const isManual = source === 'override';
+        const isRBI = source === 'rbi';
         const isMissing = !rate;
         // Only show lookback if backend says so AND we are in split mode AND it's not a tax entry
         const isLookback = !isTax && (state.sbi_tt_mode === 'split' && entry.is_lookback);
@@ -793,8 +794,10 @@ export async function collectSbiRates(rows, taxYears = null) {
             highlightStyle = "background: rgba(239, 68, 68, 0.08); border-left: 3px solid var(--danger);";
         } else if (isManual) {
             badgesHtml += `<span class="rate-status override">override</span>`;
+        } else if (isRBI) {
+            badgesHtml += `<span class="rate-status rbi">RBI Rate</span>`;
         } else {
-            badgesHtml += `<span class="rate-status cached">cached</span>`;
+            badgesHtml += `<span class="rate-status cached">SBI TT</span>`;
         }
 
         if (isLookback && !isMissing) {
@@ -993,10 +996,17 @@ export async function loadMonthlyRates() {
             const hasRate = rInfo.rate !== null;
             const rateText = hasRate ? `₹${rInfo.rate.toFixed(2)}` : "—";
             
-            // Normalize source for display: shipped/cache -> cached (Green), override -> override (Yellow)
+            // Normalize source for display: shipped/cache -> cached (Green), override -> override (Yellow), rbi -> rbi (Yellow)
             let statusLabel = rInfo.source === "not_found" ? "missing" : rInfo.source;
+            let displayLabel = statusLabel;
             if (statusLabel === "shipped" || statusLabel === "cache") {
                 statusLabel = "cached";
+                displayLabel = "SBI TT";
+            } else if (statusLabel === "rbi") {
+                statusLabel = "rbi";
+                displayLabel = "RBI Rate";
+            } else if (statusLabel === "override") {
+                displayLabel = "override";
             }
             const isLocked = data.locked;
 
@@ -1004,7 +1014,7 @@ export async function loadMonthlyRates() {
                 <div class="calendar-day-num">${day}</div>
                 <div class="calendar-day-rate-container">
                     <div class="calendar-day-rate">${rateText}</div>
-                    <span class="calendar-day-status ${statusLabel}">${statusLabel}</span>
+                    <span class="calendar-day-status ${statusLabel}">${displayLabel}</span>
                 </div>
             `;
 

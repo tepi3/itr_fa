@@ -565,6 +565,37 @@ async function fetchSbiRates(overwriteChoice = null) {
     }
 }
 
+async function importRbiRates() {
+    document.getElementById("rbiRatesModal").classList.add("hidden");
+    showLoading("Normalizing & Importing RBI Reference Rates...");
+    try {
+        const res = await apiPost("/api/import-rbi-rates");
+        if (res.success) {
+            showToast(`Successfully normalized and imported RBI Reference rates! Filled ${res.imported} missing rate entries.`, "success");
+            
+            // Sync Rates Editor if visible
+            const ratesSection = document.getElementById("monthlyRatesSection");
+            if (ratesSection && !ratesSection.classList.contains("hidden")) {
+                if (typeof loadMonthlyRates === "function") {
+                    await loadMonthlyRates();
+                }
+            }
+            
+            // Re-calculate if calculation has already run to update UI immediately
+            if (state.calculatedRows) {
+                await calculateAll();
+            }
+            pushUndoSnapshot("Import RBI Reference Rates");
+        } else {
+            showToast("Import failed: " + res.error, "error");
+        }
+    } catch (err) {
+        showToast("Error importing RBI Reference Rates: " + err.message, "error");
+    } finally {
+        await hideLoading();
+    }
+}
+
 async function exportSbiRates() {
     showLoading("Preparing SBI rates export...");
     try {
@@ -2281,6 +2312,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     safeAddListener("openFileBtn", "click", openPortfolioFile);
     safeAddListener("fetchRatesBtn", "click", fetchSbiRates);
     safeAddListener("importSbiRatesBtn", "click", openSbiImportFile);
+    safeAddListener("importRbiRatesBtn", "click", () => {
+        document.getElementById("rbiRatesModal").classList.remove("hidden");
+    });
+    safeAddListener("confirmRbiRatesBtn", "click", importRbiRates);
     safeAddListener("exportSbiRatesBtn", "click", exportSbiRates);
     safeAddListener("exportCsvBtn", "click", exportCSV);
     safeAddListener("importSbiFileInput", "change", handleSbiImportFileSelect);
@@ -2605,6 +2640,7 @@ window.savePortfolioAs = savePortfolioAs;
 window.loadPortfolio = loadPortfolio;
 window.openPortfolioFile = openPortfolioFile;
 window.fetchSbiRates = fetchSbiRates;
+window.importRbiRates = importRbiRates;
 window.exportSbiRates = exportSbiRates;
 window.exportCSV = exportCSV;
 window.openSbiImportFile = openSbiImportFile;

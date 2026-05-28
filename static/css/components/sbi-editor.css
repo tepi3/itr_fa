@@ -84,6 +84,12 @@
     border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
+.calendar-day-status.rbi {
+    background: var(--warning-light);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
 .calendar-day-status.missing {
     background: rgba(239, 68, 68, 0.04);
     color: #ef4444;

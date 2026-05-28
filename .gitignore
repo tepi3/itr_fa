@@ -31,3 +31,6 @@ dist/
 
 # Local build notes
 LOCAL_BUILD_NOTES.md
+
+# Scraper scripts
+scripts/scrape_nse_rbi_rates.py

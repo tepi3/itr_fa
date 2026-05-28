@@ -238,6 +238,12 @@ tr:hover td {
     color: var(--warning);
 }
 
+.rate-status.rbi {
+    background: var(--warning-light);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
 .rate-status.warning {
     background: rgba(245, 158, 11, 0.15);
     color: #d97706;

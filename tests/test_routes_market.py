@@ -112,6 +112,7 @@ def test_import_export_rates(client, tmp_data_dir):
             }
         },
         "manual_USD": [],
+        "rbi_USD": ["2012-05-15"],
         "locked_years": []
     }
     
@@ -124,3 +125,15 @@ def test_import_export_rates(client, tmp_data_dir):
     assert res_export.status_code == 200
     exported = res_export.get_json()["data"]
     assert exported["rates"]["USD"]["2024-07-31"] == 83.50
+    assert "2012-05-15" in exported["rbi_USD"]
+
+
+@pytest.mark.unit
+def test_api_import_rbi_rates(client, monkeypatch):
+    # Mock normalize_and_import_rbi_rates to return 42
+    monkeypatch.setattr("routes.market.normalize_and_import_rbi_rates", lambda: 42)
+    
+    res = client.post("/api/import-rbi-rates")
+    assert res.status_code == 200
+    assert res.get_json()["success"] is True
+    assert res.get_json()["imported"] == 42
