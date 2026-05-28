@@ -10,7 +10,7 @@ const tutorialStepsA3 = [
     { selector: "#densityBtn", title: "Resolution / Density Scale", desc: "Adjust the user interface scaling and grid density to fit compact laptop displays or high-resolution 4K screens dynamically." },
     { selector: "#saveBtn", title: "Quick Save", desc: "Save your current work to the server. The pulsing blue dot indicates unsaved changes." },
     { selector: "#undoBtn", title: "Undo / Redo", desc: `Mistakes are easy to fix! Use the Undo button to revert any action (or Ctrl+Z) and Redo to repeat. We track up to 50 actions.` },
-    { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., QCOM, NVDA, VWRA) and click Lookup to add it to your portfolio. Tickers for non-US exchanges are auto-resolved." },
+    { selector: "#tickerInput", title: "Add Stock / ETF", desc: "Enter a ticker symbol (e.g., AAPL, AMZN) and click Lookup to add it to your portfolio." },
     { selector: ".add-lot-btn", title: "Acquisition Lots", desc: `Each stock has acquisition lots representing your purchase transactions. Add the buy date, quantity, and price. Use the Fetch button to auto-fill the closing price.` },
     { selector: ".add-sell-btn", title: "Sell Transactions", desc: "Record any sell transactions against a specific lot. The tool uses FIFO matching and tracks partial sells." },
     { selector: ".fetch-dividends-btn", title: "Fetch Dividends", desc: "Fetch exact dividend data (including Payment Dates) from Nasdaq for the calendar year. This ensures accurate Rule 115 calculations without manual date entry." },

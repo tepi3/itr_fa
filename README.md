@@ -84,7 +84,7 @@ python3 app.py
 ## Features
 
 ### Portfolio Management
-- **Auto stock lookup** — Enter ticker symbol (QCOM, NVDA, etc.), company info auto-filled via Yahoo Finance.
+- **Auto stock lookup** — Enter ticker symbol (AAPL, AMZN, etc.), company info auto-filled via Yahoo Finance.
 - **E-Trade Import** — Automatically parse your E-Trade Holdings reports (Expanded "By Status" View) to populate all acquisition lots and sale transactions.
 - **E-Trade Sell Details Import** — Upload the Gain and Loss Expanded (G&L Expanded) exported `.xlsx` file from E-Trade to populate both acquisition lots and sell transactions.
 - **IBKR Import** — Upload your Interactive Brokers CSV transaction history to build the portfolio and apply FIFO sells.
