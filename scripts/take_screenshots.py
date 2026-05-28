@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-WORKSPACE_DIR = Path("/Users/piyushtewari/dev/code/sach/itr_fa")
+WORKSPACE_DIR = Path(__file__).resolve().parent.parent
 SCREENSHOTS_DIR = WORKSPACE_DIR / "docs" / "screenshots"
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
