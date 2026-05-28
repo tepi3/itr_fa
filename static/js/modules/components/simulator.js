@@ -746,7 +746,6 @@ export async function shRunSimulation() {
 
     if (simSells.length === 0) return showToast("No valid sells to simulate", "warning");
 
-    const forcedSplit = state.sbi_tt_mode !== 'split';
     showLoading("Simulating tax impact...");
     try {
         const result = await apiPost("/api/sell-helper/simulate", {
@@ -757,11 +756,6 @@ export async function shRunSimulation() {
         });
         await hideLoading();
         if (!result.success) return showToast(`Simulation error: ${result.error}`, "error");
-        
-        if (forcedSplit) {
-            setSbiTTMode('split');
-            showToast("Sell Simulator operates in 'Split' mode for higher accuracy. Mode switched.", "info");
-        }
         
         shRenderResults(result);
     } catch (e) {
