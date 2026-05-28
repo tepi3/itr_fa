@@ -55,13 +55,15 @@ export function initSellHelper() {
 
     const toggleQty = document.getElementById("shAllocToggleQty");
     const toggleInr = document.getElementById("shAllocToggleInr");
+    const toggleUsd = document.getElementById("shAllocToggleUsd");
     const allocValLabel = document.getElementById("shAllocValueLabel");
     const allocValueInput = document.getElementById("shAllocValue");
 
-    if (toggleQty && toggleInr) {
+    if (toggleQty && toggleInr && toggleUsd) {
         toggleQty.addEventListener("click", () => {
             toggleQty.classList.add("active");
             toggleInr.classList.remove("active");
+            toggleUsd.classList.remove("active");
             if (allocValLabel) allocValLabel.textContent = "Share Quantity";
             if (allocValueInput) {
                 allocValueInput.placeholder = "e.g. 50";
@@ -71,10 +73,21 @@ export function initSellHelper() {
         toggleInr.addEventListener("click", () => {
             toggleInr.classList.add("active");
             toggleQty.classList.remove("active");
+            toggleUsd.classList.remove("active");
             if (allocValLabel) allocValLabel.textContent = "Target INR amount (₹)";
             if (allocValueInput) {
                 allocValueInput.placeholder = "e.g. 100000";
                 allocValueInput.setAttribute("step", "1");
+            }
+        });
+        toggleUsd.addEventListener("click", () => {
+            toggleUsd.classList.add("active");
+            toggleQty.classList.remove("active");
+            toggleInr.classList.remove("active");
+            if (allocValLabel) allocValLabel.textContent = "Target USD amount ($)";
+            if (allocValueInput) {
+                allocValueInput.placeholder = "e.g. 1500";
+                allocValueInput.setAttribute("step", "any");
             }
         });
     }
@@ -261,6 +274,7 @@ export async function shExecuteAllocation() {
     const strategy = document.getElementById("shAllocStrategy").value;
     const wholeSharesOnly = document.getElementById("shAllocWholeShares").checked;
     const isTargetInr = document.getElementById("shAllocToggleInr").classList.contains("active");
+    const isTargetUsd = document.getElementById("shAllocToggleUsd")?.classList.contains("active") || false;
     const allocValueVal = document.getElementById("shAllocValue").value;
 
     if (!ticker) return showToast("Select a stock first", "warning");
@@ -318,6 +332,18 @@ export async function shExecuteAllocation() {
                     qtyDisplayStr = `<strong>${Math.ceil(requiredQty)}</strong> shares (rounded up from ${requiredQty.toFixed(4)} to ensure target ₹${formatINR(allocValue)} is met with whole units)`;
                 }
                 banner.innerHTML = `Using actual SBI TT rate of <strong>₹${actualRate.toFixed(2)}</strong> (effective ${actualRateDate}) to calculate units required for target ₹${formatINR(allocValue)}. Required Qty: ${qtyDisplayStr}.`;
+                banner.style.display = "block";
+            }
+        } else if (isTargetUsd) {
+            requiredQty = allocValue / sellPrice;
+
+            const banner = document.getElementById("shAllocRateBanner");
+            if (banner) {
+                let qtyDisplayStr = `<strong>${requiredQty.toFixed(4)}</strong> shares`;
+                if (wholeSharesOnly) {
+                    qtyDisplayStr = `<strong>${Math.ceil(requiredQty)}</strong> shares (rounded up from ${requiredQty.toFixed(4)} to ensure target $${allocValue.toFixed(2)} is met with whole units)`;
+                }
+                banner.innerHTML = `Calculating units required for target <strong>$${allocValue.toFixed(2)}</strong>. Required Qty: ${qtyDisplayStr}.`;
                 banner.style.display = "block";
             }
         } else {
