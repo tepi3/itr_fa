@@ -10,7 +10,7 @@ env/
 ENV/
 
 # Local data and cache
-data/
+/data/
 *.xlsx
 test_export.xlsx
 out.json
