@@ -581,10 +581,6 @@ async function importRbiRates() {
                 }
             }
             
-            // Re-calculate if calculation has already run to update UI immediately
-            if (state.calculatedRows) {
-                await calculateAll();
-            }
             pushUndoSnapshot("Import RBI Reference Rates");
         } else {
             showToast("Import failed: " + res.error, "error");
