@@ -453,13 +453,18 @@ def calculate_sale_proceeds(
         proceeds_inr = sell_price * sell_qty * rate
         total_proceeds_inr += proceeds_inr
 
-        # G&L calculations
+        # G&L calculations using strictly Rule 115 (preceding month-end) logic for both buy and sell rates
         holding_days = (sell_date - buy_date).days
         is_long_term = holding_days >= 730
         
         pl_usd = round((sell_price - buy_price) * sell_qty, 2)
+        
+        # Retrieve the sell rate under Rule 115 logic for the tax-based G&L badge
+        sell_rate_rule115, _, _, _, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=False, mode=mode)
+        
         buy_cost_inr = round(buy_price * sell_qty * buy_rate) if buy_rate else None
-        pl_inr = round(proceeds_inr - buy_cost_inr) if buy_cost_inr is not None else None
+        sell_proceeds_tax_inr = round(sell_price * sell_qty * sell_rate_rule115) if sell_rate_rule115 else None
+        pl_inr = round(sell_proceeds_tax_inr - buy_cost_inr) if (buy_cost_inr is not None and sell_proceeds_tax_inr is not None) else None
 
         sale_entries.append({
             "sell_id": sell_id,
