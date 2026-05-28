@@ -103,7 +103,7 @@ python3 app.py
 - **SBI TT Rates Calendar Editor**: Populate and edit daily rates for any month/year since 2010 in a modern Sunday-aligned calendar grid. Inline edits from the calendar or report table update the same active database cache.
 - **Fetch Choices (Overwrite vs. Merge)**: Select between *Overwrite All* (updates active database including custom edits on conflicting dates) and *Only Add Missing* (merges fetched rates while fully preserving your manual overrides).
 - **Import & Export**: Backup and restore your customized rates database as JSON using native, secure cross-platform dialogs on both Windows and macOS.
-- **Refined Database Purge**: Click *Clear SBI TT Overrides* to securely restore original pre-2020 base rates to default, purge post-2020 fetched rates, and delete custom overrides and RBI fallback rates in the cache. Only official SBI TT rates will be retained.
+- **Refined Database Purge**: Click *Clear SBI TT Overrides* to securely restore original rates to default, purge post-2020 fetched rates, and delete custom overrides and RBI fallback rates in the cache. Only official SBI TT rates will be retained.
 
 ### Dividends
 - **Dividend Auto-Fetch** — Automatically fetches dividend events for the current year when importing data or adding stocks.
