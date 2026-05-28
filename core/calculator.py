@@ -163,6 +163,10 @@ def calculate_peak_value(
     peak_rate_date = None
     peak_source = None
 
+    # Track top N candidate days for validation/audit trail
+    TOP_N = 5
+    top_candidates = []
+
     for price_entry in prices:
         trading_date = _parse_date(price_entry["date"])
 
@@ -199,6 +203,23 @@ def calculate_peak_value(
 
         value_inr = close_price * qty * ttbr
 
+        # Track top N candidates for validation
+        candidate = {
+            "date": trading_date.isoformat(),
+            "close_price": close_price,
+            "qty": qty,
+            "ttbr": ttbr,
+            "rate_date": ttbr_rate_date,
+            "source": source,
+            "is_lookback": (mode == 'split' and is_lookback_daily),
+            "value_inr": round(value_inr),
+        }
+        top_candidates.append(candidate)
+        # Keep sorted descending by value_inr; trim to TOP_N
+        top_candidates.sort(key=lambda c: c["value_inr"], reverse=True)
+        if len(top_candidates) > TOP_N:
+            top_candidates = top_candidates[:TOP_N]
+
         if value_inr > peak_value:
             peak_value = value_inr
             peak_date = trading_date.isoformat()
@@ -216,6 +237,7 @@ def calculate_peak_value(
         "rate_date": peak_rate_date,
         "source": peak_source,
         "is_lookback": (mode == 'split' and peak_is_lookback) if peak_date else False,
+        "top_candidates": top_candidates,
         "components": {
             "peak_price": peak_price,
             "qty_on_peak_date": peak_qty,

@@ -205,11 +205,13 @@ export function showTutorialStepByTitle(title) {
         const customSteps = {
             "user & year selection": { selector: "#userSelectionScreen", title: "User & Year Selection", desc: "Select your profile to continue, or create a new user. You can also select the Calendar Year to work on." },
             "portfolio summary": { selector: "#portfolioDashboard", title: "Portfolio Summary", desc: "View summary metrics of your portfolio, including total assets, unrealized gains/losses, dividend earnings, and tax impact." },
+            "sbi tt rate modes": { selector: ".sbi-mode-selector", title: "SBI TT Rate Modes", desc: "Choose how foreign currency is converted to INR. Split Mode uses Rule 115 (preceding month-end) for tax and SBI TTBR (event date) for Section A3. Uniform Mode uses Rule 115 for everything. Check the Docs button for official regulatory PDFs." },
             "fa report breakdown": { selector: "#validateA3Section", title: "FA Report Breakdown", desc: "Review the mathematical breakdown for each column of Schedule FA A3 to verify the final INR values." },
             "dividends": { selector: "#stockSummarySection", title: "Dividends Summary", desc: "Per-Stock Dividend Summary displaying total dividends earned in INR for the calendar year." },
             "tax summary": { selector: "#taxYearSection", title: "ITR Tax Summary", desc: "Consolidated Capital Gains and Dividend summary mapped to Indian tax years and advance-tax quarterly buckets." },
             "tax calculation audit": { selector: "#validateTaxSection", title: "Tax Calculation Audit", desc: "Review the detailed mathematical breakdown for Capital Gains and Dividends across tax years." },
             "asset chart": { selector: "#assetPieChartSection", title: "Asset Chart", desc: "A visual breakdown of your portfolio assets by stock (INR) at the end of the year." },
+            "peak value audit": { selector: "#validatePeakSection", title: "Peak Value Audit", desc: "Verify how peak dates and INR values were determined. Shows the winning peak day and runner-up candidates with full Stock Price × Qty × SBI TT Rate breakdowns." },
             "sbi rates used": { selector: "#sbiRatesSection", title: "SBI Rates Used", desc: "Review the specific SBI TT Buying rates applied to each calculation step." },
             "sell simulator": { selector: "#shResultsSection", title: "Sell Simulator", desc: "Use the Sell Simulator to add hypothetical sells and simulate tax impact without affecting your real portfolio." },
             "resolution / density scale": { selector: "#densityBtn", title: "Resolution / Density Scale", desc: "Adjust the user interface scaling and grid density to fit compact laptop displays or high-resolution 4K screens dynamically." },

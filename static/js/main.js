@@ -1814,7 +1814,8 @@ async function switchTab(tab) {
     const allA3Els = [
         "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
         "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
-        "monthlyRatesSection", "assetPieChartSection", "validateA3Section", "validateTaxSection"
+        "monthlyRatesSection", "assetPieChartSection", "validateA3Section", "validateTaxSection",
+        "validatePeakSection"
     ];
 
     allA3Els.forEach(id => {
@@ -1836,7 +1837,8 @@ async function switchTab(tab) {
         if (hasCalculated) {
             const calculatedEls = [
                 "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
-                "assetPieChartSection", "validateA3Section", "validateTaxSection"
+                "assetPieChartSection", "validateA3Section", "validateTaxSection",
+                "validatePeakSection"
             ];
             calculatedEls.forEach(id => {
                 const el = document.getElementById(id);
@@ -2213,6 +2215,7 @@ export function showTutorialStepByTitle(title) {
         { title: "User & Year Selection", selector: "#userSelectionScreen", desc: "Select or create a user profile and choose a calendar year to load/initialize your portfolio." },
         { title: "Tools Menu", selector: "#toolsMenu", desc: "Access market data tools here, including SBI TT Rates download and the Batch Dividend Fetcher." },
         { title: "Portfolio Summary", selector: "#portfolioDashboard", desc: "View a summary of your portfolio: total assets, unrealized gain/loss, total dividends, and count of stocks/lots." },
+        { title: "SBI TT Rate Modes", selector: ".sbi-mode-selector", desc: "Choose how foreign currency is converted to INR. Split Mode uses Rule 115 (preceding month-end) for tax and SBI TTBR (event date) for Section A3. Uniform Mode uses Rule 115 for everything. Check the Docs button for official regulatory PDFs." },
         { title: "Add Stock", selector: "#tickerInput", desc: "Enter a ticker symbol and lookup/add stocks to your portfolio." },
         { title: "Generate FA Report", selector: "#calcFab", desc: "Click the floating action button to calculate Schedule FA Section A3 values for all stocks in the portfolio." },
         { title: "FA Report Breakdown", selector: "#resultsSection", desc: "Inspect computed initial value, peak value, closing balance, dividends, and sales proceeds for each lot." },
@@ -2220,6 +2223,7 @@ export function showTutorialStepByTitle(title) {
         { title: "Tax Summary", selector: "#taxYearSection", desc: "Check the consolidated financial year-wise tax summary for Indian Income Tax filing." },
         { title: "Tax Calculation Audit", selector: "#validateTaxSection", desc: "Audit the exact capital gains and dividend tax computations." },
         { title: "Asset Chart", selector: "#assetPieChartSection", desc: "Visualize the asset allocation by stock value in a doughnut chart." },
+        { title: "Peak Value Audit", selector: "#validatePeakSection", desc: "Verify how peak dates and INR values were determined. Shows the winning day and runner-up candidates with full price × qty × rate breakdowns." },
         { title: "SBI Rates Used", selector: "#sbiRatesSection", desc: "See all SBI TT rates referenced during calculation, with the option to manually override them." },
         { title: "Generate Tax Statement", selector: "#generateFYBtn", desc: "Generate a consolidated tax summary across financial years." },
         { title: "Sell Simulator", selector: "#tabSellHelper", desc: "Switch to the Sell Simulator tab to simulate hypothetical sales and estimate tax impacts." }
@@ -2606,7 +2610,8 @@ window.addEventListener("portfolio-state-change", (e) => {
     } else if (type === "clear-calculated") {
         const calculatedEls = [
             "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
-            "assetPieChartSection", "validateA3Section", "validateTaxSection"
+            "assetPieChartSection", "validateA3Section", "validateTaxSection",
+            "validatePeakSection"
         ];
         calculatedEls.forEach(id => {
             const el = document.getElementById(id);
@@ -2630,6 +2635,9 @@ window.addEventListener("portfolio-state-change", (e) => {
         
         const validateTaxBody = document.getElementById("validateTaxTableBody");
         if (validateTaxBody) validateTaxBody.innerHTML = "";
+        
+        const validatePeakBody = document.getElementById("validatePeakTableBody");
+        if (validatePeakBody) validatePeakBody.innerHTML = "";
         
         const calcFab = document.getElementById("calcFab");
         const hasStocks = state.portfolio.stocks.length > 0;

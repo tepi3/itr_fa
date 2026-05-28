@@ -538,6 +538,30 @@ tr:hover td {
     border-bottom: 6px solid var(--border) !important;
 }
 
+/* ===== Peak Validation Rows ===== */
+.peak-winner-row td {
+    border-left: 3px solid var(--accent) !important;
+    background: rgba(99, 102, 241, 0.04);
+    font-weight: 600;
+}
+
+.peak-runner-row td {
+    opacity: 0.6;
+    font-size: 0.72rem !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    border-left: 3px solid transparent !important;
+}
+
+.peak-runner-row:hover td {
+    opacity: 1;
+}
+
+/* Visual separator between lot groups */
+.peak-winner-row:not(:first-child) td {
+    border-top: 4px solid var(--border) !important;
+}
+
 .tax-val-row.group-start td:first-child,
 .tax-val-row:not(.group-start):not(.group-end) td:first-child,
 .tax-val-row.group-end td:first-child {
