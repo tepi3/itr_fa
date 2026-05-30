@@ -156,7 +156,7 @@ def api_save_manual_rate():
 def api_fetch_sbi_rates():
     """Force download and cache SBI rates."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         overwrite = data.get("overwrite", True)
         updated = refresh_cache(overwrite=overwrite)
         return jsonify({"success": True, "updated": updated})
@@ -281,7 +281,7 @@ def api_locked_years():
 def api_import_rbi_rates():
     """Normalize and import RBI Reference Rates to fill missing cache rates."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         year = data.get("year")
         month = data.get("month")
         

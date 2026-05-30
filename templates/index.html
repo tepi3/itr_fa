@@ -1179,7 +1179,7 @@
             </div>
             <p class="hint" style="margin:12px 0 20px;">Select your trading platform to continue with the import.</p>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 8px;">
                 <button onclick="selectPlatform('etrade')" class="btn btn-outline" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px;">
                     <span style="font-size: 2rem;">E*</span>
                     <strong>E*TRADE</strong>
@@ -1187,6 +1187,10 @@
                 <button onclick="selectPlatform('ibkr')" class="btn btn-outline" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px;">
                     <span style="font-size: 2rem;">I</span>
                     <strong>IBKR</strong>
+                </button>
+                <button onclick="selectPlatform('schwab')" class="btn btn-outline" style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px;">
+                    <span style="font-size: 2rem;">M</span>
+                    <strong>MS at Work</strong>
                 </button>
             </div>
         </div>
@@ -1265,6 +1269,42 @@
         </div>
     </div>
     <!-- ===== END IBKR Upload Modal ===== -->
+
+    <!-- ===== Schwab Upload Modal ===== -->
+    <div id="schwabUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeSchwabModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>Upload MS at Work Equity Plan Report</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeSchwabModal()"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Close</button>
+            </div>
+            <p class="hint" style="margin:12px 0 20px;">Import your MS at Work Share Sale Cost Basis Report (.xlsx) to build the portfolio automatically. This report contains RSU vestings, ESPP purchases, and sale history.</p>
+
+            <div class="modal-file-row">
+                <div class="modal-file-label">
+                    <span class="modal-file-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
+                    <div>
+                        <strong>Share Sale Cost Basis Report</strong>
+                        <p class="hint" style="margin:2px 0 0;">Upload the .xlsx file exported from your MS at Work Equity Plan portal. It should contain sheets for RSU Sales, ESPP Sales, Releases Report, and ESPP Purchase.</p>
+                    </div>
+                </div>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="schwabFileInput">Choose File</label>
+                <input type="file" id="schwabFileInput" style="display:none;" accept=".xlsx">
+                <span id="schwabFileName" class="modal-file-chosen">No file chosen</span>
+            </div>
+
+            <div style="margin-top:14px;">
+                <label for="schwabTickerInput" style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px;">Ticker Symbol <span style="color:var(--danger);">*</span></label>
+                <input type="text" id="schwabTickerInput" placeholder="e.g. MU" style="width: 120px; text-transform: uppercase;">
+                <span class="hint" style="margin-left:8px;">The stock ticker is not in the report — please enter it manually.</span>
+            </div>
+
+            <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeSchwabModal()">Cancel</button>
+                <button id="schwabImportBtn" class="btn btn-accent"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Import Portfolio</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END Schwab Upload Modal ===== -->
 
     <!-- ===== Import Review Modal ===== -->
     <div id="importReviewModal" class="modal-backdrop hidden">

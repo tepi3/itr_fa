@@ -1944,6 +1944,8 @@ function selectPlatform(platform) {
         document.getElementById("etradeUploadModal").classList.remove("hidden");
     } else if (platform === "ibkr") {
         document.getElementById("ibkrUploadModal").classList.remove("hidden");
+    } else if (platform === "schwab") {
+        document.getElementById("schwabUploadModal").classList.remove("hidden");
     }
 }
 
@@ -1967,6 +1969,13 @@ function closeIbkrModal() {
     document.getElementById("ibkrUploadModal").classList.add("hidden");
     document.getElementById("ibkrFileInput").value = "";
     document.getElementById("ibkrFileName").textContent = "No file chosen";
+}
+
+function closeSchwabModal() {
+    document.getElementById("schwabUploadModal").classList.add("hidden");
+    document.getElementById("schwabFileInput").value = "";
+    document.getElementById("schwabFileName").textContent = "No file chosen";
+    document.getElementById("schwabTickerInput").value = "";
 }
 
 function closeImportReview() {
@@ -2069,6 +2078,7 @@ function showImportReview(transactions, label) {
                 closeImportReview();
                 closeEtradeModal();
                 closeIbkrModal();
+                closeSchwabModal();
                 showToast(`${label} imported successfully (${selectedTxs.length} tx)`, "success");
                 // Enrich missing company info for new stocks
                 if (state.portfolio.stocks.length > 0) {
@@ -2159,6 +2169,50 @@ async function importIbkrDocs() {
         showToast("IBKR upload failed: " + err.message, "error");
     } finally {
         await hideLoading();
+    }
+}
+
+async function importSchwabDocs() {
+    const schwabFile = document.getElementById("schwabFileInput").files[0];
+    const ticker = document.getElementById("schwabTickerInput").value.trim().toUpperCase();
+
+    if (!schwabFile) {
+        showToast("Please choose the MS at Work report file to import", "warning");
+        return;
+    }
+    if (!ticker) {
+        showToast("Please enter the ticker symbol (e.g. MU)", "warning");
+        return;
+    }
+
+    showLoading("Parsing MS at Work Equity Plan Report...");
+    try {
+        const fd = new FormData();
+        fd.append("file", schwabFile);
+        fd.append("ticker", ticker);
+        fd.append("portfolio", JSON.stringify(state.portfolio));
+        const resp = await fetch("/api/upload-schwab", { method: "POST", body: fd });
+        const result = await resp.json();
+
+        await hideLoading();
+        if (result.success) {
+            const totalSkipped = result.skipped_count || 0;
+            const cy = result.calendar_year || "";
+
+            if (totalSkipped > 0) {
+                showToast(
+                    `⚠ ${totalSkipped} transaction${totalSkipped > 1 ? "s" : ""} skipped — outside CY${cy} scope`,
+                    "warning"
+                );
+            }
+            closeSchwabModal();
+            showImportReview(result.transactions || [], `MS at Work (${ticker})`);
+        } else {
+            showToast("MS at Work import error: " + result.error, "error");
+        }
+    } catch (err) {
+        await hideLoading();
+        showToast("MS at Work upload failed: " + err.message, "error");
     }
 }
 
@@ -2357,6 +2411,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     safeAddListener("uploadDocsBtn", "click", openPlatformModal);
     safeAddListener("etradeImportBtn", "click", importEtradeDocs);
     safeAddListener("ibkrImportBtn", "click", importIbkrDocs);
+    safeAddListener("schwabImportBtn", "click", importSchwabDocs);
     safeAddListener("historyBtn", "click", toggleHistoryPanel);
     
     const switchUserBtn = document.getElementById("switchUserBtn");
@@ -2440,6 +2495,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("ibkrFileInput").addEventListener("change", e => {
         const f = e.target.files[0];
         document.getElementById("ibkrFileName").textContent = f ? f.name : "No file chosen";
+    });
+
+    document.getElementById("schwabFileInput").addEventListener("change", e => {
+        const f = e.target.files[0];
+        document.getElementById("schwabFileName").textContent = f ? f.name : "No file chosen";
     });
 
     // Native open file input reader

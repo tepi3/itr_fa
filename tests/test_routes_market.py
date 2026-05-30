@@ -131,7 +131,7 @@ def test_import_export_rates(client, tmp_data_dir):
 @pytest.mark.unit
 def test_api_import_rbi_rates(client, monkeypatch):
     # Mock normalize_and_import_rbi_rates to return 42
-    monkeypatch.setattr("routes.market.normalize_and_import_rbi_rates", lambda: 42)
+    monkeypatch.setattr("routes.market.normalize_and_import_rbi_rates", lambda *args, **kwargs: 42)
     
     res = client.post("/api/import-rbi-rates")
     assert res.status_code == 200

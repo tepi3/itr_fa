@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 from core.utils import get_user_dir
 from core.etrade_parser import process_etrade_files
 from core.ibkr_parser import process_ibkr_file
+from core.schwab_parser import process_schwab_file
 from core.stock_data import get_company_info
 from core.smart_import import group_and_deduplicate_transactions
 
@@ -160,4 +161,42 @@ def api_upload_ibkr():
         })
     except Exception as e:
         logger.exception("IBKR upload error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@parsers_bp.route("/api/upload-schwab", methods=["POST"])
+def api_upload_schwab():
+    """Upload and parse a MS at Work Share Sale Cost Basis Report (.xlsx)."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files["file"]
+
+    ticker = request.form.get("ticker", "").strip().upper()
+    if not ticker:
+        return jsonify({"error": "Ticker symbol is required"}), 400
+
+    portfolio_data = request.form.get("portfolio")
+    if portfolio_data:
+        portfolio = json.loads(portfolio_data)
+        calendar_year = portfolio.get("calendar_year", datetime.now().year)
+    else:
+        calendar_year = request.form.get("calendar_year", datetime.now().year)
+        portfolio = {"calendar_year": int(calendar_year), "stocks": []}
+
+    try:
+        file_bytes = file.read()
+        result = process_schwab_file(
+            file_bytes, file.filename,
+            target_year=int(calendar_year),
+            ticker_symbol=ticker
+        )
+        smart_txs = group_and_deduplicate_transactions(result.get("transactions", []), portfolio)
+        return jsonify({
+            "success": True,
+            "transactions": smart_txs,
+            "skipped_count": result.get("skipped_count", 0),
+            "calendar_year": int(calendar_year),
+            "company_name": result.get("company_name", "")
+        })
+    except Exception as e:
+        logger.exception("MS at Work upload error")
         return jsonify({"success": False, "error": str(e)}), 500
