@@ -360,10 +360,8 @@ tr:hover td {
     white-space: nowrap;
     letter-spacing: 0.03em;
 }
-.sh-holding-badge.stcg { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
-.sh-holding-badge.ltcg { background: #10b98122; color: #10b981; border: 1px solid #10b98144; }
-.sh-holding-badge.stcl { background: #f9731622; color: #f97316; border: 1px solid #f9731644; }
-.sh-holding-badge.ltcl { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; }
+.sh-holding-badge.short-term { background: rgba(249, 115, 22, 0.12); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); }
+.sh-holding-badge.long-term { background: rgba(99, 102, 241, 0.12); color: var(--accent); border: 1px solid rgba(99, 102, 241, 0.3); }
 .sh-holding-badge.neutral { background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border); }
 
 /* Results table */
@@ -536,6 +534,30 @@ tr:hover td {
 
 .tax-val-row.group-end td {
     border-bottom: 6px solid var(--border) !important;
+}
+
+/* ===== Peak Validation Rows ===== */
+.peak-winner-row td {
+    border-left: 3px solid var(--accent) !important;
+    background: rgba(99, 102, 241, 0.04);
+    font-weight: 600;
+}
+
+.peak-runner-row td {
+    opacity: 0.6;
+    font-size: 0.72rem !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    border-left: 3px solid transparent !important;
+}
+
+.peak-runner-row:hover td {
+    opacity: 1;
+}
+
+/* Visual separator between lot groups */
+.peak-winner-row:not(:first-child) td {
+    border-top: 4px solid var(--border) !important;
 }
 
 .tax-val-row.group-start td:first-child,

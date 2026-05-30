@@ -93,7 +93,10 @@
 
             <!-- SBI TT Rate Mode Selector -->
             <div class="sbi-mode-selector" style="display: flex; align-items: center; margin-right: 20px; background: var(--bg-secondary); padding: 4px; border-radius: 10px; border: 1px solid var(--border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin: 0 12px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">SBI TT Rate Mode</span>
+                <div style="display: flex; align-items: center; gap: 4px; margin: 0 8px 0 12px;">
+                    <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">SBI TT Rate Mode</span>
+                    <button class="btn-help-inline" onclick="event.stopPropagation(); showTutorialStepByTitle('SBI TT Rate Modes')" title="Learn about SBI TT Rate conversion modes" style="background:none; border:none; padding:2px; margin-top:-1px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted); opacity:0.8;"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+                </div>
                 <div style="display: flex; gap: 4px;">
                     <button class="btn btn-sm sbi-mode-option" data-mode="split" title="Split Mode: A3 uses event date, Tax uses preceding month" style="padding: 5px 12px; font-size: 0.75rem; border-radius: 7px; font-weight: 600;">Split</button>
                     <button class="btn btn-sm sbi-mode-option" data-mode="uniform" title="Uniform Mode: Everything uses preceding month-end rate" style="padding: 5px 12px; font-size: 0.75rem; border-radius: 7px; font-weight: 600;">Uniform</button>
@@ -450,10 +453,9 @@
                 <div>
                     <div class="add-stock-form">
                         <div class="input-group">
-                            <input type="text" id="tickerInput" placeholder="Enter ticker symbol (e.g., QCOM, VWRA)" autocomplete="off">
+                            <input type="text" id="tickerInput" placeholder="Enter ticker symbol (e.g., AAPL, AMZN)" autocomplete="off">
                             <button id="lookupBtn" class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Lookup</button>
                         </div>
-                        <p class="hint">Ticker will be auto-resolved for non-US exchanges (e.g., VWRA → VWRA.L)</p>
                     </div>
                 </div>
             </div>
@@ -588,6 +590,7 @@
                         <strong>STCG/STCL</strong> = held &lt; 2 years.
                         Amounts in <strong>₹</strong>.
                     </p>
+
                     <div id="taxYearBlocks">
                         <!-- Populated by JS -->
                     </div>
@@ -645,6 +648,41 @@
             </div>
         </section>
 
+        <!-- Validate Peak & INR Rates Section -->
+        <section id="validatePeakSection" class="card hidden">
+            <div class="collapsible-header" onclick="toggleSection('validatePeakContent')">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Validate Peak &amp; INR Rates — Calculation Breakdown</h2>
+                    <button class="btn-help-inline" onclick="event.stopPropagation(); showTutorialStepByTitle('Peak Value Audit')" title="How peak values and INR conversions are computed"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+                </div>
+                <span class="toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+            </div>
+            <div id="validatePeakContent" class="collapsible-content">
+                <div>
+                    <p class="hint" style="margin-bottom:12px;">Review how peak dates were determined: the system evaluates every trading day in the calendar year, computing <strong>Stock Price × Qty Held × SBI TT Rate = ₹ Value</strong>, and selects the day with the highest INR value. Runner-up days are shown for verification.</p>
+                    <div class="table-wrapper">
+                        <table id="validatePeakTable" class="validate-table">
+                            <thead>
+                                <tr>
+                                    <th>Sl. No.</th>
+                                    <th>Ticker</th>
+                                    <th>Rank</th>
+                                    <th>Date</th>
+                                    <th>Stock Price (USD)</th>
+                                    <th>Qty Held</th>
+                                    <th>SBI TT Rate (₹)</th>
+                                    <th>Rate Date</th>
+                                    <th>Value (₹)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="validatePeakTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- SBI Rates Used in Calculation (at bottom, collapsed by default) -->
         <section id="sbiRatesSection" class="card hidden">
             <div class="collapsible-header" onclick="toggleSection('sbiRatesContent')">
@@ -687,10 +725,12 @@
                     Generate a unified tax view for a complete Indian Tax Year (Apr–Mar) by combining data from two calendar year reports.
                     If a calendar year's report is missing, that portion is treated as zero.
                 </p>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-                    <label for="fyYearSelect" style="margin-bottom:0;font-weight:500;">Tax Year:</label>
-                    <select id="fyYearSelect" style="width:auto;min-width:160px;"></select>
-                    <button id="generateFYBtn" class="btn btn-accent"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Generate Consolidated Statement</button>
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;background:var(--bg-tertiary);padding:10px 16px;border-radius:8px;border:1px solid var(--border);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <label for="fyYearSelect" style="margin-bottom:0;font-weight:500;">Tax Year:</label>
+                        <select id="fyYearSelect" style="width:auto;min-width:160px;background:var(--bg-input);"></select>
+                    </div>
+                    <button id="generateFYBtn" class="btn btn-accent" style="height:28px;padding:0 14px;font-size:0.8rem;font-weight:600;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Generate Statement</button>
                 </div>
                 <div id="consolidatedFYBlocks"></div>
             </section>
@@ -740,6 +780,28 @@
                                     <tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-muted);font-size:0.85rem;">Switch to the Sell Simulator tab to load lots from your portfolio.</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Simulator Tax Rate Settings -->
+            <section class="card" style="margin-bottom:16px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <h3 style="margin:0; font-size:0.95rem; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            Simulator Tax Rate Settings
+                        </h3>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label for="shStcgTaxRateInput" style="margin-bottom:0; font-size:0.82rem; font-weight:500; color:var(--text-secondary);">STCG Rate (%):</label>
+                            <input type="number" id="shStcgTaxRateInput" value="30" step="any" min="0" max="100" style="width:80px; padding:4px 8px; font-size:0.82rem; height:28px; background:var(--bg-input); border:1px solid var(--border); border-radius:4px; color:var(--text-main);">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label for="shLtcgTaxRateInput" style="margin-bottom:0; font-size:0.82rem; font-weight:500; color:var(--text-secondary);">LTCG Rate (%):</label>
+                            <input type="number" id="shLtcgTaxRateInput" value="12.5" step="any" min="0" max="100" style="width:80px; padding:4px 8px; font-size:0.82rem; height:28px; background:var(--bg-input); border:1px solid var(--border); border-radius:4px; color:var(--text-main);">
                         </div>
                     </div>
                 </div>
@@ -893,6 +955,10 @@
                 <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Net After Set-Off (ITR §70/74)</div>
                 <div id="shOffsetCard"></div>
 
+                <!-- Tax Liability summary (rendered by JS) -->
+                <div id="shTaxLiabilityTitle" style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:20px;margin-bottom:10px;">Estimated Simulated Tax Liability</div>
+                <div id="shTaxLiabilityCard"></div>
+
                 <p style="margin-top:16px;font-size:0.8rem;color:var(--text-muted);border-top:1px solid var(--border);padding-top:12px;">
                     ⚠ This is a <strong>simulation only</strong>. No portfolio data has been modified.
                     TTBR rates are the last day of the previous month as per ITR rules.
@@ -920,6 +986,7 @@
             <button class="qj-btn" data-target="taxYearSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Tax Summary</button>
             <button class="qj-btn" data-target="validateTaxSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Validate Tax</button>
             <button class="qj-btn" data-target="assetPieChartSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>Assets Chart</button>
+            <button class="qj-btn" data-target="validatePeakSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Validate Peak</button>
             <button class="qj-btn" data-target="sbiRatesSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path></svg>Used Rates</button>
         </nav>
 
@@ -998,7 +1065,7 @@
                             </div>
                             <div class="form-field">
                                 <label>Entity Name</label>
-                                <input type="text" class="company-name" placeholder="e.g., Qualcomm Incorporated (QCOM)">
+                                <input type="text" class="company-name" placeholder="e.g., Apple Inc. (AAPL)">
                             </div>
                             <div class="form-field">
                                 <label>Address</label>
@@ -1065,7 +1132,7 @@
                                         <th>Sell Date</th>
                                         <th>Quantity</th>
                                         <th class="sell-price-header">Sell Price ($)</th>
-                                        <th>G&amp;L</th>
+                                        <th>G&amp;L (Taxable)</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -1394,25 +1461,52 @@
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <strong style="display: block; color: var(--text-secondary); margin-bottom: 4px;">Layman Normalization Explanation</strong>
+                    <strong style="display: block; color: var(--text-secondary); margin-bottom: 4px;">Normalization Explanation</strong>
                     <p style="margin: 0 0 8px; color: var(--text-muted); font-size: 0.82rem;">
-                        Since RBI Reference rates have a positive spread (generally higher by **₹0.20 to ₹0.40**) over SBI TT Buying rates, they cannot be used directly without distortion. We **normalize** them using month-end values to match the official SBI TT baseline:
+                        Since RBI Reference rates have a positive spread (generally higher by **₹0.20 to ₹0.40**) over SBI TT Buying rates, they cannot be used directly without distortion. We **normalize** them using a calculated spread to match the official SBI TT baseline:
                     </p>
                     <ol style="margin: 0; padding-left: 20px; color: var(--text-muted); font-size: 0.82rem;">
-                        <li><strong>Calculate Monthly Spread:</strong> For each month, we compute the exact difference between the month-end RBI rate and the month-end SBI TT rate.</li>
-                        <li><strong>Scale Daily Rates:</strong> We subtract this computed spread from all daily RBI rates within that specific month.</li>
-                        <li><strong>Carry-forward Fallback:</strong> If the SBI TT rate is missing for a month, we use the spread from the previous month.</li>
+                        <li><strong>Calculate Average Monthly Spread:</strong> For each month, we identify all dates where both SBI and RBI rates are available and compute their **average difference**.</li>
+                        <li><strong>Scale Daily Rates:</strong> We subtract this average spread from all daily RBI rates within that specific month.</li>
+                        <li><strong>Carry-forward Fallback:</strong> If no common dates exist for a month, we use the spread from the previous available month.</li>
                     </ol>
                     <p style="margin: 6px 0 0; color: var(--accent); font-size: 0.8rem; font-weight: 600;">
-                        This preserves daily market fluctuations while scaling the baseline down to align with official SBI TT guidelines.
+                        This ensures the normalized rates follow daily market fluctuations while aligning the monthly baseline with official SBI TT guidelines.
                     </p>
                 </div>
 
                 <!-- Lookback Notice -->
-                <div style="padding: 10px 14px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border);">
+                <div style="padding: 10px 14px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
                     <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">
                         💡 <strong>No Import Fallback:</strong> If you choose not to import, calculations will automatically look back up to the <strong>last 5 working days</strong> of the preceding day to locate an official SBI TT rate.
                     </p>
+                </div>
+
+                <!-- Date Filter Section -->
+                <div style="padding: 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; gap: 16px;">
+                    <div style="flex-grow: 1;">
+                        <strong style="display: block; font-size: 0.85rem; color: var(--text-primary); margin-bottom: 4px;">Import Up To:</strong>
+                        <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">Only gaps before this date will be filled.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="importRbiMonthSelect" class="form-control" style="width: 120px; font-size: 0.85rem; height: 32px; padding: 0 8px;">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <select id="importRbiYearSelect" class="form-control" style="width: 90px; font-size: 0.85rem; height: 32px; padding: 0 8px;">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
                 </div>
             </div>
 

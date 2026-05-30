@@ -170,7 +170,7 @@ def api_clear_sbi_rates():
     """Reset SBI TT rates: clear overrides, restore baseline, and fetch fresh rates."""
     try:
         from core.sbi_rates import clear_sbi_cache, refresh_cache
-        # 1. Clear disk cache and restore pre-2020 PDF rates
+        # 1. Clear disk cache and restore baseline PDF rates
         clear_sbi_cache()
         # 2. Perform a fresh fetch from GitHub with overwrite=True to restore modern rates
         refresh_cache(overwrite=True)
@@ -281,7 +281,14 @@ def api_locked_years():
 def api_import_rbi_rates():
     """Normalize and import RBI Reference Rates to fill missing cache rates."""
     try:
-        count = normalize_and_import_rbi_rates()
+        data = request.get_json() or {}
+        year = data.get("year")
+        month = data.get("month")
+        
+        till_year = int(year) if year else None
+        till_month = int(month) if month else None
+        
+        count = normalize_and_import_rbi_rates(till_year=till_year, till_month=till_month)
         return jsonify({"success": True, "imported": count})
     except Exception as e:
         logger.exception("Failed to import RBI Reference Rates")

@@ -163,6 +163,10 @@ def calculate_peak_value(
     peak_rate_date = None
     peak_source = None
 
+    # Track top N candidate days for validation/audit trail
+    TOP_N = 3
+    top_candidates = []
+
     for price_entry in prices:
         trading_date = _parse_date(price_entry["date"])
 
@@ -199,6 +203,23 @@ def calculate_peak_value(
 
         value_inr = close_price * qty * ttbr
 
+        # Track top N candidates for validation
+        candidate = {
+            "date": trading_date.isoformat(),
+            "close_price": close_price,
+            "qty": qty,
+            "ttbr": ttbr,
+            "rate_date": ttbr_rate_date,
+            "source": source,
+            "is_lookback": (mode == 'split' and is_lookback_daily),
+            "value_inr": round(value_inr),
+        }
+        top_candidates.append(candidate)
+        # Keep sorted descending by value_inr; trim to TOP_N
+        top_candidates.sort(key=lambda c: c["value_inr"], reverse=True)
+        if len(top_candidates) > TOP_N:
+            top_candidates = top_candidates[:TOP_N]
+
         if value_inr > peak_value:
             peak_value = value_inr
             peak_date = trading_date.isoformat()
@@ -216,6 +237,7 @@ def calculate_peak_value(
         "rate_date": peak_rate_date,
         "source": peak_source,
         "is_lookback": (mode == 'split' and peak_is_lookback) if peak_date else False,
+        "top_candidates": top_candidates,
         "components": {
             "peak_price": peak_price,
             "qty_on_peak_date": peak_qty,
@@ -431,13 +453,18 @@ def calculate_sale_proceeds(
         proceeds_inr = sell_price * sell_qty * rate
         total_proceeds_inr += proceeds_inr
 
-        # G&L calculations
+        # G&L calculations using strictly Rule 115 (preceding month-end) logic for both buy and sell rates
         holding_days = (sell_date - buy_date).days
         is_long_term = holding_days >= 730
         
         pl_usd = round((sell_price - buy_price) * sell_qty, 2)
+        
+        # Retrieve the sell rate under Rule 115 logic for the tax-based G&L badge
+        sell_rate_rule115, _, _, _, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=False, mode=mode)
+        
         buy_cost_inr = round(buy_price * sell_qty * buy_rate) if buy_rate else None
-        pl_inr = round(proceeds_inr - buy_cost_inr) if buy_cost_inr is not None else None
+        sell_proceeds_tax_inr = round(sell_price * sell_qty * sell_rate_rule115) if sell_rate_rule115 else None
+        pl_inr = round(sell_proceeds_tax_inr - buy_cost_inr) if (buy_cost_inr is not None and sell_proceeds_tax_inr is not None) else None
 
         sale_entries.append({
             "sell_id": sell_id,
@@ -754,12 +781,6 @@ def simulate_sell_impact(payload: dict, mode: str = 'split') -> dict:
             sell_rate_actual, sell_rate_actual_date, _, sell_is_lookback_actual, _ = _get_rate_value(sell_date, sbi_overrides, use_event_date=True, mode=mode)
         except Exception:
             sell_rate_actual, sell_rate_actual_date, sell_is_lookback_actual = None, None, False
-
-        # Fallback to Rule 115 rates if actual rates not found (mostly for Uniform mode)
-        if buy_rate_actual is None:
-            buy_rate_actual, buy_rate_actual_date = buy_rate, buy_rate_date
-        if sell_rate_actual is None:
-            sell_rate_actual, sell_rate_actual_date = sell_rate, sell_rate_date
 
         buy_inr_per_share  = buy_price  * buy_rate
         sell_inr_per_share = sell_price * sell_rate

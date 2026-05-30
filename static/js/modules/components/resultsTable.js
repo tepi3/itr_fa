@@ -164,6 +164,7 @@ export function renderResultsTable(rows) {
 
     // Also render validation tables
     renderValidationTable(rows);
+    renderPeakValidationTable(rows);
 }
 
 // ===== Validation Tables Helpers =====
@@ -223,7 +224,9 @@ export function renderValidationTable(rows) {
                 const c = col.detail.components;
                 const rd = col.detail.rate_date || (c && c.rate_date);
                 const mathText = `(${c.qty_on_peak_date}×$${c.peak_price.toFixed(2)})`;
-                breakdown = `<div class="b-math" style="font-size:0.65rem;opacity:0.7;">Peak: ${formatAppDate(parseAppDate(col.detail.peak_date))}</div>
+                const peakDateDisplay = formatAppDate(parseAppDate(col.detail.peak_date));
+                const peakDateLink = `<span class="validate-crosslink" data-jump-peak-lot="${lotId}" title="Jump to peak validation for this lot">Peak: ${peakDateDisplay}</span>`;
+                breakdown = `<div class="b-math" style="font-size:0.65rem;opacity:0.7;">${peakDateLink}</div>
                              <div class="b-math">${sectionLink(mathText, 'lots-section', c.lot_id)}×${rateLink(c.ttbr, rd)}</div>`;
             } else if (col.key === "closing_balance" && col.detail?.components) {
                 const c = col.detail.components;
@@ -266,6 +269,12 @@ export function renderValidationTable(rows) {
                     jumpToStockSection(el.dataset.jumpStock, el.dataset.jumpSection, el.dataset.jumpId);
                 });
             });
+            td.querySelectorAll(".validate-crosslink[data-jump-peak-lot]").forEach(el => {
+                el.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    jumpToPeakValidation(el.dataset.jumpPeakLot, el, `A3 Row ${row.sl_no}`);
+                });
+            });
             
             if (isOverridden) {
                 const badge = document.createElement("div");
@@ -279,6 +288,136 @@ export function renderValidationTable(rows) {
 
         tbody.appendChild(tr);
     });
+}
+
+// ===== Render Peak Validation Table =====
+export function renderPeakValidationTable(rows) {
+    const tbody = document.getElementById("validatePeakTableBody");
+    const section = document.getElementById("validatePeakSection");
+    if (!tbody || !section) return;
+
+    tbody.innerHTML = "";
+
+    let hasAnyData = false;
+
+    rows.forEach(row => {
+        const details = row.calculation_details || {};
+        const peak = details.peak;
+        if (!peak || !peak.top_candidates || peak.top_candidates.length === 0) return;
+
+        hasAnyData = true;
+        const ticker = row.ticker;
+        const lotId = row.lot_id;
+
+        peak.top_candidates.forEach((candidate, idx) => {
+            const isWinner = idx === 0;
+            const tr = document.createElement("tr");
+            tr.id = isWinner ? `val-peak-${lotId}` : `val-peak-${lotId}-${idx}`;
+            tr.className = isWinner ? "peak-winner-row" : "peak-runner-row";
+            if (isWinner) tr.dataset.lotId = lotId;
+
+            const dateDisplay = formatAppDate(parseAppDate(candidate.date));
+            const rateDateDisplay = candidate.rate_date ? formatAppDate(parseAppDate(candidate.rate_date)) : '—';
+
+            // Cross-link: rate links to SBI Rates section
+            const rateLinkHtml = rateLink(candidate.ttbr, candidate.rate_date);
+
+            // Cross-link: ticker/lot links to stock card
+            const tickerLinkHtml = isWinner
+                ? `<span class="validate-crosslink" data-jump-stock="${ticker}" data-jump-section="lots-section" data-jump-id="${lotId}" title="Jump to lot in ${ticker}"><strong>${ticker}</strong></span>`
+                : `<span style="opacity:0.5;">↳</span>`;
+
+            // Rate date cross-links to SBI Rates section
+            const rateDateLinkHtml = candidate.rate_date
+                ? `<span class="validate-crosslink" data-jump-rate="${candidate.rate_date}" title="Jump to SBI rate for ${rateDateDisplay}">${rateDateDisplay}</span>`
+                : '—';
+
+            // Source badge
+            let sourceBadge = '';
+            if (candidate.source === 'override') {
+                sourceBadge = '<span class="rate-status override">override</span>';
+            } else if (candidate.source === 'rbi') {
+                sourceBadge = '<span class="rate-status rbi">RBI</span>';
+            } else {
+                sourceBadge = '<span class="rate-status cached">SBI TT</span>';
+            }
+
+            // Lookback warning
+            let lookbackBadge = '';
+            if (candidate.is_lookback) {
+                lookbackBadge = ' <span class="rate-status warning" title="Lookback rate used">lookback</span>';
+            }
+
+            // Status column
+            let statusHtml = '';
+            if (isWinner) {
+                statusHtml = '<span style="color:var(--accent); font-weight:700;">★ Peak</span>';
+            } else {
+                const diff = peak.top_candidates[0].value_inr - candidate.value_inr;
+                statusHtml = `<span style="color:var(--text-muted); font-size:0.8rem;">-₹${formatINR(diff)}</span>`;
+            }
+
+            tr.innerHTML = `
+                <td>${isWinner ? row.sl_no : ''}</td>
+                <td>${tickerLinkHtml}</td>
+                <td style="text-align:center; font-weight:${isWinner ? '700' : '400'};">#${idx + 1}</td>
+                <td>${dateDisplay}</td>
+                <td style="text-align:right;">$${candidate.close_price.toFixed(2)}</td>
+                <td style="text-align:right;">${candidate.qty}</td>
+                <td style="text-align:right;">${rateLinkHtml}</td>
+                <td>${rateDateLinkHtml}</td>
+                <td style="text-align:right; font-weight:${isWinner ? '700' : '400'};">₹${formatINR(candidate.value_inr)}</td>
+                <td>${statusHtml}${sourceBadge}${lookbackBadge}</td>
+            `;
+
+            // Wire cross-link click handlers
+            tr.querySelectorAll(".validate-crosslink[data-jump-rate]").forEach(el => {
+                el.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    jumpToSbiRate(el.dataset.jumpRate);
+                });
+            });
+            tr.querySelectorAll(".validate-crosslink[data-jump-stock]").forEach(el => {
+                el.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    jumpToStockSection(el.dataset.jumpStock, el.dataset.jumpSection, el.dataset.jumpId);
+                });
+            });
+
+            tbody.appendChild(tr);
+        });
+    });
+
+    if (hasAnyData) {
+        section.classList.remove("hidden");
+    } else {
+        section.classList.add("hidden");
+    }
+}
+
+/** Jump to a specific lot's peak validation row */
+export function jumpToPeakValidation(lotId, sourceEl = null, label = "") {
+    const section = document.getElementById("validatePeakSection");
+    if (!section || section.classList.contains("hidden")) return;
+
+    // Ensure content is expanded
+    const content = document.getElementById("validatePeakContent");
+    if (content && content.classList.contains("collapsed")) {
+        toggleSection('validatePeakContent');
+    }
+
+    const targetId = `val-peak-${lotId}`;
+    const el = document.getElementById(targetId);
+    if (el) {
+        if (sourceEl && label) showBackToSource(sourceEl, label);
+        el.classList.add("highlight-pulse");
+        setTimeout(() => el.classList.remove("highlight-pulse"), 2000);
+
+        const header = document.getElementById("appHeader");
+        const headerHeight = header ? header.offsetHeight : 0;
+        const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 120;
+        window.scrollTo({ top, behavior: "smooth" });
+    }
 }
 
 // ===== Render Tax Validation Table =====

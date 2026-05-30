@@ -26,25 +26,25 @@ logger = logging.getLogger(__name__)
 
 import sys
 
-def _load_pre_2020_rates() -> dict:
-    """Load the shipped pre-2020 rates database."""
+def _load_baseline_rates() -> dict:
+    """Load the shipped baseline rates database."""
     if getattr(sys, 'frozen', False):
         base_dir = Path(sys._MEIPASS)
     else:
         base_dir = Path(__file__).parent.parent
         
-    pre_2020_file = base_dir / "static" / "data" / "pre_2020_rates.json"
-    if pre_2020_file.exists():
+    baseline_file = base_dir / "static" / "data" / "sbi_baseline_rates.json"
+    if baseline_file.exists():
         try:
-            with open(pre_2020_file, "r", encoding="utf-8") as f:
+            with open(baseline_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            logger.error(f"Failed to load pre-2020 rates: {e}")
+            logger.error(f"Failed to load baseline rates: {e}")
     return {}
 
 
 def _load_cache() -> dict:
-    """Load cached SBI rates from disk and merge with shipped pre-2020 rates."""
+    """Load cached SBI rates from disk and merge with shipped baseline rates."""
     cache = {}
     if SBI_CACHE_FILE.exists():
         try:
@@ -62,9 +62,9 @@ def _load_cache() -> dict:
         cache["rbi_USD"] = []
 
     # Merge shipped rates as base, cache rates on disk overwrite them (precedence)
-    pre_2020 = _load_pre_2020_rates()
+    baseline = _load_baseline_rates()
     merged_usd = {}
-    for d_str, val in pre_2020.items():
+    for d_str, val in baseline.items():
         merged_usd[d_str] = val
     merged_usd.update(cache["rates"]["USD"])
     cache["rates"]["USD"] = merged_usd
@@ -161,9 +161,22 @@ def refresh_cache(overwrite: bool = True):
         if calc_year in locked_years or y in locked_years:
             continue
             
-        # Overwrite protection: if overwrite is False, do NOT overwrite user manual edits
-        if not overwrite and date_str in manual_usd:
-            continue
+        # Overwrite protection:
+        # 1. If overwrite is False (Missing Mode), only overwrite missing and rbi rates.
+        #    Leave manual overrides and existing official cache rates untouched.
+        # 2. If overwrite is True (Overwrite Mode), overwrite missing, rbi, AND manual overrides.
+        
+        is_manual = date_str in manual_usd
+        is_rbi = date_str in rbi_usd
+        is_missing = date_str not in cache["rates"]["USD"]
+        
+        if not overwrite:
+            # Missing Mode: only proceed if it is missing OR it's an RBI fallback
+            if not (is_missing or is_rbi):
+                continue
+            # Also strictly leave manual untouched
+            if is_manual:
+                continue
             
         cache["rates"]["USD"][date_str] = rate
         # If we are overwriting with a fetched rate, it is no longer "manual" or "rbi"
@@ -214,7 +227,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
         currency_rates = cache.get("rates", {}).get("USD", {})
         manual_usd = set(cache.get("manual_USD", []))
         rbi_usd = set(cache.get("rbi_USD", []))
-        pre_2020 = _load_pre_2020_rates()
+        baseline = _load_baseline_rates()
 
         lookup_date = d
         while lookup_date >= limit_date:
@@ -241,7 +254,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
                         source = "override"
                     elif date_str in rbi_usd:
                         source = "rbi"
-                    elif date_str in pre_2020:
+                    elif date_str in baseline:
                         source = "shipped"
                         
                     return {
@@ -266,7 +279,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
         currency_rates = cache.get("rates", {}).get("USD", {})
         manual_usd = set(cache.get("manual_USD", []))
         rbi_usd = set(cache.get("rbi_USD", []))
-        pre_2020 = _load_pre_2020_rates()
+        baseline = _load_baseline_rates()
 
         # Walk backward up to 5 days from the last day of preceding month
         # Rule 115: Use rate on last day of preceding month. 
@@ -293,7 +306,7 @@ def get_sbi_tt_rate(d: date, overrides: dict = None, use_event_date: bool = Fals
                         source = "override"
                     elif date_str in rbi_usd:
                         source = "rbi"
-                    elif date_str in pre_2020:
+                    elif date_str in baseline:
                         source = "shipped"
                     return {
                         "rate": rate,
@@ -316,7 +329,7 @@ def get_rate_for_date_direct(d: date) -> dict:
     currency_rates = cache.get("rates", {}).get("USD", {})
     manual_usd = set(cache.get("manual_USD", []))
     rbi_usd = set(cache.get("rbi_USD", []))
-    pre_2020 = _load_pre_2020_rates()
+    baseline = _load_baseline_rates()
 
     for i in range(11):
         lookup_date = d - timedelta(days=i)
@@ -329,7 +342,7 @@ def get_rate_for_date_direct(d: date) -> dict:
                     source = "override"
                 elif date_str in rbi_usd:
                     source = "rbi"
-                elif date_str in pre_2020:
+                elif date_str in baseline:
                     source = "shipped"
                 return {"rate": rate, "rate_date": date_str, "source": source}
 
@@ -397,13 +410,13 @@ def save_manual_rate(rate_date: str, rate: float):
         cache["manual_USD"] = [d for d in cache["manual_USD"] if d != rate_date]
     
     # Reload baseline without this specific manual override
-    pre_2020 = _load_pre_2020_rates()
+    baseline = _load_baseline_rates()
     # Note: we don't reload the whole cache because we want to compare with 
     # what would be there if THIS date wasn't manual.
     # Fetched rates from GitHub are in cache["rates"]["USD"]
     
-    baseline_rate = pre_2020.get(rate_date)
-    # If not in pre_2020, check if we have a fetched rate in the disk cache 
+    baseline_rate = baseline.get(rate_date)
+    # If not in baseline, check if we have a fetched rate in the disk cache 
     # (that isn't our current manual entry)
     # This is tricky because the disk cache currently stores the manual entry too.
     # However, for now, we can check if the value matches.
@@ -477,7 +490,7 @@ def get_daily_rates(year: int, month: int) -> dict:
     Returns: { "YYYY-MM-DD": { "rate": float or None, "source": "cache" | "override" | "not_found" } }
     """
     import calendar
-    # 1. Load the merged cache (includes pre-2020 + user overrides)
+    # 1. Load the merged cache (includes baseline + user overrides)
     merged_cache = _load_cache()
     merged_rates = merged_cache.get("rates", {}).get("USD", {})
 
@@ -491,8 +504,8 @@ def get_daily_rates(year: int, month: int) -> dict:
             pass
     user_rates = user_cache.get("rates", {}).get("USD", {})
 
-    # 3. Load pre-2020 base rates to distinguish "shipped" vs "override"
-    pre_2020 = _load_pre_2020_rates()
+    # 3. Load baseline base rates to distinguish "shipped" vs "override"
+    baseline = _load_baseline_rates()
     manual_usd = set(user_cache.get("manual_USD", []))
     rbi_usd = set(user_cache.get("rbi_USD", []))
 
@@ -507,14 +520,14 @@ def get_daily_rates(year: int, month: int) -> dict:
             # Source logic:
             # 1. If it is in manual_usd, it is 'override' (Yellow)
             # 2. If it is in rbi_usd, it is 'rbi' (Yellow RBI Rate)
-            # 3. If it is not in manual_usd/rbi_usd but is in pre_2020, it is 'shipped' (Green)
+            # 3. If it is not in manual_usd/rbi_usd but is in baseline, it is 'shipped' (Green)
             # 4. Otherwise, it is 'cache' (Fetched from GitHub, Green)
             source = "cache"
             if d_str in manual_usd:
                 source = "override"
             elif d_str in rbi_usd:
                 source = "rbi"
-            elif d_str in pre_2020:
+            elif d_str in baseline:
                 source = "shipped"
             else:
                 source = "cache"
@@ -534,7 +547,7 @@ def get_daily_rates(year: int, month: int) -> dict:
 def clear_sbi_cache():
     """
     Clear all manual overrides, RBI fallback rates, and fetched SBI rates from the disk cache.
-    This purges all post-2020 rates, resets pre-2020 base rates to default,
+    This purges all post-2020 rates, resets baseline base rates to default,
     and removes any custom overrides.
     """
     cache = {}
@@ -564,15 +577,20 @@ def _get_static_path(filename: str) -> Path:
     return base_dir / "static" / filename
 
 
-def normalize_and_import_rbi_rates() -> int:
+def normalize_and_import_rbi_rates(till_year: int = None, till_month: int = None) -> int:
     """
-    Load pre_2020_rates.json and rbi_reference_rates_2010_2019.json from static/data/,
+    Load sbi_baseline_rates.json and rbi_reference_rates.json from static/data/,
     calculate chronological spread/delta for each month, and import
     normalized RBI rates to fill missing SBI TT rates.
+    
+    Args:
+        till_year: Optional cutoff year (inclusive).
+        till_month: Optional cutoff month (inclusive, only if till_year is provided).
+    
     Returns: count of filled rates.
     """
-    sbi_file = _get_static_path("data/pre_2020_rates.json")
-    rbi_file = _get_static_path("data/rbi_reference_rates_2010_2019.json")
+    sbi_file = _get_static_path("data/sbi_baseline_rates.json")
+    rbi_file = _get_static_path("data/rbi_reference_rates.json")
     
     if not sbi_file.exists() or not rbi_file.exists():
         logger.error(f"SBI baseline or RBI Reference Rate static files are missing: SBI={sbi_file.exists()}, RBI={rbi_file.exists()}")
@@ -594,6 +612,17 @@ def normalize_and_import_rbi_rates() -> int:
         usd = entry["usd"]
         if usd is None:
             continue
+            
+        y = int(date_str[:4])
+        m = int(date_str[5:7])
+        
+        # Apply date filter
+        if till_year is not None:
+            if y > till_year:
+                continue
+            if y == till_year and till_month is not None and m > till_month:
+                continue
+                
         ym = date_str[:7]
         if ym not in rbi_by_month:
             rbi_by_month[ym] = []
@@ -603,42 +632,64 @@ def normalize_and_import_rbi_rates() -> int:
     for ym in rbi_by_month:
         rbi_by_month[ym].sort(key=lambda x: x[0])
         
-    # Group SBI month-end rates by year-month: { "YYYY-MM": rate }
+    # Group SBI rates by year-month: { "YYYY-MM": { "YYYY-MM-DD": rate, ... } }
     sbi_by_month = {}
-    for k, v in sbi_data.items():
-        ym = k[:7]
-        sbi_by_month[ym] = v
+    # We use the merged cache for SBI rates to get as many real data points as possible
+    cache_for_ref = _load_cache()
+    all_sbi_rates = cache_for_ref.get("rates", {}).get("USD", {})
+    rbi_usd_cache = set(cache_for_ref.get("rbi_USD", []))
+    manual_usd = set(cache_for_ref.get("manual_USD", []))
+    
+    for d_str, val in all_sbi_rates.items():
+        # Only use official or manual SBI rates for delta calculation, skip existing RBI fallbacks
+        if d_str in rbi_usd_cache:
+            continue
+        ym = d_str[:7]
+        if ym not in sbi_by_month:
+            sbi_by_month[ym] = {}
+        sbi_by_month[ym][d_str] = val
         
-    # Calculate deltas chronologically from 2010-01 to 2019-12
+    # Calculate average deltas per month
     last_delta = 0.0
     deltas = {}
     
-    years = range(2010, 2020)
-    months = range(1, 13)
-    
-    for y in years:
-        for m in months:
+    # Get range of years from baseline and RBI data
+    all_years = sorted(set(int(k[:4]) for k in all_sbi_rates.keys()) | set(int(ym[:4]) for ym in rbi_by_month.keys()))
+    if not all_years:
+        return 0
+        
+    for y in all_years:
+        for m in range(1, 13):
             ym = f"{y}-{m:02d}"
             rbi_entries = rbi_by_month.get(ym, [])
             if not rbi_entries:
                 continue
-            # Month-end RBI rate is the last entry in that month
-            last_rbi_date, last_rbi_usd = rbi_entries[-1]
+                
+            sbi_entries = sbi_by_month.get(ym, {})
             
-            sbi_usd = sbi_by_month.get(ym)
-            if sbi_usd is not None:
-                delta = last_rbi_usd - sbi_usd
+            # Find common dates where we have both RBI and SBI rates
+            month_deltas = []
+            for rbi_date, rbi_val in rbi_entries:
+                if rbi_date in sbi_entries:
+                    month_deltas.append(rbi_val - sbi_entries[rbi_date])
+            
+            if month_deltas:
+                # Use average delta for this month
+                delta = sum(month_deltas) / len(month_deltas)
                 last_delta = delta
             else:
+                # If no common dates, fall back to last known delta
                 delta = last_delta
                 
             deltas[ym] = delta
 
     # Import normalized rates to sbi cache
-    cache = _load_cache() # Already has rates and rbi_USD initialized
+    cache = _load_cache()
     locked_years = set(cache.get("locked_years", []))
-    pre_2020 = _load_pre_2020_rates()
+    baseline = _load_baseline_rates()
+    # Re-fetch manual_usd and rbi_usd_cache for the final loop
     manual_usd = set(cache.get("manual_USD", []))
+    rbi_usd_cache = set(cache.get("rbi_USD", []))
     
     # Load raw cached rates to identify what is truly missing
     # We only want to fill in where rates are missing in the merged cache
@@ -666,7 +717,7 @@ def normalize_and_import_rbi_rates() -> int:
         
         # Check if it already exists in baseline SBI TT rates or manual overrides
         # (We NEVER override SBI TT rates)
-        if date_str in pre_2020 or date_str in manual_usd:
+        if date_str in baseline or date_str in manual_usd:
             continue
             
         # If it is in the disk cache rates but not under rbi_USD, it is an official fetched rate.

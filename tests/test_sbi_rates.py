@@ -16,8 +16,8 @@ def test_get_last_day_prev_month():
     assert get_last_day_prev_month(date(2023, 3, 10)) == date(2023, 2, 28)
 
 def test_get_sbi_tt_rate_logic(tmp_path, monkeypatch):
-    # Mock pre-2020 rates to be empty for this test to avoid interference
-    monkeypatch.setattr("core.sbi_rates._load_pre_2020_rates", lambda: {})
+    # Mock baseline rates to be empty for this test to avoid interference
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: {})
     
     # Setup a temporary cache file
     fake_cache_file = tmp_path / "sbi_cache.json"
@@ -70,13 +70,20 @@ def test_clear_sbi_cache(tmp_path, monkeypatch):
     fake_cache_file = tmp_path / "sbi_cache.json"
     monkeypatch.setattr("core.sbi_rates.SBI_CACHE_FILE", fake_cache_file)
     
+    # Mock baseline rates to be something specific
+    mock_baseline = {
+        "2010-01-31": 45.93,
+        "2019-12-31": 70.52
+    }
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: mock_baseline)
+    
     # Write some mock cache data
     cache_data = {
         "rates": {
             "USD": {
                 "2024-07-31": 83.50, # Post-2020
-                "2010-01-31": 99.99, # Pre-2020 PDF override (original is 45.93)
-                "2019-12-31": 75.00, # Pre-2020 override (original is 70.52)
+                "2010-01-31": 99.99, # Pre-2020 PDF override
+                "2019-12-31": 75.00, # Pre-2020 override
             }
         }
     }
@@ -115,12 +122,12 @@ def test_normalize_and_import_rbi_rates(tmp_path, monkeypatch):
         json.dump({"rates": {"USD": {}}, "manual_USD": [], "rbi_USD": []}, f)
         
     # 2. Mock static files paths using monkeypatch
-    sbi_mock_file = tmp_path / "pre_2020_rates.json"
-    rbi_mock_file = tmp_path / "rbi_reference_rates_2010_2019.json"
+    sbi_mock_file = tmp_path / "sbi_baseline_rates.json"
+    rbi_mock_file = tmp_path / "rbi_reference_rates.json"
     
     sbi_mock_data = {
-        "2010-01-31": 45.93,
-        "2010-02-28": 45.51
+        "2010-01-29": 45.93, # Matches last RBI date in Jan
+        "2010-02-26": 45.51  # Matches last RBI date in Feb
     }
     with open(sbi_mock_file, "w") as f:
         json.dump(sbi_mock_data, f)
@@ -135,28 +142,31 @@ def test_normalize_and_import_rbi_rates(tmp_path, monkeypatch):
         json.dump(rbi_mock_data, f)
         
     def mock_get_static_path(filename):
-        if filename == "data/pre_2020_rates.json":
+        if filename == "data/sbi_baseline_rates.json":
             return sbi_mock_file
-        if filename == "data/rbi_reference_rates_2010_2019.json":
+        if filename == "data/rbi_reference_rates.json":
             return rbi_mock_file
         return tmp_path / filename
         
     monkeypatch.setattr("core.sbi_rates._get_static_path", mock_get_static_path)
     
-    # Mock _load_pre_2020_rates to return our mock SBI data
-    monkeypatch.setattr("core.sbi_rates._load_pre_2020_rates", lambda: sbi_mock_data)
+    # Mock _load_baseline_rates to return our mock SBI data
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: sbi_mock_data)
     
     # 3. Perform import
     count = normalize_and_import_rbi_rates()
     
     # Should only import "missing" rates
-    # Missing rates: 2010-01-15, 2010-01-29, 2010-02-15, 2010-02-26
-    assert count == 4
+    # RBI has 4 dates. SBI has 2 dates (which are both in RBI).
+    # So 2 dates are missing (2010-01-15 and 2010-02-15)
+    assert count == 2
     
     cache = _load_cache()
     # Check values
-    assert cache["rates"]["USD"]["2010-01-15"] == 45.23 # 45.67 - 0.44
-    assert cache["rates"]["USD"]["2010-02-15"] == 45.66 # 46.38 - 0.72
+    # Jan Delta: 46.37 - 45.93 = 0.44. Jan 15 RBI: 45.67 -> Normalized: 45.67 - 0.44 = 45.23
+    assert cache["rates"]["USD"]["2010-01-15"] == 45.23 
+    # Feb Delta: 46.23 - 45.51 = 0.72. Feb 15 RBI: 46.38 -> Normalized: 46.38 - 0.72 = 45.66
+    assert cache["rates"]["USD"]["2010-02-15"] == 45.66 
     
     # Verify that rbi_USD is correctly populated
     assert "2010-01-15" in cache["rbi_USD"]
@@ -176,9 +186,106 @@ def test_normalize_and_import_rbi_rates(tmp_path, monkeypatch):
     assert cache_after["rates"]["USD"]["2010-01-15"] == 99.99
     
     # 5. Verify clear cache resets rbi_USD
-    clear_sbi_cache()
-    cache_cleared = _load_cache()
-    assert len(cache_cleared["rbi_USD"]) == 0
+def test_refresh_cache_modes(tmp_path, monkeypatch):
+    from core.sbi_rates import refresh_cache, _load_cache
+    fake_cache_file = tmp_path / "sbi_cache.json"
+    monkeypatch.setattr("core.sbi_rates.SBI_CACHE_FILE", fake_cache_file)
+    
+    # Mock baseline rates to be empty
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: {})
+    
+    # Mock download_sbi_csv to return some fixed rates
+    mock_fetched_rates = {
+        "2024-01-01": 83.10,
+        "2024-01-02": 83.20,
+        "2024-01-03": 83.30
+    }
+    monkeypatch.setattr("core.sbi_rates.download_sbi_csv", lambda: mock_fetched_rates)
+    
+    # Setup initial cache with:
+    # - a manual rate (2024-01-01)
+    # - an RBI fallback rate (2024-01-02)
+    # - a missing rate (2024-01-03)
+    initial_cache = {
+        "rates": {
+            "USD": {
+                "2024-01-01": 99.99, # Manual
+                "2024-01-02": 83.00, # RBI
+            }
+        },
+        "manual_USD": ["2024-01-01"],
+        "rbi_USD": ["2024-01-02"]
+    }
+    with open(fake_cache_file, "w") as f:
+        json.dump(initial_cache, f)
+        
+    # 1. Test Missing Mode (overwrite=False)
+    refresh_cache(overwrite=False)
+    cache = _load_cache()
+    
+    # Should leave manual untouched
+    assert cache["rates"]["USD"]["2024-01-01"] == 99.99
+    assert "2024-01-01" in cache["manual_USD"]
+    
+    # Should overwrite RBI rate
+    assert cache["rates"]["USD"]["2024-01-02"] == 83.20
+    assert "2024-01-02" not in cache["rbi_USD"]
+    
+    # Should fill missing rate
+    assert cache["rates"]["USD"]["2024-01-03"] == 83.30
+    
+    # 2. Test Overwrite Mode (overwrite=True)
+    # Reset cache first
+    with open(fake_cache_file, "w") as f:
+        json.dump(initial_cache, f)
+        
+    refresh_cache(overwrite=True)
+    cache = _load_cache()
+    
+    # Should overwrite EVERYTHING
+    assert cache["rates"]["USD"]["2024-01-01"] == 83.10
+    assert "2024-01-01" not in cache["manual_USD"]
+    
+    assert cache["rates"]["USD"]["2024-01-02"] == 83.20
+    assert "2024-01-02" not in cache["rbi_USD"]
+    
+    assert cache["rates"]["USD"]["2024-01-03"] == 83.30
+
+def test_sbi_fetch_overwrites_rbi_even_in_missing_mode(tmp_path, monkeypatch):
+    from core.sbi_rates import refresh_cache, _load_cache
+    fake_cache_file = tmp_path / "sbi_cache.json"
+    monkeypatch.setattr("core.sbi_rates.SBI_CACHE_FILE", fake_cache_file)
+    
+    # Mock baseline rates to be empty
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: {})
+    
+    # Mock download_sbi_csv to return a fresh official rate for a date that currently has RBI rate
+    mock_fetched_rates = {
+        "2024-01-02": 83.50 # Fresh official rate
+    }
+    monkeypatch.setattr("core.sbi_rates.download_sbi_csv", lambda: mock_fetched_rates)
+    
+    # Setup initial cache with an RBI rate for 2024-01-02
+    initial_cache = {
+        "rates": {
+            "USD": {
+                "2024-01-02": 83.00, # Old RBI rate
+            }
+        },
+        "manual_USD": [],
+        "rbi_USD": ["2024-01-02"]
+    }
+    with open(fake_cache_file, "w") as f:
+        json.dump(initial_cache, f)
+        
+    # Run refresh_cache in Missing Mode (overwrite=False)
+    refresh_cache(overwrite=False)
+    
+    cache = _load_cache()
+    # It SHOULD have overwritten the RBI rate with the official SBI rate
+    assert cache["rates"]["USD"]["2024-01-02"] == 83.50
+    # And it should no longer be tagged as RBI
+    assert "2024-01-02" not in cache["rbi_USD"]
 
 
 

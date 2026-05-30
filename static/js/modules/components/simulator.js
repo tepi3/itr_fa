@@ -10,6 +10,7 @@ export const simState = {
     lots: [],       // [{ticker, yahoo_ticker, lot_id, buy_date, buy_price, available_qty, display}]
     sells: [],      // [{rowId, lotIdx, sell_date, sell_qty, sell_price}]
     nextRowId: 1,
+    lastResults: null,
 };
 
 export function initSellHelper() {
@@ -138,6 +139,8 @@ export function initSellHelper() {
         initDatePicker(allocDateInput);
         allocDateInput.value = formatAppDate(new Date());
     }
+
+    initSimTaxRates();
 }
 
 export function shValidateAllSells() {
@@ -246,20 +249,17 @@ export function shRebuildSellsTable() {
             if (sell && lot && badge) {
                 const buyD = parseAppDate(lot.buy_date);
                 const sellD = parseAppDate(sell.sell_date);
-                const days = Math.round((sellD - buyD) / 86400000);
-                const isLT = days >= 730;
-                const price = parseFloat(sell.sell_price) || 0;
-                const cost = parseFloat(lot.buy_price) || 0;
-                let type;
-                if (price > 0 && cost > 0) {
-                    const gain = price > cost;
-                    type = isLT ? (gain ? "ltcg" : "ltcl") : (gain ? "stcg" : "stcl");
+                if (!buyD || !sellD) {
+                    badge.className = "sh-holding-badge neutral";
+                    badge.textContent = "—";
                 } else {
-                    type = isLT ? "ltcg" : "stcg";
+                    const days = Math.round((sellD - buyD) / 86400000);
+                    const isLT = days >= 730;
+                    const type = isLT ? "long-term" : "short-term";
+                    const label = isLT ? "Long Term" : "Short Term";
+                    badge.className = `sh-holding-badge ${type}`;
+                    badge.textContent = `${label} · ${days}d`;
                 }
-                const labels = { ltcg: "LTCG", ltcl: "LTCL", stcg: "STCG", stcl: "STCL" };
-                badge.className = `sh-holding-badge ${type}`;
-                badge.textContent = `${labels[type]} · ${days}d`;
             }
         }
     });
@@ -378,26 +378,34 @@ export async function shExecuteAllocation() {
         } else if (strategy === "maxloss") {
             activeLots.sort((a, b) => (sellPrice - a.buy_price) - (sellPrice - b.buy_price));
         } else if (strategy === "mintax") {
+            const stcgInput = document.getElementById("shStcgTaxRateInput");
+            const ltcgInput = document.getElementById("shLtcgTaxRateInput");
+            const stcgRate = parseFloat(stcgInput?.value) || 30;
+            const ltcgRate = parseFloat(ltcgInput?.value) || 12.5;
+
             activeLots.forEach(lot => {
                 const buyD = parseAppDate(lot.buy_date);
                 const sellD = parseAppDate(sellDate);
                 const days = Math.round((sellD - buyD) / 86400000);
                 const isLT = days >= 730;
-                const isGain = sellPrice >= lot.buy_price;
+                
+                const gainPerShare = sellPrice - lot.buy_price;
+                const rate = isLT ? ltcgRate : stcgRate;
+                const taxImpactPerShare = gainPerShare * (rate / 100);
 
-                let priorityScore;
-                if (!isLT && !isGain) priorityScore = 1;      // STCL
-                else if (isLT && !isGain) priorityScore = 2; // LTCL
-                else if (isLT && isGain) priorityScore = 3;  // LTCG
-                else priorityScore = 4;                      // STCG
-
-                lot.priorityScore = priorityScore;
-                lot.gainPerShare = sellPrice - lot.buy_price;
+                lot.taxImpactPerShare = taxImpactPerShare;
+                lot.gainPerShare = gainPerShare;
+                lot.isLT = isLT;
             });
 
             activeLots.sort((a, b) => {
-                if (a.priorityScore !== b.priorityScore) {
-                    return a.priorityScore - b.priorityScore;
+                // Primary sort: by tax impact per share (lowest/most negative tax/shield first)
+                if (Math.abs(a.taxImpactPerShare - b.taxImpactPerShare) > 0.000001) {
+                    return a.taxImpactPerShare - b.taxImpactPerShare;
+                }
+                // Secondary sort fallback: if tax impact is identical, sort by higher holding duration (LT first)
+                if (a.isLT !== b.isLT) {
+                    return b.isLT ? -1 : 1; // choose LT first (prefer LTCG/LTCL if tax shield is equal)
                 }
                 return a.gainPerShare - b.gainPerShare;
             });
@@ -616,18 +624,10 @@ export function shAddRow(lotIdx = 0) {
         }
         const days = Math.round((sellD - buyD) / 86400000);
         const isLT = days >= 730;
-        const price = parseFloat(tr.querySelector(".sh-sell-price").value) || 0;
-        const cost = parseFloat(lot.buy_price) || 0;
-        let type;
-        if (price > 0 && cost > 0) {
-            const gain = price > cost;
-            type = isLT ? (gain ? "ltcg" : "ltcl") : (gain ? "stcg" : "stcl");
-        } else {
-            type = isLT ? "ltcg" : "stcg"; // assume gain if price blank
-        }
-        const labels = { ltcg: "LTCG", ltcl: "LTCL", stcg: "STCG", stcl: "STCL" };
+        const type = isLT ? "long-term" : "short-term";
+        const label = isLT ? "Long Term" : "Short Term";
         badge.className = `sh-holding-badge ${type}`;
-        badge.textContent = `${labels[type]} · ${days}d`;
+        badge.textContent = `${label} · ${days}d`;
     };
 
     tr.querySelector(".sh-lot-select").addEventListener("change", e => {
@@ -796,6 +796,9 @@ export function shRenderResults(data) {
     section.classList.remove("hidden");
     section.scrollIntoView({ behavior: "smooth" });
 
+    // Store data in state
+    simState.lastResults = data;
+
     // ── Update total proceeds cards ───────────────────────────────────────
     const totalProceedsTaxEl = document.getElementById("shTotalProceedsTax");
     const totalProceedsActualEl = document.getElementById("shTotalProceedsActual");
@@ -929,6 +932,10 @@ export function shRenderResults(data) {
     }
 
     offCard.appendChild(card);
+
+    // Render Simulated Tax Liability Card
+    shRenderTaxLiability();
+
     showToast(`Simulated ${data.sells.length} sell(s) successfully`, "success");
 }
 
@@ -959,4 +966,138 @@ export function shRenderLotsReference() {
             tbody.appendChild(tr);
         }
     }
+}
+
+export function initSimTaxRates() {
+    const stcgInput = document.getElementById("shStcgTaxRateInput");
+    const ltcgInput = document.getElementById("shLtcgTaxRateInput");
+
+    if (stcgInput) {
+        const savedStcg = localStorage.getItem("fa_sim_stcg_tax_rate");
+        if (savedStcg !== null) {
+            stcgInput.value = savedStcg;
+        } else {
+            stcgInput.value = "30";
+        }
+        stcgInput.addEventListener("input", () => {
+            shRenderTaxLiability();
+        });
+    }
+
+    if (ltcgInput) {
+        const savedLtcg = localStorage.getItem("fa_sim_ltcg_tax_rate");
+        if (savedLtcg !== null) {
+            ltcgInput.value = savedLtcg;
+        } else {
+            ltcgInput.value = "12.5";
+        }
+        ltcgInput.addEventListener("input", () => {
+            shRenderTaxLiability();
+        });
+    }
+}
+
+export function shRenderTaxLiability() {
+    const cardEl = document.getElementById("shTaxLiabilityCard");
+    if (!cardEl) return;
+    cardEl.innerHTML = "";
+
+    const titleEl = document.getElementById("shTaxLiabilityTitle");
+    const data = simState.lastResults;
+    if (!data || !data.offset) {
+        cardEl.style.display = "none";
+        if (titleEl) titleEl.style.display = "none";
+        return;
+    }
+
+    cardEl.style.display = "grid";
+    if (titleEl) titleEl.style.display = "";
+
+    const stcgRateInput = document.getElementById("shStcgTaxRateInput");
+    const ltcgRateInput = document.getElementById("shLtcgTaxRateInput");
+    const stcgRate = parseFloat(stcgRateInput?.value) || 0;
+    const ltcgRate = parseFloat(ltcgRateInput?.value) || 0;
+
+    localStorage.setItem("fa_sim_stcg_tax_rate", stcgRate);
+    localStorage.setItem("fa_sim_ltcg_tax_rate", ltcgRate);
+
+    const off = data.offset;
+    const netStcg = Math.max(0, off.net_stcg || 0);
+    const netLtcg = Math.max(0, off.net_ltcg || 0);
+
+    const stcgTax = netStcg * (stcgRate / 100);
+    const ltcgTax = netLtcg * (ltcgRate / 100);
+    const totalTax = stcgTax + ltcgTax;
+
+    cardEl.style.cssText = [
+        "background:var(--bg-input);border-radius:10px;",
+        "border:1px solid var(--border);padding:20px 24px;",
+        "display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:16px;"
+    ].join("");
+
+    function buildTaxCol(title, netGains, rate, calculatedTax, color) {
+        const col = document.createElement("div");
+        col.style.cssText = "display:flex;flex-direction:column;justify-content:space-between;height:100%;";
+        
+        const topSection = document.createElement("div");
+        const colTitle = document.createElement("div");
+        colTitle.style.cssText = "font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;";
+        colTitle.textContent = title;
+        topSection.appendChild(colTitle);
+
+        const list = document.createElement("div");
+        list.style.cssText = "display:flex;flex-direction:column;gap:6px;";
+        
+        const gainRow = document.createElement("div");
+        gainRow.style.cssText = "display:flex;justify-content:space-between;align-items:baseline;";
+        gainRow.innerHTML = `<span style="font-size:0.82rem;color:var(--text-main);">Net Taxable Gain:</span>` +
+                            `<span style="font-size:0.85rem;font-weight:600;color:var(--text-main);font-variant-numeric:tabular-nums;">₹${formatINR(netGains)}</span>`;
+        
+        const rateRow = document.createElement("div");
+        rateRow.style.cssText = "display:flex;justify-content:space-between;align-items:baseline;";
+        rateRow.innerHTML = `<span style="font-size:0.82rem;color:var(--text-muted);">Tax Rate:</span>` +
+                            `<span style="font-size:0.85rem;font-weight:600;color:var(--text-muted);font-variant-numeric:tabular-nums;">${rate}%</span>`;
+        
+        list.appendChild(gainRow);
+        list.appendChild(rateRow);
+        topSection.appendChild(list);
+        col.appendChild(topSection);
+
+        const taxBox = document.createElement("div");
+        taxBox.style.cssText = [
+            "display:flex;justify-content:space-between;align-items:center;",
+            "margin-top:14px;padding:10px 12px;border-radius:7px;",
+            `background:${color}12;`,
+            `border:1px solid ${color}33;`
+        ].join("");
+        taxBox.innerHTML =
+            `<span style="font-size:0.82rem;font-weight:700;color:var(--text-main);">Calculated Tax</span>` +
+            `<span style="font-size:0.95rem;font-weight:800;color:${color};font-variant-numeric:tabular-nums;">₹${formatINR(calculatedTax)}</span>`;
+        
+        col.appendChild(taxBox);
+        return col;
+    }
+
+    cardEl.appendChild(buildTaxCol("Short-Term Tax (STCG)", netStcg, stcgRate, stcgTax, "#22c55e"));
+    cardEl.appendChild(buildTaxCol("Long-Term Tax (LTCG)", netLtcg, ltcgRate, ltcgTax, "#10b981"));
+
+    const grandRow = document.createElement("div");
+    grandRow.style.cssText = [
+        "grid-column:1/-1;margin-top:4px;padding:12px 16px;border-radius:8px;",
+        "background:linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(168,85,247,0.15) 100%);",
+        "border:1px solid rgba(99,102,241,0.3);",
+        "display:flex;justify-content:space-between;align-items:center;box-shadow: 0 4px 12px rgba(99,102,241,0.05);"
+    ].join("");
+    
+    grandRow.onmouseenter = () => { grandRow.style.boxShadow = "0 4px 16px rgba(99,102,241,0.15)"; grandRow.style.transform = "translateY(-1px)"; grandRow.style.transition = "all 0.2s ease"; };
+    grandRow.onmouseleave = () => { grandRow.style.boxShadow = "0 4px 12px rgba(99,102,241,0.05)"; grandRow.style.transform = "none"; };
+
+    grandRow.innerHTML = 
+        `<div style="display:flex;align-items:center;gap:10px;">` +
+            `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>` +
+            `<span style="font-size:0.9rem;font-weight:700;color:var(--text-main);">Total Estimated Tax Liability</span>` +
+        `</div>` +
+        `<span style="font-size:1.15rem;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;text-shadow:0 0 8px rgba(99,102,241,0.2);">₹${formatINR(totalTax)}</span>`;
+    
+    cardEl.appendChild(grandRow);
 }

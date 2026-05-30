@@ -240,6 +240,20 @@ function initYearSelectors() {
     if (monthSelect) {
         monthSelect.value = new Date().getMonth() + 1;
     }
+
+    // Initialize RBI Import Modal Date Selectors
+    const importRbiYearSelect = document.getElementById("importRbiYearSelect");
+    const importRbiMonthSelect = document.getElementById("importRbiMonthSelect");
+    if (importRbiYearSelect && importRbiMonthSelect) {
+        for (let y = currentYear; y >= 2010; y--) {
+            const opt = document.createElement("option");
+            opt.value = y;
+            opt.textContent = y;
+            if (y === state.portfolio.calendar_year) opt.selected = true;
+            importRbiYearSelect.appendChild(opt);
+        }
+        importRbiMonthSelect.value = new Date().getMonth() + 1;
+    }
     
     mainSelect.addEventListener("change", async (e) => {
         state.portfolio.calendar_year = parseInt(e.target.value);
@@ -566,12 +580,17 @@ async function fetchSbiRates(overwriteChoice = null) {
 }
 
 async function importRbiRates() {
+    const yearSelect = document.getElementById("importRbiYearSelect");
+    const monthSelect = document.getElementById("importRbiMonthSelect");
+    const year = yearSelect ? parseInt(yearSelect.value) : null;
+    const month = monthSelect ? parseInt(monthSelect.value) : null;
+
     document.getElementById("rbiRatesModal").classList.add("hidden");
-    showLoading("Normalizing & Importing RBI Reference Rates...");
+    showLoading(`Normalizing & Importing RBI Reference Rates up to ${month}/${year}...`);
     try {
-        const res = await apiPost("/api/import-rbi-rates");
+        const res = await apiPost("/api/import-rbi-rates", { year, month });
         if (res.success) {
-            showToast(`Successfully normalized and imported RBI Reference rates! Filled ${res.imported} missing rate entries.`, "success");
+            showToast(`Successfully normalized and imported RBI Reference rates up to ${month}/${year}! Filled ${res.imported} missing rate entries.`, "success");
             
             // Sync Rates Editor if visible
             const ratesSection = document.getElementById("monthlyRatesSection");
@@ -1042,9 +1061,9 @@ async function calculateAll() {
                             if (glContainer) {
                                 const usdVal = sellEntry.gain_loss_usd || 0;
                                 const inrVal = sellEntry.gain_loss_inr || 0;
-                                const isProfit = usdVal >= 0;
+                                const isProfit = inrVal >= 0;
                                 const cls = isProfit ? "profit" : "loss";
-                                const usdText = (isProfit ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
+                                const usdText = (usdVal >= 0 ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
                                 const inrText = (inrVal >= 0 ? "+₹" : "-₹") + Math.abs(inrVal).toLocaleString("en-IN");
                                 
                                 glContainer.innerHTML = `
@@ -1795,7 +1814,8 @@ async function switchTab(tab) {
     const allA3Els = [
         "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
         "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
-        "monthlyRatesSection", "assetPieChartSection", "validateA3Section", "validateTaxSection"
+        "monthlyRatesSection", "assetPieChartSection", "validateA3Section", "validateTaxSection",
+        "validatePeakSection"
     ];
 
     allA3Els.forEach(id => {
@@ -1817,7 +1837,8 @@ async function switchTab(tab) {
         if (hasCalculated) {
             const calculatedEls = [
                 "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
-                "assetPieChartSection", "validateA3Section", "validateTaxSection"
+                "assetPieChartSection", "validateA3Section", "validateTaxSection",
+                "validatePeakSection"
             ];
             calculatedEls.forEach(id => {
                 const el = document.getElementById(id);
@@ -2194,6 +2215,7 @@ export function showTutorialStepByTitle(title) {
         { title: "User & Year Selection", selector: "#userSelectionScreen", desc: "Select or create a user profile and choose a calendar year to load/initialize your portfolio." },
         { title: "Tools Menu", selector: "#toolsMenu", desc: "Access market data tools here, including SBI TT Rates download and the Batch Dividend Fetcher." },
         { title: "Portfolio Summary", selector: "#portfolioDashboard", desc: "View a summary of your portfolio: total assets, unrealized gain/loss, total dividends, and count of stocks/lots." },
+        { title: "SBI TT Rate Modes", selector: ".sbi-mode-selector", desc: "Choose how foreign currency is converted to INR. Split Mode uses Rule 115 (preceding month-end) for tax and SBI TTBR (event date) for Section A3. Uniform Mode uses Rule 115 for everything. Check the Docs button for official regulatory PDFs." },
         { title: "Add Stock", selector: "#tickerInput", desc: "Enter a ticker symbol and lookup/add stocks to your portfolio." },
         { title: "Generate FA Report", selector: "#calcFab", desc: "Click the floating action button to calculate Schedule FA Section A3 values for all stocks in the portfolio." },
         { title: "FA Report Breakdown", selector: "#resultsSection", desc: "Inspect computed initial value, peak value, closing balance, dividends, and sales proceeds for each lot." },
@@ -2201,6 +2223,7 @@ export function showTutorialStepByTitle(title) {
         { title: "Tax Summary", selector: "#taxYearSection", desc: "Check the consolidated financial year-wise tax summary for Indian Income Tax filing." },
         { title: "Tax Calculation Audit", selector: "#validateTaxSection", desc: "Audit the exact capital gains and dividend tax computations." },
         { title: "Asset Chart", selector: "#assetPieChartSection", desc: "Visualize the asset allocation by stock value in a doughnut chart." },
+        { title: "Peak Value Audit", selector: "#validatePeakSection", desc: "Verify how peak dates and INR values were determined. Shows the winning day and runner-up candidates with full price × qty × rate breakdowns." },
         { title: "SBI Rates Used", selector: "#sbiRatesSection", desc: "See all SBI TT rates referenced during calculation, with the option to manually override them." },
         { title: "Generate Tax Statement", selector: "#generateFYBtn", desc: "Generate a consolidated tax summary across financial years." },
         { title: "Sell Simulator", selector: "#tabSellHelper", desc: "Switch to the Sell Simulator tab to simulate hypothetical sales and estimate tax impacts." }
@@ -2587,7 +2610,8 @@ window.addEventListener("portfolio-state-change", (e) => {
     } else if (type === "clear-calculated") {
         const calculatedEls = [
             "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
-            "assetPieChartSection", "validateA3Section", "validateTaxSection"
+            "assetPieChartSection", "validateA3Section", "validateTaxSection",
+            "validatePeakSection"
         ];
         calculatedEls.forEach(id => {
             const el = document.getElementById(id);
@@ -2611,6 +2635,9 @@ window.addEventListener("portfolio-state-change", (e) => {
         
         const validateTaxBody = document.getElementById("validateTaxTableBody");
         if (validateTaxBody) validateTaxBody.innerHTML = "";
+        
+        const validatePeakBody = document.getElementById("validatePeakTableBody");
+        if (validatePeakBody) validatePeakBody.innerHTML = "";
         
         const calcFab = document.getElementById("calcFab");
         const hasStocks = state.portfolio.stocks.length > 0;
