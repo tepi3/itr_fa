@@ -156,7 +156,7 @@ def api_save_manual_rate():
 def api_fetch_sbi_rates():
     """Force download and cache SBI rates."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         overwrite = data.get("overwrite", True)
         updated = refresh_cache(overwrite=overwrite)
         return jsonify({"success": True, "updated": updated})
@@ -262,6 +262,7 @@ def api_lock_rates():
     lock_year_rates(int(year))
     return jsonify({"success": True})
 
+
 @market_bp.route("/api/unlock-rates", methods=["POST"])
 def api_unlock_rates():
     """Unlock rates for a given year."""
@@ -272,16 +273,18 @@ def api_unlock_rates():
     unlock_year_rates(int(year))
     return jsonify({"success": True})
 
+
 @market_bp.route("/api/locked-years", methods=["GET"])
 def api_locked_years():
     """Get list of locked years."""
     return jsonify({"locked_years": get_locked_years()})
 
+
 @market_bp.route("/api/import-rbi-rates", methods=["POST"])
 def api_import_rbi_rates():
     """Normalize and import RBI Reference Rates to fill missing cache rates."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         year = data.get("year")
         month = data.get("month")
         
