@@ -1936,7 +1936,6 @@ export async function clearSbiOverrides() {
             // Also clear calculated overrides as they likely depend on rates
             state.portfolio.overrides = {}; 
             
-            markDirty();
             showToast("SBI TT rates restored to default state", "success");
             
             // Reload calendar rates if it is visible

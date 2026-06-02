@@ -2673,7 +2673,6 @@ window.addEventListener("portfolio-state-change", (e) => {
         updateAllSellViews();
     } else if (type === "sell-view-mode-change") {
         updateAllSellViews();
-        markDirty();
     } else if (type === "history-change") {
         updateUndoRedoButtons();
         const panel = document.getElementById("historyPanel");
