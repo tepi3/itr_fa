@@ -963,6 +963,7 @@ function updateAllSellViews() {
     });
 
     if (!state.calculatedRows || state.calculatedRows.length === 0) {
+        document.querySelectorAll(".sells-tfoot").forEach(f => f.classList.add("hidden"));
         return;
     }
 
@@ -988,21 +989,29 @@ function updateAllSellViews() {
                             const inrVal = isActual ? (sellEntry.gain_loss_actual_inr || 0) : (sellEntry.gain_loss_inr || 0);
                             const isProfit = inrVal >= 0;
                             const cls = isProfit ? "profit" : "loss";
-                            const usdText = (usdVal >= 0 ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
                             
-                            // Calculate percentage increase
-                            let pctText = "";
+                            // Calculate USD percentage increase
+                            const buyValUsd = sellEntry.quantity * sellEntry.buy_price;
+                            let pctTextUsd = "";
+                            if (buyValUsd > 0) {
+                                const pctValUsd = (usdVal / buyValUsd) * 100;
+                                pctTextUsd = ` (${pctValUsd >= 0 ? "+" : ""}${pctValUsd.toFixed(1)}%)`;
+                            }
+                            const usdText = (usdVal >= 0 ? "+$" : "-$") + Math.abs(usdVal).toFixed(2) + pctTextUsd;
+                            
+                            // Calculate INR percentage increase
+                            let pctTextInr = "";
                             if (buyValInrForPct && buyValInrForPct > 0) {
-                                const pctVal = (inrVal / buyValInrForPct) * 100;
-                                pctText = ` (${pctVal >= 0 ? "+" : ""}${pctVal.toFixed(1)}%)`;
+                                const pctValInr = (inrVal / buyValInrForPct) * 100;
+                                pctTextInr = ` (${pctValInr >= 0 ? "+" : ""}${pctValInr.toFixed(1)}%)`;
                             }
                             
-                            const inrText = (inrVal >= 0 ? "+₹" : "-₹") + Math.abs(inrVal).toLocaleString("en-IN") + pctText;
+                            const inrText = (inrVal >= 0 ? "+₹" : "-₹") + Math.abs(inrVal).toLocaleString("en-IN") + pctTextInr;
                             
                             glContainer.innerHTML = `
-                                <div class="sell-gl-badge ${cls}" title="USD G&L: ${usdText} | INR G&L: ${inrText}">
-                                    <span>${usdText}</span>
-                                    <span style="font-size:0.65rem;opacity:0.8;">${inrText}</span>
+                                <div class="sell-gl-badge ${cls}" title="INR G&L: ${inrText} | USD G&L: ${usdText}" style="display:inline-flex; flex-direction:column; align-items:flex-start;">
+                                    <span>${inrText}</span>
+                                    <span style="font-size:0.65rem;opacity:0.8;">${usdText}</span>
                                 </div>
                             `;
                         }
@@ -1040,6 +1049,119 @@ function updateAllSellViews() {
                 }
             });
         }
+    });
+
+    // 3. Compute and populate overall G&L and XIRR footers for each stock
+    state.portfolio.stocks.forEach(stock => {
+        const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
+        if (!card) return;
+        const tfoot = card.querySelector(".sells-tfoot");
+        if (!tfoot) return;
+
+        const stockRows = state.calculatedRows.filter(row =>
+            stock.lots.some(l => l.id === row.lot_id)
+        );
+
+        let hasSells = false;
+        let totalQty = 0;
+        let totalUsdGL = 0;
+        let totalTaxableInrGL = 0;
+        let totalActualInrGL = 0;
+        let totalBuyCostUsd = 0;
+        let totalTaxableBuyCostInr = 0;
+        let totalActualBuyCostInr = 0;
+        let taxableCashFlows = [];
+        let actualCashFlows = [];
+
+        stockRows.forEach(row => {
+            const details = row.calculation_details;
+            if (details && details.sales && details.sales.sale_entries && details.sales.sale_entries.length > 0) {
+                hasSells = true;
+                const buyD = parseAppDate(row.acquire_date_raw);
+                details.sales.sale_entries.forEach(sellEntry => {
+                    const qty = sellEntry.quantity || 0;
+                    totalQty += qty;
+                    totalUsdGL += sellEntry.gain_loss_usd || 0;
+                    totalTaxableInrGL += sellEntry.gain_loss_inr || 0;
+                    totalActualInrGL += sellEntry.gain_loss_actual_inr || 0;
+                    
+                    const buyCostUsd = qty * (sellEntry.buy_price || 0);
+                    totalBuyCostUsd += buyCostUsd;
+
+                    const sellD = parseAppDate(sellEntry.sell_date);
+                    if (buyD && sellD) {
+                        // Taxable Cash Flows
+                        const taxableBuyCost = sellEntry.buy_cost_inr || 0;
+                        const taxableSellProceeds = (sellEntry.buy_cost_inr || 0) + (sellEntry.gain_loss_inr || 0);
+                        totalTaxableBuyCostInr += taxableBuyCost;
+                        if (taxableBuyCost > 0) {
+                            taxableCashFlows.push({ date: buyD, amount: -taxableBuyCost });
+                            taxableCashFlows.push({ date: sellD, amount: taxableSellProceeds });
+                        }
+
+                        // Actual Cash Flows
+                        const actualBuyCost = qty * sellEntry.buy_price * (sellEntry.buy_ttbr_actual || 0);
+                        const actualSellProceeds = sellEntry.proceeds_inr || (qty * sellEntry.sell_price * (sellEntry.ttbr_actual || 0));
+                        totalActualBuyCostInr += actualBuyCost;
+                        if (actualBuyCost > 0) {
+                            actualCashFlows.push({ date: buyD, amount: -actualBuyCost });
+                            actualCashFlows.push({ date: sellD, amount: actualSellProceeds });
+                        }
+                    }
+                });
+            }
+        });
+
+        if (!hasSells) {
+            tfoot.classList.add("hidden");
+            return;
+        }
+
+        tfoot.classList.remove("hidden");
+
+        // Format Quantity
+        tfoot.querySelector(".total-sell-qty").textContent = totalQty % 1 === 0
+            ? totalQty
+            : totalQty.toFixed(4).replace(/\.?0+$/, "");
+
+        const isActual = (stock.sell_view_mode === "actual");
+
+        // Calculate USD percentage increase
+        let pctTextUsd = "";
+        if (totalBuyCostUsd > 0) {
+            const pctUsd = (totalUsdGL / totalBuyCostUsd) * 100;
+            pctTextUsd = ` (${pctUsd >= 0 ? "+" : ""}${pctUsd.toFixed(1)}%)`;
+        }
+        const usdTextOverall = (totalUsdGL >= 0 ? "+$" : "-$") + Math.abs(totalUsdGL).toFixed(2) + pctTextUsd;
+
+        // Calculate INR value and percentage increase based on active view mode
+        const overallInrGL = isActual ? totalActualInrGL : totalTaxableInrGL;
+        const overallBuyCostInr = isActual ? totalActualBuyCostInr : totalTaxableBuyCostInr;
+        let pctTextInr = "";
+        if (overallBuyCostInr > 0) {
+            const pctInr = (overallInrGL / overallBuyCostInr) * 100;
+            pctTextInr = ` (${pctInr >= 0 ? "+" : ""}${pctInr.toFixed(1)}%)`;
+        }
+        const inrTextOverall = (overallInrGL >= 0 ? "+₹" : "-₹") + formatINR(Math.abs(overallInrGL)) + pctTextInr;
+
+        tfoot.querySelector(".total-sell-gl").innerHTML = `
+            <div class="sell-gl-badge ${overallInrGL >= 0 ? 'profit' : 'loss'}" style="display:inline-flex; flex-direction:column; align-items:flex-start; padding:3px 8px; border-radius:6px;">
+                <span>${inrTextOverall}</span>
+                <span style="font-size:0.65rem; opacity:0.8;">${usdTextOverall}</span>
+            </div>
+        `;
+
+        // Format XIRR cell based on active view mode
+        const overallXirr = isActual ? calculateXIRR(actualCashFlows) : calculateXIRR(taxableCashFlows);
+        const xirrTextOverall = overallXirr !== null
+            ? (overallXirr >= 0 ? "+" : "") + (overallXirr * 100).toFixed(2) + "%"
+            : "—";
+
+        tfoot.querySelector(".total-sell-xirr").innerHTML = `
+            <div class="sell-gl-badge ${overallXirr >= 0 ? 'profit' : 'loss'}" style="padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center;">
+                <span>${xirrTextOverall}</span>
+            </div>
+        `;
     });
 }
 
@@ -2532,6 +2654,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     safeAddListener("themeToggleBtn", "click", toggleTheme);
 
+    const netFlowsCb = document.getElementById("sankeyNetFlowsCheckbox");
+    if (netFlowsCb) {
+        netFlowsCb.checked = localStorage.getItem("fa_desk_sankey_net_flows") === "true";
+        netFlowsCb.addEventListener("change", (e) => {
+            localStorage.setItem("fa_desk_sankey_net_flows", e.target.checked ? "true" : "false");
+            if (state.calculatedRows && state.calculatedRows.length > 0) {
+                renderNavFlowSankey(state.calculatedRows);
+            }
+        });
+    }
+
+    const sankeyBasisSelect = document.getElementById("sankeyValuationBasis");
+    if (sankeyBasisSelect) {
+        let savedBasis = localStorage.getItem("fa_desk_sankey_valuation_basis");
+        if (!savedBasis) {
+            savedBasis = "market";
+            localStorage.setItem("fa_desk_sankey_valuation_basis", "market");
+        }
+        sankeyBasisSelect.value = savedBasis;
+        sankeyBasisSelect.addEventListener("change", (e) => {
+            localStorage.setItem("fa_desk_sankey_valuation_basis", e.target.value);
+            if (state.calculatedRows && state.calculatedRows.length > 0) {
+                renderNavFlowSankey(state.calculatedRows);
+            }
+        });
+    }
+
     document.querySelectorAll(".density-option").forEach(btn => {
         btn.addEventListener("click", () => {
             setDensity(btn.dataset.density);
@@ -2785,6 +2934,7 @@ window.addEventListener("portfolio-state-change", (e) => {
             const el = document.getElementById(id);
             if (el) el.classList.add("hidden");
         });
+        updateAllSellViews();
         
         const navFlowBody = document.getElementById("navFlowSankey");
         if (navFlowBody) navFlowBody.innerHTML = "";

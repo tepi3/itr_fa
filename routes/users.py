@@ -110,6 +110,13 @@ def api_setup_demo():
                   "sell_price": 192.30
                 }
               ]
+            },
+            {
+              "id": "lot_aapl_2025",
+              "buy_date": "15/05/2025",
+              "quantity": 15.0,
+              "buy_price": 180.00,
+              "sells": []
             }
           ]
         },
@@ -149,6 +156,13 @@ def api_setup_demo():
               "quantity": 30.0,
               "buy_price": 236.40,
               "sells": []
+            },
+            {
+              "id": "lot_tsla_2025",
+              "buy_date": "10/06/2025",
+              "quantity": 10.0,
+              "buy_price": 220.00,
+              "sells": []
             }
           ]
         },
@@ -187,6 +201,13 @@ def api_setup_demo():
               "buy_date": "14/10/2022",
               "quantity": 80.0,
               "buy_price": 11.20,
+              "sells": []
+            },
+            {
+              "id": "lot_nvda_2025",
+              "buy_date": "20/09/2025",
+              "quantity": 50.0,
+              "buy_price": 125.00,
               "sells": []
             }
           ]

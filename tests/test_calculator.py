@@ -226,3 +226,30 @@ def test_compute_offset_summary():
     assert offset_curr["ltcl_vs_ltcg"] == 10000
     assert offset_curr["stcl_carry_forward"] == 0
     assert offset_curr["ltcl_carry_forward"] == 0
+
+
+@pytest.mark.unit
+def test_calculate_a3_rows_prev_year_closing(sbi_cache, sample_portfolio, full_2024_sbi_rates, monkeypatch):
+    # Setup rates including 2023-12-31 rate
+    rates = {**full_2024_sbi_rates, "2023-12-31": 83.15}
+    sbi_cache(rates)
+    
+    # Mock stock close price for previous year's Dec 31
+    monkeypatch.setattr("core.calculator.get_price_on_date", lambda ticker, date_str: 155.50 if "2023-12-31" in date_str else 180.0)
+    
+    sample_portfolio["calendar_year"] = 2024
+    # Lot 0 is AAPL bought in 2022 (pre-existing relative to 2024)
+    sample_portfolio["stocks"][0]["lots"] = [sample_portfolio["stocks"][0]["lots"][0]]
+    sample_portfolio["stocks"] = [sample_portfolio["stocks"][0]]
+    
+    res = calculate_a3_rows(sample_portfolio)
+    assert len(res["rows"]) == 1
+    row = res["rows"][0]
+    calc_details = row["calculation_details"]
+    assert "prev_year_closing" in calc_details
+    prev_close = calc_details["prev_year_closing"]
+    assert prev_close is not None
+    assert prev_close["close_price"] == 155.50
+    assert prev_close["rate"] == 83.15
+    assert prev_close["rate_date"] == "2023-12-31"
+

@@ -154,17 +154,21 @@ def run_screenshot_flow():
             page.wait_for_selector("#sellHelperPanel", state="visible")
             time.sleep(1.0)
             
-            # Add a row to show the simulation in action
-            print("Adding a simulated sell row...")
-            page.click("#shAddRowBtn")
-            page.wait_for_selector(".sh-lot-select", state="visible")
+            # Select stock AAPL, INR target, and enter 100000
+            print("Selecting stock AAPL in allocator...")
+            page.select_option("#shAllocTicker", "AAPL")
+            time.sleep(1.0)
+            
+            print("Selecting INR target and setting amount to 100000...")
+            page.click("#shAllocToggleInr")
+            page.fill("#shAllocValue", "100000")
+            page.fill("#shAllocDate", "20/06/2025")
+            page.fill("#shAllocPrice", "185.00")
             time.sleep(0.5)
             
-            # Fill out the simulator row
-            page.fill(".sh-sell-date", "20/06/2025")
-            page.fill(".sh-sell-qty", "10")
-            page.fill(".sh-sell-price", "185.00")
-            time.sleep(0.5)
+            print("Clicking Allocate Sell...")
+            page.click("#shAllocBtn")
+            time.sleep(1.5)
             
             # Click Simulate
             print("Running simulation...")
@@ -174,9 +178,9 @@ def run_screenshot_flow():
             
             # Screenshot Sell Simulator
             print("Capturing 07_sell_simulator.png...")
-            page.locator("#sellHelperPanel").scroll_into_view_if_needed()
+            page.locator("#shResultsSection").scroll_into_view_if_needed()
             time.sleep(0.5)
-            page.screenshot(path=str(SCREENSHOTS_DIR / "07_sell_simulator.png"))
+            page.locator("#sellHelperPanel").screenshot(path=str(SCREENSHOTS_DIR / "07_sell_simulator.png"))
             
             # 8. Switch to Tax Statement tab
             print("Switching to Tax Statement tab...")

@@ -572,12 +572,26 @@ def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> dict:
             dividends = calculate_dividends(lot, stock, calendar_year, sbi_overrides, skip_divs, mode=mode)
             sales = calculate_sale_proceeds(lot, calendar_year, sbi_overrides, mode=mode)
 
+            # Calculate previous year's Dec 31 closing price and rate (if bought before CY)
+            prev_year_closing = None
+            if buy_date.year < calendar_year:
+                dec31_prev = date(calendar_year - 1, 12, 31)
+                prev_close_price = get_price_on_date(yahoo_ticker, dec31_prev.isoformat())
+                prev_rate, prev_rate_date, _, _, prev_error = _get_rate_value(dec31_prev, sbi_overrides, use_event_date=True, mode=mode)
+                if prev_close_price is not None and prev_rate is not None:
+                    prev_year_closing = {
+                        "close_price": prev_close_price,
+                        "rate": prev_rate,
+                        "rate_date": prev_rate_date,
+                    }
+
             calc_details = {
                 "initial": initial,
                 "peak": peak,
                 "closing": closing,
                 "dividends": dividends,
                 "sales": sales,
+                "prev_year_closing": prev_year_closing,
             }
             collect_errors(calc_details)
 

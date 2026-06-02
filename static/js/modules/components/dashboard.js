@@ -504,6 +504,7 @@ export async function renderNavFlowSankey(rows) {
     const nodeWidth = 16;
 
     let startingNavCost = 0;
+    let startingNavMarketValue = 0;
     let depositsCost = 0;
     let totalDividends = 0;
     let totalSaleProceeds = 0;
@@ -549,6 +550,15 @@ export async function renderNavFlowSankey(rows) {
             });
             const lotCostAtStart = lotCost * (qtyAtStart / initialQty);
             startingNavCost += lotCostAtStart;
+
+            // Calculate Starting Market Value for Market Value mode
+            let prevYearVal = lotCostAtStart; // default fallback to cost basis if missing or failed
+            if (details.prev_year_closing) {
+                const closePrice = details.prev_year_closing.close_price || 0;
+                const rate = details.prev_year_closing.rate || 0;
+                prevYearVal = qtyAtStart * closePrice * rate;
+            }
+            startingNavMarketValue += prevYearVal;
         } else {
             depositsCost += lotCost;
         }
@@ -563,17 +573,44 @@ export async function renderNavFlowSankey(rows) {
         });
     });
 
-    const totalUnrealizedGains = totalEndingNav - remainingCostBasis;
-    const m2mGains = totalUnrealizedGains + totalRealizedGains;
+    const valuationBasis = localStorage.getItem("fa_desk_sankey_valuation_basis") || "market";
+    const isMarket = valuationBasis === "market";
+
+    const startingNav = isMarket ? startingNavMarketValue : startingNavCost;
+
+    let m2mGains = 0;
+    if (isMarket) {
+        m2mGains = (totalEndingNav + totalSaleProceeds) - (startingNav + depositsCost);
+    } else {
+        const totalUnrealizedGains = totalEndingNav - remainingCostBasis;
+        m2mGains = totalUnrealizedGains + totalRealizedGains;
+    }
+
+    // Calculate reinvested portion and adjust flows if toggle is active
+    const offsetNetFlows = localStorage.getItem("fa_desk_sankey_net_flows") === "true";
+    const reinvested = Math.min(depositsCost, totalSaleProceeds);
+
+    const fmtLocal = val => "₹" + Math.round(val).toLocaleString("en-IN");
+    const noticeEl = document.getElementById("sankeyOffsetNotice");
+    if (noticeEl) {
+        if (offsetNetFlows && reinvested > 0.01) {
+            noticeEl.style.display = "inline";
+            noticeEl.textContent = `Offsetting ${fmtLocal(reinvested)} of reinvested proceeds`;
+        } else {
+            noticeEl.style.display = "none";
+            noticeEl.textContent = "";
+        }
+    }
 
     container.innerHTML = "";
 
     const leftNodes = [];
-    if (startingNavCost > 0.01) {
-        leftNodes.push({ id: "startingNav", label: "Starting NAV", value: startingNavCost, color: "var(--text-secondary)", strokeColor: "rgba(148, 163, 184, 0.75)" });
+    if (startingNav > 0.01) {
+        leftNodes.push({ id: "startingNav", label: "Starting NAV", value: startingNav, color: "var(--text-secondary)", strokeColor: "rgba(148, 163, 184, 0.75)" });
     }
-    if (depositsCost > 0.01) {
-        leftNodes.push({ id: "deposits", label: "Acquisition", value: depositsCost, color: "var(--accent)", strokeColor: "rgba(99, 102, 241, 0.75)" });
+    const displayDepositsCost = offsetNetFlows ? depositsCost - reinvested : depositsCost;
+    if (displayDepositsCost > 0.01) {
+        leftNodes.push({ id: "deposits", label: "Acquisition", value: displayDepositsCost, color: "var(--accent)", strokeColor: "rgba(99, 102, 241, 0.75)" });
     }
     if (m2mGains > 0.01) {
         leftNodes.push({ id: "m2mGains", label: "Gains", value: m2mGains, color: "var(--success)", strokeColor: "rgba(16, 185, 129, 0.75)" });
@@ -586,8 +623,9 @@ export async function renderNavFlowSankey(rows) {
     if (totalEndingNav > 0.01) {
         rightNodes.push({ id: "endingNav", label: "Ending NAV", value: totalEndingNav, color: "var(--accent)", strokeColor: "rgba(99, 102, 241, 0.75)" });
     }
-    if (totalSaleProceeds > 0.01) {
-        rightNodes.push({ id: "saleProceeds", label: "Sale Proceeds", value: totalSaleProceeds, color: "var(--warning)", strokeColor: "rgba(245, 158, 11, 0.75)" });
+    const displaySaleProceeds = offsetNetFlows ? totalSaleProceeds - reinvested : totalSaleProceeds;
+    if (displaySaleProceeds > 0.01) {
+        rightNodes.push({ id: "saleProceeds", label: "Sale Proceeds", value: displaySaleProceeds, color: "var(--warning)", strokeColor: "rgba(245, 158, 11, 0.75)" });
     }
     if (m2mGains < -0.01) {
         rightNodes.push({ id: "m2mLoss", label: "Loss", value: Math.abs(m2mGains), color: "var(--danger)", strokeColor: "rgba(239, 68, 68, 0.75)" });
