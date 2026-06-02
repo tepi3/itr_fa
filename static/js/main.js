@@ -75,7 +75,8 @@ import {
     autoSaveDraft, 
     checkForDraft, 
     clearDraft,
-    renderAssetPieChart
+    renderAssetPieChart,
+    renderNavFlowSankey
 } from './modules/components/dashboard.js';
 
 import { initTutorial, startTutorial, endTutorial } from './modules/components/tutorial.js';
@@ -1152,6 +1153,7 @@ async function calculateAll() {
         updateAllSellViews();
 
         await renderAssetPieChart(result.rows);
+        await renderNavFlowSankey(result.rows);
 
         document.getElementById("resultsSection").classList.remove("hidden");
         document.getElementById("sbiRatesSection").classList.remove("hidden");
@@ -1887,7 +1889,7 @@ async function switchTab(tab) {
         "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
         "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
         "monthlyRatesSection", "assetPieChartSection", "validateA3Section", "validateTaxSection",
-        "validatePeakSection"
+        "validatePeakSection", "navFlowSection"
     ];
 
     allA3Els.forEach(id => {
@@ -1910,7 +1912,7 @@ async function switchTab(tab) {
             const calculatedEls = [
                 "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
                 "assetPieChartSection", "validateA3Section", "validateTaxSection",
-                "validatePeakSection"
+                "validatePeakSection", "navFlowSection"
             ];
             calculatedEls.forEach(id => {
                 const el = document.getElementById(id);
@@ -2688,12 +2690,15 @@ window.addEventListener("portfolio-state-change", (e) => {
         const calculatedEls = [
             "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
             "assetPieChartSection", "validateA3Section", "validateTaxSection",
-            "validatePeakSection"
+            "validatePeakSection", "navFlowSection"
         ];
         calculatedEls.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add("hidden");
         });
+        
+        const navFlowBody = document.getElementById("navFlowSankey");
+        if (navFlowBody) navFlowBody.innerHTML = "";
         
         const a3Body = document.getElementById("a3TableBody");
         if (a3Body) a3Body.innerHTML = "";

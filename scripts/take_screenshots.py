@@ -255,6 +255,16 @@ def run_screenshot_flow():
             time.sleep(2.0)  # Wait for SVG pie chart to render fully
             page.locator("#assetPieChartSection").screenshot(path=str(SCREENSHOTS_DIR / "10_asset_pie_chart.png"))
             
+            # 11. NAV Flow Sankey Chart
+            print("Capturing 11_nav_flow_chart.png...")
+            page.evaluate("""
+                const content = document.getElementById('navFlowContent');
+                if (content) content.classList.remove('collapsed');
+            """)
+            page.locator("#navFlowSection").scroll_into_view_if_needed()
+            time.sleep(2.0)  # Wait for SVG chart to render fully
+            page.locator("#navFlowSection").screenshot(path=str(SCREENSHOTS_DIR / "11_nav_flow_chart.png"))
+            
             print("Screenshots taken successfully!")
             browser.close()
             

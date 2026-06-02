@@ -489,3 +489,275 @@ export async function renderAssetPieChart(rows) {
     svgContent += `</svg>`;
     container.innerHTML = svgContent;
 }
+
+export async function renderNavFlowSankey(rows) {
+    const container = document.getElementById("navFlowSankey");
+    if (!container) return;
+
+    const section = document.getElementById("navFlowSection");
+    if (section) section.classList.remove("hidden");
+
+    const width = 800;
+    const height = 350;
+    const paddingX = 130;
+    const paddingY = 40;
+    const nodeWidth = 16;
+
+    let startingNavCost = 0;
+    let depositsCost = 0;
+    let totalDividends = 0;
+    let totalSaleProceeds = 0;
+    let totalEndingNav = 0;
+    let totalRealizedGains = 0;
+    let remainingCostBasis = 0;
+
+    const calendarYear = state.portfolio.calendar_year;
+
+    rows.forEach(row => {
+        const details = row.calculation_details;
+        if (!details) return;
+
+        const lotCost = row.initial_value || 0;
+        const buyPrice = details.initial.components?.buy_price || 0;
+        const initialQty = details.initial.components?.quantity || 1;
+        const buyDateStr = row.acquire_date_raw;
+        
+        let buyYear = null;
+        if (buyDateStr) {
+            const buyDate = parseAppDate(buyDateStr);
+            if (buyDate) {
+                buyYear = buyDate.getFullYear();
+            }
+        }
+
+        totalDividends += (row.total_dividends || 0);
+        totalSaleProceeds += (row.sale_proceeds || 0);
+        totalEndingNav += (row.closing_balance || 0);
+
+        const remainingQty = (details.closing && details.closing.remaining_qty) || 0;
+        const remainingCost = lotCost * (remainingQty / initialQty);
+        remainingCostBasis += remainingCost;
+
+        if (buyYear && buyYear < calendarYear) {
+            let qtyAtStart = initialQty;
+            const sells = details.sales?.sale_entries || [];
+            sells.forEach(s => {
+                const sellDate = s.sell_date ? parseAppDate(s.sell_date) : null;
+                if (sellDate && sellDate.getFullYear() < calendarYear) {
+                    qtyAtStart -= s.quantity || 0;
+                }
+            });
+            const lotCostAtStart = lotCost * (qtyAtStart / initialQty);
+            startingNavCost += lotCostAtStart;
+        } else {
+            depositsCost += lotCost;
+        }
+
+        const sells = details.sales?.sale_entries || [];
+        sells.forEach(s => {
+            const proceeds = s.proceeds_inr || 0;
+            const soldQty = s.quantity || 0;
+            const buyCostForSold = lotCost * (soldQty / initialQty);
+            const gain = proceeds - buyCostForSold;
+            totalRealizedGains += gain;
+        });
+    });
+
+    const totalUnrealizedGains = totalEndingNav - remainingCostBasis;
+    const m2mGains = totalUnrealizedGains + totalRealizedGains;
+
+    container.innerHTML = "";
+
+    const leftNodes = [];
+    if (startingNavCost > 0.01) {
+        leftNodes.push({ id: "startingNav", label: "Starting NAV", value: startingNavCost, color: "var(--text-secondary)", strokeColor: "rgba(148, 163, 184, 0.75)" });
+    }
+    if (depositsCost > 0.01) {
+        leftNodes.push({ id: "deposits", label: "Acquisition", value: depositsCost, color: "var(--accent)", strokeColor: "rgba(99, 102, 241, 0.75)" });
+    }
+    if (m2mGains > 0.01) {
+        leftNodes.push({ id: "m2mGains", label: "Gains", value: m2mGains, color: "var(--success)", strokeColor: "rgba(16, 185, 129, 0.75)" });
+    }
+    if (totalDividends > 0.01) {
+        leftNodes.push({ id: "dividends", label: "Dividends", value: totalDividends, color: "#8b5cf6", strokeColor: "rgba(139, 92, 246, 0.75)" });
+    }
+
+    const rightNodes = [];
+    if (totalEndingNav > 0.01) {
+        rightNodes.push({ id: "endingNav", label: "Ending NAV", value: totalEndingNav, color: "var(--accent)", strokeColor: "rgba(99, 102, 241, 0.75)" });
+    }
+    if (totalSaleProceeds > 0.01) {
+        rightNodes.push({ id: "saleProceeds", label: "Sale Proceeds", value: totalSaleProceeds, color: "var(--warning)", strokeColor: "rgba(245, 158, 11, 0.75)" });
+    }
+    if (m2mGains < -0.01) {
+        rightNodes.push({ id: "m2mLoss", label: "Loss", value: Math.abs(m2mGains), color: "var(--danger)", strokeColor: "rgba(239, 68, 68, 0.75)" });
+    }
+    if (totalDividends > 0.01) {
+        rightNodes.push({ id: "dividendsOut", label: "Dividends (Drawn)", value: totalDividends, color: "#8b5cf6", strokeColor: "rgba(139, 92, 246, 0.75)" });
+    }
+
+    const totalValue = leftNodes.reduce((sum, n) => sum + n.value, 0);
+
+    if (totalValue === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center; width:100%;">No transaction data or closing assets available for NAV Flow.</div>';
+        return;
+    }
+
+    const drawHeight = height - 2 * paddingY;
+    // Scale nodes so they take up 70% of vertical drawing space, leaving 30% for gaps.
+    const scale = (drawHeight * 0.70) / totalValue;
+
+    const computeColumnLayout = (nodes, totalNodeHeight, gap) => {
+        let yCurrent = paddingY;
+        if (nodes.length === 1) {
+            nodes[0].h = Math.max(nodes[0].value * scale, 8);
+            nodes[0].y = paddingY + (drawHeight - nodes[0].h) / 2;
+        } else {
+            nodes.forEach(node => {
+                node.h = Math.max(node.value * scale, 8); // Enforce clear minimum height of 8px
+                node.y = yCurrent;
+                yCurrent += node.h + gap;
+            });
+        }
+    };
+
+    const totalLeftHeight = leftNodes.reduce((sum, n) => sum + Math.max(n.value * scale, 8), 0);
+    const leftGap = leftNodes.length > 1 ? (drawHeight - totalLeftHeight) / (leftNodes.length - 1) : 0;
+    computeColumnLayout(leftNodes, totalLeftHeight, leftGap);
+
+    const totalRightHeight = rightNodes.reduce((sum, n) => sum + Math.max(n.value * scale, 8), 0);
+    const rightGap = rightNodes.length > 1 ? (drawHeight - totalRightHeight) / (rightNodes.length - 1) : 0;
+    computeColumnLayout(rightNodes, totalRightHeight, rightGap);
+
+    // Central Gross Value node height is exactly equal to the sum of flow thicknesses,
+    // ensuring the flow lines maintain constant thickness on both sides.
+    const hCenter = totalValue * scale;
+    const yCenter = paddingY + (drawHeight - hCenter) / 2;
+
+    const xLeft = paddingX;
+    const xCenter = (width - nodeWidth) / 2;
+    const xRight = width - paddingX - nodeWidth;
+
+    let svgContent = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="max-width:100%; height:auto;">`;
+
+    // Define color gradients dynamically
+    svgContent += `<defs>`;
+    leftNodes.forEach((node, idx) => {
+        svgContent += `
+            <linearGradient id="grad-left-${idx}" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="${node.color}" stop-opacity="0.8" />
+                <stop offset="100%" stop-color="var(--border-light)" stop-opacity="0.4" />
+            </linearGradient>
+        `;
+    });
+    rightNodes.forEach((node, idx) => {
+        svgContent += `
+            <linearGradient id="grad-right-${idx}" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="var(--border-light)" stop-opacity="0.4" />
+                <stop offset="100%" stop-color="${node.color}" stop-opacity="0.8" />
+            </linearGradient>
+        `;
+    });
+    svgContent += `</defs>`;
+
+    // Helper to format currency
+    const fmt = val => "₹" + Math.round(val).toLocaleString("en-IN");
+
+    // 1. Draw Links (Flows)
+    let yCenterLeft = yCenter;
+    leftNodes.forEach((node, idx) => {
+        const flowHLeft = node.h;
+        const flowHCenter = (node.value / totalValue) * hCenter;
+
+        const x0 = xLeft + nodeWidth;
+        const x1 = xCenter;
+        const dx = x1 - x0;
+        const cp0 = x0 + dx * 0.35;
+        const cp1 = x1 - dx * 0.35;
+
+        const path = `M ${x0} ${node.y}
+                      C ${cp0} ${node.y}, ${cp1} ${yCenterLeft}, ${x1} ${yCenterLeft}
+                      L ${x1} ${yCenterLeft + flowHCenter}
+                      C ${cp1} ${yCenterLeft + flowHCenter}, ${cp0} ${node.y + flowHLeft}, ${x0} ${node.y + flowHLeft}
+                      Z`;
+
+        svgContent += `<path class="sankey-link" d="${path}" fill="url(#grad-left-${idx})" stroke="${node.color}" stroke-opacity="0.4" stroke-width="1">
+            <title>${node.label} to Gross Value: ${fmt(node.value)}</title>
+        </path>`;
+
+        yCenterLeft += flowHCenter;
+    });
+
+    let yCenterRight = yCenter;
+    rightNodes.forEach((node, idx) => {
+        const flowHRight = node.h;
+        const flowHCenter = (node.value / totalValue) * hCenter;
+
+        const x0 = xCenter + nodeWidth;
+        const x1 = xRight;
+        const dx = x1 - x0;
+        const cp0 = x0 + dx * 0.35;
+        const cp1 = x1 - dx * 0.35;
+
+        const path = `M ${x0} ${yCenterRight}
+                      C ${cp0} ${yCenterRight}, ${cp1} ${node.y}, ${x1} ${node.y}
+                      L ${x1} ${node.y + flowHRight}
+                      C ${cp1} ${node.y + flowHRight}, ${cp0} ${yCenterRight + flowHCenter}, ${x0} ${yCenterRight + flowHCenter}
+                      Z`;
+
+        svgContent += `<path class="sankey-link" d="${path}" fill="url(#grad-right-${idx})" stroke="${node.color}" stroke-opacity="0.4" stroke-width="1">
+            <title>Gross Value to ${node.label}: ${fmt(node.value)}</title>
+        </path>`;
+
+        yCenterRight += flowHCenter;
+    });
+
+    // 2. Draw Nodes (Vertical Bars)
+    leftNodes.forEach(node => {
+        svgContent += `<rect class="sankey-node" x="${xLeft}" y="${node.y}" width="${nodeWidth}" height="${node.h}" fill="${node.color}">
+            <title>${node.label}: ${fmt(node.value)}</title>
+        </rect>`;
+    });
+
+    // Central Node: Gross Value
+    svgContent += `<rect class="sankey-node" x="${xCenter}" y="${yCenter}" width="${nodeWidth}" height="${hCenter}" fill="var(--text-secondary)" opacity="0.8">
+        <title>Gross Value: ${fmt(totalValue)}</title>
+    </rect>`;
+
+    rightNodes.forEach(node => {
+        svgContent += `<rect class="sankey-node" x="${xRight}" y="${node.y}" width="${nodeWidth}" height="${node.h}" fill="${node.color}">
+            <title>${node.label}: ${fmt(node.value)}</title>
+        </rect>`;
+    });
+
+    // 3. Draw Node Labels & Values
+    leftNodes.forEach(node => {
+        const textX = xLeft - 12;
+        const textY = node.y + node.h / 2;
+        svgContent += `
+            <text class="sankey-label" x="${textX}" y="${textY - 2}" text-anchor="end" dominant-baseline="middle">${node.label}</text>
+            <text class="sankey-value" x="${textX}" y="${textY + 10}" text-anchor="end" dominant-baseline="middle">${fmt(node.value)}</text>
+        `;
+    });
+
+    rightNodes.forEach(node => {
+        const textX = xRight + nodeWidth + 12;
+        const textY = node.y + node.h / 2;
+        svgContent += `
+            <text class="sankey-label" x="${textX}" y="${textY - 2}" text-anchor="start" dominant-baseline="middle">${node.label}</text>
+            <text class="sankey-value" x="${textX}" y="${textY + 10}" text-anchor="start" dominant-baseline="middle">${fmt(node.value)}</text>
+        `;
+    });
+
+    // Center Node Label
+    const centerTextX = xCenter + nodeWidth / 2;
+    const centerTextY = yCenter - 18;
+    svgContent += `
+        <text class="sankey-label" x="${centerTextX}" y="${centerTextY - 2}" text-anchor="middle" dominant-baseline="middle">Gross Value</text>
+        <text class="sankey-value" x="${centerTextX}" y="${centerTextY + 10}" text-anchor="middle" dominant-baseline="middle">${fmt(totalValue)}</text>
+    `;
+
+    svgContent += `</svg>`;
+    container.innerHTML = svgContent;
+}
+

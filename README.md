@@ -277,6 +277,10 @@ Populate and edit daily rates for any month/year since 2010 in a modern Sunday-a
 Visualize how your foreign portfolio is distributed across stocks as of December 31st with an interactive donut chart showing INR values and percentage breakdown.
 ![Asset Pie Chart](docs/screenshots/10_asset_pie_chart.png)
 
+### 11. NAV Flow & Cash Movement Chart
+Visualize how your portfolio Net Asset Value (NAV) transitioned throughout the active calendar year using a highly interactive Sankey cash-flow diagram. It maps Starting NAV cost, new deposits, dividends, and market appreciation (gains) flowing in from the left to form the Gross Value, which then flows out to Ending NAV assets and realized sales on the right.
+![NAV Flow Chart](docs/screenshots/11_nav_flow_chart.png)
+
 ---
 
 ![Downloads](https://img.shields.io/github/downloads/tepi3/itr_fa/total?style=for-the-badge&color=6366f1)

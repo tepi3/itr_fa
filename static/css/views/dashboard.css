@@ -124,3 +124,68 @@
 .yoy-delta.positive { color: var(--success); }
 .yoy-delta.negative { color: var(--danger); }
 
+/* ===== NAV Flow Sankey Diagram ===== */
+.sankey-chart-container {
+    width: 100%;
+}
+
+.sankey-node {
+    rx: 4px;
+    cursor: pointer;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+    transition: filter 0.2s ease, opacity 0.2s ease;
+}
+
+.sankey-node:hover {
+    filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.45));
+    opacity: 0.95;
+}
+
+.sankey-link {
+    fill-opacity: 0.55;
+    transition: fill-opacity 0.2s ease, stroke-opacity 0.2s ease;
+    cursor: pointer;
+}
+
+.sankey-link:hover {
+    fill-opacity: 0.85;
+}
+
+.sankey-label {
+    font-family: var(--font), sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    fill: var(--text-primary);
+    pointer-events: none;
+    user-select: none;
+    transition: fill 0.2s ease;
+}
+
+.sankey-value {
+    font-family: var(--font), sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    fill: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    user-select: none;
+    transition: fill 0.2s ease;
+}
+
+/* Light mode adjustments for Sankey visual elements */
+:root[data-theme="light"] .sankey-label {
+    fill: #0f172a;
+}
+:root[data-theme="light"] .sankey-value {
+    fill: #475569;
+}
+:root[data-theme="light"] .sankey-node {
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.08));
+}
+:root[data-theme="light"] .sankey-link {
+    fill-opacity: 0.45;
+}
+:root[data-theme="light"] .sankey-link:hover {
+    fill-opacity: 0.75;
+}
+

@@ -77,15 +77,11 @@ def test_ui_regression_flow():
             print("Navigating to http://127.0.0.1:5001...")
             page.goto("http://127.0.0.1:5001")
             
-            # Assert App Header, Title, Theme Toggle are visible
-            assert page.locator("#appHeader").is_visible()
-            assert page.locator(".theme-toggle").is_visible()
-            
             # 1. Login/Profile Selection (Empty State)
             print("Asserting Profile Selection screen...")
             page.wait_for_selector("#tryDummyBtn", state="visible")
             assert page.locator("#tryDummyBtn").is_visible()
-            assert page.locator("#loginSection").is_visible()
+            assert page.locator("#userSelectionScreen").is_visible()
             
             print("Capturing 01_profile_selection.png...")
             time.sleep(1.5)
@@ -105,10 +101,14 @@ def test_ui_regression_flow():
             # Wait for main page to load
             page.wait_for_selector("#portfolioDashboard", state="visible")
             
-            # Assert main layout components: dashboard, tab bar, add stock button, footer
+            # Assert App Header, Title, Theme Toggle are visible after login
+            assert page.locator("#appHeader").is_visible()
+            assert page.locator("#themeToggleBtn").is_visible()
+            
+            # Assert main layout components: dashboard, tab bar, add stock section, footer
             assert page.locator("#portfolioDashboard").is_visible()
-            assert page.locator("#tabBar").is_visible()
-            assert page.locator("#addStockBtn").is_visible()
+            assert page.locator("#tabNav").is_visible()
+            assert page.locator("#addStockSection").is_visible()
             assert page.locator("#calcFab").is_visible()
             
             print("Waiting for stock data and exchange rates to fetch...")
@@ -146,7 +146,7 @@ def test_ui_regression_flow():
             
             # Assert A3 report header and rows exist
             assert page.locator("#resultsSection").is_visible()
-            assert page.locator(".a3-row").count() > 0
+            assert page.locator("#a3TableBody tr").count() > 0
             
             # 2b. Portfolio Dashboard Metrics (post-report)
             print("Capturing 02b_dashboard_summary.png...")
@@ -163,7 +163,7 @@ def test_ui_regression_flow():
             # 4. Calculation breakdown: Validate A3
             print("Asserting and capturing 04_validate_a3.png...")
             assert page.locator("#validateA3Section").is_visible()
-            assert page.locator(".validate-row").count() > 0
+            assert page.locator("#validateA3TableBody tr").count() > 0
             page.locator("#validateA3Section").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#validateA3Section").screenshot(path=str(SCREENSHOTS_DIR / "04_validate_a3.png"))
@@ -171,7 +171,7 @@ def test_ui_regression_flow():
             # 5. ITR Capital Gains & Dividend Summary
             print("Asserting and capturing 05_capital_gains_summary.png...")
             assert page.locator("#taxYearSection").is_visible()
-            assert page.locator(".tax-summary-table").is_visible()
+            assert page.locator(".tax-block").count() > 0
             page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#taxYearSection").scroll_into_view_if_needed()
             time.sleep(0.5)
@@ -291,6 +291,17 @@ def test_ui_regression_flow():
             page.locator("#assetPieChartSection").scroll_into_view_if_needed()
             time.sleep(2.0)
             page.locator("#assetPieChartSection").screenshot(path=str(SCREENSHOTS_DIR / "10_asset_pie_chart.png"))
+            
+            # 11. NAV Flow Sankey Chart
+            print("Capturing 11_nav_flow_chart.png...")
+            assert page.locator("#navFlowSection").is_visible()
+            page.evaluate("""
+                const content = document.getElementById('navFlowContent');
+                if (content) content.classList.remove('collapsed');
+            """)
+            page.locator("#navFlowSection").scroll_into_view_if_needed()
+            time.sleep(2.0)
+            page.locator("#navFlowSection").screenshot(path=str(SCREENSHOTS_DIR / "11_nav_flow_chart.png"))
             
             print("Screenshots taken and all UI assertions passed successfully!")
             browser.close()
