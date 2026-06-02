@@ -1338,16 +1338,30 @@ function initSectionToggles() {
     const dropdown = document.getElementById("viewMenuContent");
     if (!dropdown) return;
 
+    const syncCheckboxes = () => {
+        const prefs = getSectionVisibilityPrefs();
+        dropdown.querySelectorAll(".section-toggle-item input[type=checkbox]").forEach(cb => {
+            const sectionId = cb.dataset.section;
+            cb.checked = prefs[sectionId] !== false; // default = visible
+        });
+    };
+
+    // Run sync immediately on initialization
+    syncCheckboxes();
+
+    // Hide any sections that are disabled in preferences on launch
+    const prefs = getSectionVisibilityPrefs();
+    dropdown.querySelectorAll(".section-toggle-item input[type=checkbox]").forEach(cb => {
+        const sectionId = cb.dataset.section;
+        if (prefs[sectionId] === false) {
+            document.getElementById(sectionId)?.classList.add("hidden");
+        }
+    });
+
     // Sync checkboxes from prefs each time the dropdown is about to show
     const viewMenuBtn = dropdown.closest(".dropdown");
     if (viewMenuBtn) {
-        viewMenuBtn.addEventListener("mouseenter", () => {
-            const prefs = getSectionVisibilityPrefs();
-            dropdown.querySelectorAll(".section-toggle-item input[type=checkbox]").forEach(cb => {
-                const sectionId = cb.dataset.section;
-                cb.checked = prefs[sectionId] !== false; // default = visible
-            });
-        });
+        viewMenuBtn.addEventListener("mouseenter", syncCheckboxes);
     }
 
     dropdown.querySelectorAll(".section-toggle-item input[type=checkbox]").forEach(cb => {
