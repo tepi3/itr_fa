@@ -106,6 +106,13 @@ def test_calculate_a3_rows_with_sell(sbi_cache, sample_portfolio, full_2024_sbi_
     # Sale proceeds = qty (20) * sell_price (180) * sell rate event date (2024-05-10 -> 83.35) = 20 * 180 * 83.35 = 300060
     assert row["sale_proceeds"] == 300060
 
+    # Verify actual buy TT rate and date in sale_entries breakdown for XIRR calculation
+    sales_details = row["calculation_details"]["sales"]
+    assert len(sales_details["sale_entries"]) == 1
+    sell_entry = sales_details["sale_entries"][0]
+    assert sell_entry["buy_ttbr_actual"] == 74.55
+    assert sell_entry["buy_rate_actual_date"] == "2022-01-15"
+
 @pytest.mark.unit
 def test_calculate_a3_rows_multi_stock(sbi_cache, sample_portfolio, full_2024_sbi_rates, monkeypatch):
     sbi_cache(full_2024_sbi_rates)

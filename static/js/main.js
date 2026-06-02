@@ -17,7 +17,8 @@ import {
     formatINR, 
     formatAppDate, 
     parseAppDate, 
-    initDatePicker
+    initDatePicker,
+    calculateXIRR
 } from './modules/utils.js';
 
 import { 
@@ -941,6 +942,103 @@ function setCardLoading(stockId, isLoading) {
     }
 }
 
+/**
+ * Update all sell rows in the portfolio tab to show taxable or actual G&L and XIRR.
+ */
+function updateAllSellViews() {
+    // 1. Update table headers across all stock cards based on their local view preference
+    state.portfolio.stocks.forEach(stock => {
+        const card = document.querySelector(`.stock-card[data-stock-id="${stock.id}"]`);
+        if (card) {
+            const isCardActual = (stock.sell_view_mode === "actual");
+            const glHeader = card.querySelector(".sell-gl-header");
+            if (glHeader) glHeader.textContent = isCardActual ? "G&L (Actual)" : "G&L (Taxable)";
+            const xirrHeader = card.querySelector(".sell-xirr-header");
+            if (xirrHeader) xirrHeader.textContent = isCardActual ? "XIRR (Actual)" : "XIRR (Taxable)";
+        }
+    });
+
+    if (!state.calculatedRows || state.calculatedRows.length === 0) {
+        return;
+    }
+
+    // 2. Apply G&L & XIRR badges to sell rows based on each stock's selected view mode
+    state.calculatedRows.forEach(row => {
+        const stock = state.portfolio.stocks.find(s => s.lots && s.lots.some(l => l.id === row.lot_id));
+        const isActual = (stock && stock.sell_view_mode === "actual");
+
+        if (row.calculation_details && row.calculation_details.sales && row.calculation_details.sales.sale_entries) {
+            row.calculation_details.sales.sale_entries.forEach(sellEntry => {
+                if (sellEntry.sell_id) {
+                    const tr = document.querySelector(`tr[data-sell-id="${sellEntry.sell_id}"]`);
+                    if (tr) {
+                        // Determine buyValInr for percentage calculation
+                        const buyValInrForPct = isActual
+                            ? (sellEntry.quantity * sellEntry.buy_price * sellEntry.buy_ttbr_actual)
+                            : (sellEntry.buy_cost_inr);
+
+                        // 1. Update G&L Badge
+                        const glContainer = tr.querySelector(".sell-gl-container");
+                        if (glContainer) {
+                            const usdVal = sellEntry.gain_loss_usd || 0;
+                            const inrVal = isActual ? (sellEntry.gain_loss_actual_inr || 0) : (sellEntry.gain_loss_inr || 0);
+                            const isProfit = inrVal >= 0;
+                            const cls = isProfit ? "profit" : "loss";
+                            const usdText = (usdVal >= 0 ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
+                            
+                            // Calculate percentage increase
+                            let pctText = "";
+                            if (buyValInrForPct && buyValInrForPct > 0) {
+                                const pctVal = (inrVal / buyValInrForPct) * 100;
+                                pctText = ` (${pctVal >= 0 ? "+" : ""}${pctVal.toFixed(1)}%)`;
+                            }
+                            
+                            const inrText = (inrVal >= 0 ? "+₹" : "-₹") + Math.abs(inrVal).toLocaleString("en-IN") + pctText;
+                            
+                            glContainer.innerHTML = `
+                                <div class="sell-gl-badge ${cls}" title="USD G&L: ${usdText} | INR G&L: ${inrText}">
+                                    <span>${usdText}</span>
+                                    <span style="font-size:0.65rem;opacity:0.8;">${inrText}</span>
+                                </div>
+                            `;
+                        }
+
+                        // 2. Calculate and update XIRR Badge in INR
+                        const xirrContainer = tr.querySelector(".sell-xirr-container");
+                        if (xirrContainer) {
+                            const buyD = parseAppDate(row.acquire_date_raw);
+                            const sellD = parseAppDate(sellEntry.sell_date);
+                            
+                            const buyValInr = isActual
+                                ? (sellEntry.quantity * sellEntry.buy_price * sellEntry.buy_ttbr_actual)
+                                : (sellEntry.buy_cost_inr);
+                            const sellValInr = isActual
+                                ? (sellEntry.proceeds_inr || (sellEntry.quantity * sellEntry.sell_price * sellEntry.ttbr))
+                                : ((sellEntry.buy_cost_inr || 0) + (sellEntry.gain_loss_inr || 0));
+
+                            if (buyD && sellD && buyValInr > 0 && sellValInr > 0) {
+                                const days = Math.round((sellD - buyD) / 86400000);
+                                if (days > 0) {
+                                    const xirrVal = Math.pow(sellValInr / buyValInr, 365 / days) - 1;
+                                    const xirrPct = xirrVal * 100;
+                                    const isProfit = xirrPct >= 0;
+                                    const cls = isProfit ? "profit" : "loss";
+                                    const text = (xirrPct >= 0 ? "+" : "") + xirrPct.toFixed(2) + "%";
+                                    xirrContainer.innerHTML = `<div class="sell-gl-badge ${cls}">${text}</div>`;
+                                } else {
+                                    xirrContainer.innerHTML = `<div class="sell-gl-badge loss">0.00%</div>`;
+                                }
+                            } else {
+                                xirrContainer.innerHTML = "—";
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+}
+
 // ===== Calculate all driving code =====
 async function calculateAll() {
     let hasLots = false;
@@ -1050,34 +1148,8 @@ async function calculateAll() {
             if (card) showPeakPriceBadge(card, info.price, info.date);
         });
 
-        // Apply G&L badges to sell rows
-        result.rows.forEach(row => {
-            if (row.calculation_details && row.calculation_details.sales && row.calculation_details.sales.sale_entries) {
-                row.calculation_details.sales.sale_entries.forEach(sellEntry => {
-                    if (sellEntry.sell_id) {
-                        const tr = document.querySelector(`tr[data-sell-id="${sellEntry.sell_id}"]`);
-                        if (tr) {
-                            const glContainer = tr.querySelector(".sell-gl-container");
-                            if (glContainer) {
-                                const usdVal = sellEntry.gain_loss_usd || 0;
-                                const inrVal = sellEntry.gain_loss_inr || 0;
-                                const isProfit = inrVal >= 0;
-                                const cls = isProfit ? "profit" : "loss";
-                                const usdText = (usdVal >= 0 ? "+$" : "-$") + Math.abs(usdVal).toFixed(2);
-                                const inrText = (inrVal >= 0 ? "+₹" : "-₹") + Math.abs(inrVal).toLocaleString("en-IN");
-                                
-                                glContainer.innerHTML = `
-                                    <div class="sell-gl-badge ${cls}" title="USD G&L: ${usdText} | INR G&L: ${inrText}">
-                                        <span>${usdText}</span>
-                                        <span style="font-size:0.65rem;opacity:0.8;">${inrText}</span>
-                                    </div>
-                                `;
-                            }
-                        }
-                    }
-                });
-            }
-        });
+        // Apply G&L and XIRR badges to sell rows
+        updateAllSellViews();
 
         await renderAssetPieChart(result.rows);
 
@@ -2315,6 +2387,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
     
+
+
     // Bind programmatic button listeners
     safeAddListener("lookupBtn", "click", lookupStock);
     const tickerInput = document.getElementById("tickerInput");
@@ -2596,6 +2670,10 @@ window.addEventListener("portfolio-state-change", (e) => {
         }
         updateCalcButtonVisibility(state.portfolio.stocks.length);
         updateDashboard();
+        updateAllSellViews();
+    } else if (type === "sell-view-mode-change") {
+        updateAllSellViews();
+        markDirty();
     } else if (type === "history-change") {
         updateUndoRedoButtons();
         const panel = document.getElementById("historyPanel");

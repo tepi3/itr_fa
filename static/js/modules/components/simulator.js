@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { parseAppDate, formatAppDate, formatINR, initDatePicker } from '../utils.js';
+import { parseAppDate, formatAppDate, formatINR, initDatePicker, calculateXIRR } from '../utils.js';
 import { apiPost, apiGet } from '../api.js';
 import { showToast, showLoading, hideLoading } from '../ui-utils.js';
 import { LIVE_BTN_HTML, CROSS_SVG, FETCH_LOADING_HTML } from '../constants.js';
@@ -809,6 +809,38 @@ export function shRenderResults(data) {
         totalProceedsActualEl.textContent = data.total_proceeds_actual_inr != null ? "₹" + formatINR(data.total_proceeds_actual_inr) : "—";
     }
 
+    // Calculate Overall XIRR (Actual) in INR
+    const cashFlows = [];
+    data.sells.forEach(s => {
+        const buyD = parseAppDate(s.buy_date);
+        const sellD = parseAppDate(s.sell_date);
+        const buyRate = s.ttbr_buy_actual;
+        const sellRate = s.ttbr_sell_actual;
+        
+        if (buyD && sellD && buyRate && sellRate && s.buy_price && s.sell_price) {
+            const buyValInr = s.sell_qty * s.buy_price * buyRate;
+            const sellValInr = s.sell_qty * s.sell_price * sellRate;
+            if (buyValInr > 0 && sellValInr > 0) {
+                cashFlows.push({ date: buyD, amount: -buyValInr });
+                cashFlows.push({ date: sellD, amount: sellValInr });
+            }
+        }
+    });
+
+    const overallXirrEl = document.getElementById("shOverallXIRR");
+    if (overallXirrEl) {
+        const overallXirr = calculateXIRR(cashFlows);
+        if (overallXirr !== null) {
+            const pct = overallXirr * 100;
+            const isProfit = pct >= 0;
+            overallXirrEl.textContent = (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%";
+            overallXirrEl.style.color = isProfit ? "var(--success)" : "var(--danger)";
+        } else {
+            overallXirrEl.textContent = "—";
+            overallXirrEl.style.color = "var(--text-muted)";
+        }
+    }
+
     // ── Per-sell table ───────────────────────────────────────────────────
     const tbody = document.getElementById("shResultsBody");
     if (!tbody) return;
@@ -834,6 +866,31 @@ export function shRenderResults(data) {
         const gainActualStr = s.gain_actual_inr == null ? "—" :
             (s.gain_actual_inr >= 0 ? "" : "−") + "₹" + formatINR(Math.abs(s.gain_actual_inr));
 
+        // Per-sell XIRR Calculation
+        const buyD = parseAppDate(s.buy_date);
+        const sellD = parseAppDate(s.sell_date);
+        const buyRate = s.ttbr_buy_actual;
+        const sellRate = s.ttbr_sell_actual;
+        let xirrText = "—";
+        let xirrColor = "var(--text-muted)";
+        
+        if (buyD && sellD && buyRate && sellRate && s.buy_price && s.sell_price) {
+            const days = Math.round((sellD - buyD) / 86400000);
+            if (days > 0) {
+                const buyValInr = s.sell_qty * s.buy_price * buyRate;
+                const sellValInr = s.sell_qty * s.sell_price * sellRate;
+                if (buyValInr > 0) {
+                    const xirrVal = Math.pow(sellValInr / buyValInr, 365 / days) - 1;
+                    const xirrPct = xirrVal * 100;
+                    xirrColor = xirrPct >= 0 ? "var(--success)" : "var(--danger)";
+                    xirrText = (xirrPct >= 0 ? "+" : "") + xirrPct.toFixed(2) + "%";
+                }
+            } else {
+                xirrColor = "var(--danger)";
+                xirrText = "0.00%";
+            }
+        }
+
         const cat = s.category ? catMeta[s.category] : null;
         const catBadge = cat
             ? `<span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.71rem;font-weight:700;background:${cat.color}22;color:${cat.color};border:1px solid ${cat.color}44">${cat.label}</span>`
@@ -848,6 +905,7 @@ export function shRenderResults(data) {
             <td>${s.sell_proceeds_actual_inr != null ? "₹" + formatINR(s.sell_proceeds_actual_inr) : "—"}</td>
             <td style="color:${gainColor};font-weight:700;">${gainStr}</td>
             <td style="color:${gainActualColor};font-weight:700;">${gainActualStr}</td>
+            <td style="color:${xirrColor};font-weight:700;white-space:nowrap;">${xirrText}</td>
             <td>${catBadge}</td>
             <td style="color:var(--text-muted);font-size:0.8rem;">${s.ttbr_sell != null ? "₹" + s.ttbr_sell + "<br><span style='font-size:0.7rem;'>" + (s.ttbr_sell_date || "") + "</span>" : "—"}</td>
             <td style="color:var(--text-muted);font-size:0.8rem;">${s.ttbr_sell_actual != null ? "₹" + s.ttbr_sell_actual + "<br><span style='font-size:0.7rem;'>" + (s.ttbr_sell_actual_date || "") + "</span>" : "—"}</td>

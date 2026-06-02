@@ -421,6 +421,7 @@ def calculate_sale_proceeds(
     buy_price = float(lot.get("buy_price", 0))
     buy_date = _parse_date(lot["buy_date"])
     buy_rate, buy_rate_date, _, buy_is_lookback, buy_error = _get_rate_value(buy_date, sbi_overrides, use_event_date=False, mode=mode)
+    buy_rate_actual, buy_rate_actual_date, _, _, _ = _get_rate_value(buy_date, sbi_overrides, use_event_date=True, mode=mode)
 
     for sell in lot.get("sells", []):
         sell_date = _parse_date(sell["sell_date"])
@@ -466,6 +467,9 @@ def calculate_sale_proceeds(
         sell_proceeds_tax_inr = round(sell_price * sell_qty * sell_rate_rule115) if sell_rate_rule115 else None
         pl_inr = round(sell_proceeds_tax_inr - buy_cost_inr) if (buy_cost_inr is not None and sell_proceeds_tax_inr is not None) else None
 
+        buy_cost_actual_inr = round(buy_price * sell_qty * buy_rate_actual) if buy_rate_actual else None
+        gain_loss_actual_inr = round(proceeds_inr - buy_cost_actual_inr) if (buy_cost_actual_inr is not None) else None
+
         sale_entries.append({
             "sell_id": sell_id,
             "sell_date": sell["sell_date"],
@@ -481,8 +485,11 @@ def calculate_sale_proceeds(
             "buy_cost_inr": buy_cost_inr,
             "gain_loss_usd": pl_usd,
             "gain_loss_inr": pl_inr,
+            "gain_loss_actual_inr": gain_loss_actual_inr,
             "buy_ttbr": buy_rate,
             "buy_rate_date": buy_rate_date,
+            "buy_ttbr_actual": buy_rate_actual,
+            "buy_rate_actual_date": buy_rate_actual_date,
         })
 
     return {

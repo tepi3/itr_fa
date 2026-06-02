@@ -462,9 +462,11 @@
         </section>
 
         <!-- Stock Filter Bar -->
-        <div id="stockFilterBar" class="stock-filter-bar hidden">
-            <input type="text" id="stockFilterInput" placeholder="Filter stocks by ticker or name…">
-            <span id="stockFilterCount" class="stock-filter-count"></span>
+        <div id="stockFilterBar" class="stock-filter-bar hidden" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 280px;">
+                <input type="text" id="stockFilterInput" placeholder="Filter stocks by ticker or name…" style="max-width: 350px;">
+                <span id="stockFilterCount" class="stock-filter-count"></span>
+            </div>
         </div>
 
         <!-- Stock Cards Container -->
@@ -926,6 +928,11 @@
                         <span id="shTotalProceedsActual" class="value">₹0</span>
                         <span class="rate-info" style="margin-top:4px;">Calculated using latest available SBI TT rate on actual sell dates.</span>
                     </div>
+                    <div class="sh-proceeds-card actual" style="border-color: rgba(99, 102, 241, 0.25); background: rgba(99, 102, 241, 0.02);">
+                        <span class="label">Overall XIRR (Actual)</span>
+                        <span id="shOverallXIRR" class="value" style="color: var(--accent);">—</span>
+                        <span class="rate-info" style="margin-top:4px;">Annualized return in INR combining all simulated sells using event date rates.</span>
+                    </div>
                 </div>
 
                 <!-- Per-sell breakdown -->
@@ -942,6 +949,7 @@
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Proceeds (Actual) ₹</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Gain/Loss (Tax) ₹</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Gain/Loss (Actual) ₹</th>
+                                <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">XIRR (Actual)</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">Type</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR (Tax) ₹</th>
                                 <th style="padding:8px 10px;background:var(--bg-input);color:var(--text-muted);font-size:0.75rem;font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;">TTBR (Actual) ₹</th>
@@ -1119,9 +1127,15 @@
     
                     <!-- Sells Section -->
                     <div class="sells-section">
-                        <div class="section-header">
+                        <div class="section-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                             <h3>Sell Transactions</h3>
-                            <button class="btn btn-sm btn-primary add-sell-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Sell</button>
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <div class="sh-alloc-toggle-group stock-sell-view-toggle" style="display: flex; width: auto; margin-bottom: 0; padding: 2px; height: 26px; align-items: center; border-radius: var(--radius-sm);">
+                                    <button type="button" class="sh-alloc-toggle-btn toggle-tax active" style="font-size: 0.7rem; padding: 2px 8px; height: 20px; border-radius: var(--radius-xs) 0 0 var(--radius-xs); line-height: 1.2;" title="Show taxable G&L and XIRR (Rule 115)">Taxable</button>
+                                    <button type="button" class="sh-alloc-toggle-btn toggle-actual" style="font-size: 0.7rem; padding: 2px 8px; height: 20px; border-radius: 0 var(--radius-xs) var(--radius-xs) 0; line-height: 1.2;" title="Show actual G&L and XIRR (Event Date)">Actual</button>
+                                </div>
+                                <button class="btn btn-sm btn-primary add-sell-btn"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add Sell</button>
+                            </div>
                         </div>
                         <div class="table-wrapper">
                             <table class="sells-table">
@@ -1132,7 +1146,8 @@
                                         <th>Sell Date</th>
                                         <th>Quantity</th>
                                         <th class="sell-price-header">Sell Price ($)</th>
-                                        <th>G&amp;L (Taxable)</th>
+                                        <th class="sell-gl-header">G&amp;L (Taxable)</th>
+                                        <th class="sell-xirr-header">XIRR (Taxable)</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>

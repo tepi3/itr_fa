@@ -1,4 +1,4 @@
-import { state, pushUndoSnapshot, markDirty } from '../state.js';
+import { state, pushUndoSnapshot, markDirty, dispatchStateChange } from '../state.js';
 import { apiGet, apiPost } from '../api.js';
 import { generateId, parseAppDate, formatAppDate, initDatePicker } from '../utils.js';
 import { 
@@ -329,6 +329,38 @@ export function renderStockCard(stock) {
     // Add div button
     card.querySelector(".add-div-btn").addEventListener("click", () => addDividendRow(card, stock));
 
+    // Setup and restore sells view mode buttons (Taxable vs Actual) per stock
+    const isActual = (stock.sell_view_mode === "actual");
+    const toggleTax = card.querySelector(".stock-sell-view-toggle .toggle-tax");
+    const toggleActual = card.querySelector(".stock-sell-view-toggle .toggle-actual");
+    if (toggleTax && toggleActual) {
+        if (isActual) {
+            toggleActual.classList.add("active");
+            toggleTax.classList.remove("active");
+        } else {
+            toggleTax.classList.add("active");
+            toggleActual.classList.remove("active");
+        }
+
+        toggleTax.addEventListener("click", () => {
+            if (stock.sell_view_mode !== "taxable") {
+                toggleTax.classList.add("active");
+                toggleActual.classList.remove("active");
+                stock.sell_view_mode = "taxable";
+                dispatchStateChange("sell-view-mode-change");
+            }
+        });
+
+        toggleActual.addEventListener("click", () => {
+            if (stock.sell_view_mode !== "actual") {
+                toggleActual.classList.add("active");
+                toggleTax.classList.remove("active");
+                stock.sell_view_mode = "actual";
+                dispatchStateChange("sell-view-mode-change");
+            }
+        });
+    }
+
     // Fetch dividends button
     card.querySelector(".fetch-dividends-btn").addEventListener("click", () => fetchDividendsForStock(card, stock));
 
@@ -528,6 +560,7 @@ export function renderSellRow(card, stock, lot, sell) {
         <td><input type="number" class="sell-qty" value="${sell.quantity}" step="any" min="0" placeholder="0"></td>
         <td><input type="number" class="sell-price" value="${sell.sell_price}" step="0.01" min="0" placeholder="0.00"></td>
         <td class="sell-gl-container"></td>
+        <td class="sell-xirr-container">—</td>
         <td><button class="btn btn-sm btn-danger remove-sell-btn">${CROSS_SVG}</button></td>
     `;
 
@@ -570,6 +603,8 @@ export function renderSellRow(card, stock, lot, sell) {
             // Clear G&L as it needs recalculation
             const glContainer = tr.querySelector(".sell-gl-container");
             if (glContainer) glContainer.innerHTML = "";
+            const xirrContainer = tr.querySelector(".sell-xirr-container");
+            if (xirrContainer) xirrContainer.innerHTML = "—";
 
             validateSellQuantities(stock, newLot);
         }
