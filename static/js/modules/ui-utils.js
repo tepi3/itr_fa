@@ -387,4 +387,30 @@ export function showConfirm(message, confirmLabel = "OK") {
     });
 }
 
+// ===== Section Visibility Toggles =====
+const SECTION_VIS_KEY = "fa_desk_section_visibility";
 
+export function showSectionIfVisible(id) {
+    try {
+        const prefs = JSON.parse(localStorage.getItem(SECTION_VIS_KEY) || "{}");
+        if (prefs[id] === false) return; // user hid this section — don't show it
+    } catch (e) {}
+    document.getElementById(id)?.classList.remove("hidden");
+}
+
+export function toggleSectionVisibility(sectionId, visible) {
+    try {
+        const prefs = JSON.parse(localStorage.getItem(SECTION_VIS_KEY) || "{}");
+        prefs[sectionId] = visible;
+        localStorage.setItem(SECTION_VIS_KEY, JSON.stringify(prefs));
+    } catch (e) {}
+    document.getElementById(sectionId)?.classList.toggle("hidden", !visible);
+}
+
+export function getSectionVisibilityPrefs() {
+    try {
+        return JSON.parse(localStorage.getItem(SECTION_VIS_KEY) || "{}");
+    } catch (e) {
+        return {};
+    }
+}

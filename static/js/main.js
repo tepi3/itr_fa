@@ -29,7 +29,10 @@ import {
     updateCalcButtonVisibility, 
     saveFileRobustly,
     startSmoothProgress, 
-    stopSmoothProgress 
+    stopSmoothProgress,
+    showSectionIfVisible,
+    toggleSectionVisibility,
+    getSectionVisibilityPrefs
 } from './modules/ui-utils.js';
 
 import { 
@@ -1109,7 +1112,7 @@ async function calculateAll() {
 
             const hasDividends = Object.values(stockTotals).some(t => t > 0);
             if (hasDividends) {
-                summarySection.classList.remove("hidden");
+                showSectionIfVisible(summarySection.id);
                 Object.entries(stockTotals).forEach(([entity, total]) => {
                     if (total === 0) return;
                     const tr = document.createElement("tr");
@@ -1155,15 +1158,18 @@ async function calculateAll() {
         await renderAssetPieChart(result.rows);
         await renderNavFlowSankey(result.rows);
 
-        document.getElementById("resultsSection").classList.remove("hidden");
-        document.getElementById("sbiRatesSection").classList.remove("hidden");
+        showSectionIfVisible("resultsSection");
+        showSectionIfVisible("sbiRatesSection");
 
-        const sbiContent = document.getElementById("sbiRatesContent");
-        if (sbiContent && !sbiContent.classList.contains("collapsed")) {
-            sbiContent.classList.add("collapsed");
-            const sbiIcon = sbiContent.previousElementSibling.querySelector(".toggle-icon");
-            if (sbiIcon) sbiIcon.style.transform = "rotate(-90deg)";
-        }
+        // Collapse auxiliary audit sections by default
+        ["sbiRatesContent", "validateA3Content", "validateTaxContent", "validatePeakContent"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !el.classList.contains("collapsed")) {
+                el.classList.add("collapsed");
+                const icon = el.previousElementSibling?.querySelector(".toggle-icon");
+                if (icon) icon.style.transform = "rotate(-90deg)";
+            }
+        });
 
         await fetchTaxYearSummary();
 
@@ -1204,8 +1210,33 @@ async function calculateAll() {
     }
 }
 
+// ===== Section Visibility Toggles =====
+function initSectionToggles() {
+    const dropdown = document.getElementById("viewMenuContent");
+    if (!dropdown) return;
+
+    // Sync checkboxes from prefs each time the dropdown is about to show
+    const viewMenuBtn = dropdown.closest(".dropdown");
+    if (viewMenuBtn) {
+        viewMenuBtn.addEventListener("mouseenter", () => {
+            const prefs = getSectionVisibilityPrefs();
+            dropdown.querySelectorAll(".section-toggle-item input[type=checkbox]").forEach(cb => {
+                const sectionId = cb.dataset.section;
+                cb.checked = prefs[sectionId] !== false; // default = visible
+            });
+        });
+    }
+
+    dropdown.querySelectorAll(".section-toggle-item input[type=checkbox]").forEach(cb => {
+        cb.addEventListener("change", () => {
+            toggleSectionVisibility(cb.dataset.section, cb.checked);
+        });
+    });
+}
+
 // ===== Quick Jump =====
 function initQuickJump() {
+
     const nav = document.getElementById("quickJumpNav");
     if (!nav) return;
 
@@ -1914,10 +1945,7 @@ async function switchTab(tab) {
                 "assetPieChartSection", "validateA3Section", "validateTaxSection",
                 "validatePeakSection", "navFlowSection"
             ];
-            calculatedEls.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.remove("hidden");
-            });
+            calculatedEls.forEach(id => showSectionIfVisible(id));
         }
     }
 
@@ -2561,6 +2589,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     initSellHelper();
     initTutorial();
     initQuickJump();
+    initSectionToggles();
     restoreTheme();
     restoreDensity();
     restoreSbiTTMode();

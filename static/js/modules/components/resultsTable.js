@@ -4,7 +4,7 @@ import { formatINR, formatAppDate, parseAppDate } from '../utils.js';
 import {
     showToast, showLoading, hideLoading, toggleSection,
     showCalcTooltip, hideCalcTooltip, buildTooltipHTML, mapCalcDetailsToTooltip,
-    saveFileRobustly, showConfirm
+    saveFileRobustly, showConfirm, showSectionIfVisible
 } from '../ui-utils.js';
 import {
     EDIT_PENCIL_SVG, UNLOCK_SVG, LOCK_SVG, SAVE_BTN_HTML,
@@ -159,7 +159,7 @@ export function renderResultsTable(rows) {
 
     flushSubtotal(); // Flush last stock
 
-    document.getElementById("resultsSection").classList.remove("hidden");
+    showSectionIfVisible("resultsSection");
     document.getElementById("resultsContent").classList.remove("collapsed");
 
     // Also render validation tables
@@ -183,7 +183,7 @@ export function renderValidationTable(rows) {
     if (!tbody || !section) return;
 
     tbody.innerHTML = "";
-    section.classList.remove("hidden");
+    showSectionIfVisible(section.id);
 
     rows.forEach(row => {
         const details = row.calculation_details || {};
@@ -389,7 +389,7 @@ export function renderPeakValidationTable(rows) {
     });
 
     if (hasAnyData) {
-        section.classList.remove("hidden");
+        showSectionIfVisible(section.id);
     } else {
         section.classList.add("hidden");
     }
@@ -472,7 +472,7 @@ export function renderTaxValidationTable(taxYears) {
         section.classList.add("hidden");
         return;
     }
-    section.classList.remove("hidden");
+    showSectionIfVisible(section.id);
 
     // Sort: Tax Year (desc) -> Ticker (asc) -> Category (asc) -> Quarter (asc) -> Date (asc)
     const categoryOrder = { "ltcg": 1, "ltcl": 2, "stcg": 3, "stcl": 4, "dividends": 5 };
@@ -1262,7 +1262,7 @@ export async function fetchTaxYearSummary() {
             renderTaxYearSummary(result.tax_years);
             renderTaxValidationTable(result.tax_years);
             await collectSbiRates(state.calculatedRows, result.tax_years);
-            document.getElementById("taxYearSection").classList.remove("hidden");
+            showSectionIfVisible("taxYearSection");
         } else {
             console.warn("Tax year summary failed:", result.error);
         }
