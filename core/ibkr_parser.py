@@ -63,6 +63,8 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
     qty_idx    = find_col_index(headers, ["quantity", "qty"])
     price_idx  = find_col_index(headers, ["t. price", "price", "execution price"])
     basis_idx  = find_col_index(headers, ["basis"])
+    proceeds_idx = find_col_index(headers, ["proceeds"])
+    comm_idx   = find_col_index(headers, ["comm/fee", "commission"])
 
     if date_idx == -1 or symbol_idx == -1 or qty_idx == -1 or price_idx == -1:
         raise ValueError("Missing required columns in IBKR Trades CSV section.")
@@ -71,7 +73,7 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
     skipped_count = 0
 
     for row in rows[header_idx+1:]:
-        if len(row) <= max(date_idx, symbol_idx, qty_idx, price_idx):
+        if len(row) <= max(date_idx, symbol_idx, qty_idx, price_idx, proceeds_idx, comm_idx):
             continue
             
         if row[0] != "Trades" or row[1] != "Data":
@@ -104,24 +106,30 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
 
         try:
             qty_raw = float(str(row[qty_idx]).replace(",", ""))
-            # Skip any sell transactions (qty < 0) or zero transactions to avoid incorrect matching
-            if qty_raw <= 0:
+            if qty_raw == 0:
                 continue
-            qty = tax_round(qty_raw, 6)
+            
+            qty = tax_round(abs(qty_raw), 6)
+            t_type = "BUY" if qty_raw > 0 else "SELL"
 
-            # Use Basis (Total Cost including commission) if available, otherwise fallback to execution price
-            if basis_idx != -1:
+            # Use Net Proceeds (Proceeds + Commission) to get the net price per share
+            if proceeds_idx != -1 and comm_idx != -1:
+                proceeds_raw = float(str(row[proceeds_idx]).replace(",", ""))
+                comm_raw = float(str(row[comm_idx]).replace(",", ""))
+                # Net price = |Total Proceeds + Total Commission| / Quantity
+                price = tax_round(abs(proceeds_raw + comm_raw) / abs(qty_raw), 2)
+            elif basis_idx != -1 and t_type == "BUY":
+                # Fallback for BUYS only: Basis is total cost
                 basis_raw = float(str(row[basis_idx]).replace(",", ""))
-                # Basis is total cost, we need per-share price. 
-                # Note: IBKR reports Basis as a positive number for BUYS in most statements, but we take abs() to be safe.
-                price = tax_round(abs(basis_raw) / qty_raw, 2)
+                price = tax_round(abs(basis_raw) / abs(qty_raw), 2)
             else:
+                # Absolute fallback to execution price
                 price = tax_round(float(str(row[price_idx]).replace("$", "").replace(",", "")), 2)
         except (ValueError, TypeError, ZeroDivisionError):
             continue
 
         transactions.append({
-            "type": "BUY",
+            "type": t_type,
             "date": date_val,
             "symbol": sym,
             "qty": qty,

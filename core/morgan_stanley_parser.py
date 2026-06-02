@@ -236,6 +236,7 @@ def _parse_rsu_sales(ws, target_year: int, ticker: str):
     sale_date_idx = col_map.get("sale date")
     acq_date_idx = col_map.get("acquisition date")
     sale_price_idx = col_map.get("sale price")
+    sale_net_proceeds_idx = col_map.get("sale net proceeds")
     sale_qty_idx = col_map.get("sale quantity")
     cost_basis_idx = col_map.get("cost basis per share")
 
@@ -265,7 +266,14 @@ def _parse_rsu_sales(ws, target_year: int, ticker: str):
             continue
 
         qty = _clean_float(row[sale_qty_idx])
-        sell_price = _clean_float(row[sale_price_idx])
+        
+        # Use Net Proceeds if available, otherwise fallback to Sale Price
+        if sale_net_proceeds_idx is not None:
+            net_proceeds = _clean_float(row[sale_net_proceeds_idx])
+            sell_price = tax_round(net_proceeds / qty, 2)
+        else:
+            sell_price = _clean_float(row[sale_price_idx])
+            
         buy_price = _clean_float(row[cost_basis_idx]) if cost_basis_idx is not None else 0.0
 
         if qty <= 0:
