@@ -1,5 +1,5 @@
 """
-Tests for the Schwab Share Sale Cost Basis Report parser.
+Tests for the Morgan Stanley Share Sale Cost Basis Report parser.
 
 Tests cover:
 - RSU vesting (Releases Report) → BUY transactions
@@ -18,8 +18,8 @@ from pathlib import Path
 
 import openpyxl
 
-from core.schwab_parser import (
-    process_schwab_file,
+from core.morgan_stanley_parser import (
+    process_morgan_stanley_file,
     parse_date,
     _clean_float,
     _get_year,
@@ -124,7 +124,7 @@ class TestReleasesReport:
              "Withhold shares", 46.0, 67.0, 21.0, 0.0, 4649.8, 1457.4]
         ]
         wb_bytes = self._build_releases_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         txs = result["transactions"]
         buys = [t for t in txs if t["type"] == "BUY"]
@@ -142,7 +142,7 @@ class TestReleasesReport:
              "Withhold shares", 11.0, 17.0, 6.0, 0.0, 9217.57, 3253.26]
         ]
         wb_bytes = self._build_releases_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         buys = [t for t in result["transactions"] if t["type"] == "BUY"]
         assert len(buys) == 0
@@ -159,7 +159,7 @@ class TestReleasesReport:
              "Withhold", 9.0, 14.0, 5.0, 0.0, 0, 0],
         ]
         wb_bytes = self._build_releases_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         buys = [t for t in result["transactions"] if t["type"] == "BUY"]
         assert len(buys) == 2
@@ -191,7 +191,7 @@ class TestEsppPurchase:
              78.63, 14.48, 1138.62]
         ]
         wb_bytes = self._build_espp_purchase_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         buys = [t for t in result["transactions"] if t["type"] == "BUY"]
         assert len(buys) == 1
@@ -208,7 +208,7 @@ class TestEsppPurchase:
              92.77, 13.042, 1209.99]
         ]
         wb_bytes = self._build_espp_purchase_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         buys = [t for t in result["transactions"] if t["type"] == "BUY"]
         assert len(buys) == 0
@@ -238,7 +238,7 @@ class TestRsuSales:
              253.84, 11676.64, 46.0, 69.4, 3192.4, 8484.24]
         ]
         wb_bytes = self._build_rsu_sales_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         sells = [t for t in result["transactions"] if t["type"] == "SELL"]
         assert len(sells) == 1
@@ -256,7 +256,7 @@ class TestRsuSales:
              100.0, 4600.0, 46.0, 69.4, 3192.4, 0]
         ]
         wb_bytes = self._build_rsu_sales_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         sells = [t for t in result["transactions"] if t["type"] == "SELL"]
         assert len(sells) == 0
@@ -269,7 +269,7 @@ class TestRsuSales:
              300.0, 13800.0, 46.0, 200.0, 9200.0, 0]
         ]
         wb_bytes = self._build_rsu_sales_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         sells = [t for t in result["transactions"] if t["type"] == "SELL"]
         assert len(sells) == 0
@@ -300,7 +300,7 @@ class TestEsppSales:
              7.0, 163.592857, 1145.149999, 590.259999]
         ]
         wb_bytes = self._build_espp_sales_wb(data)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         
         sells = [t for t in result["transactions"] if t["type"] == "SELL"]
         assert len(sells) == 1
@@ -327,7 +327,7 @@ class TestCompanyNameExtraction:
             ]
         }
         wb_bytes = _build_workbook(sheets)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
         assert result["company_name"] == "TestCorp, Inc"
 
 
@@ -392,7 +392,7 @@ class TestFullWorkbook:
         }
 
         wb_bytes = _build_workbook(sheets)
-        result = process_schwab_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="ACME")
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="ACME")
 
         txs = result["transactions"]
         buys = [t for t in txs if t["type"] == "BUY"]
@@ -428,11 +428,11 @@ FIXTURE_FILE = Path(__file__).parent.parent / "Share Sale Cost Basis Report.xlsx
 @pytest.mark.skipif(not FIXTURE_FILE.exists(), reason="Fixture file not present")
 class TestRealFixtureFile:
     def test_parse_real_file_cy2025(self):
-        """Parse the actual Schwab report for CY2025."""
+        """Parse the actual Morgan Stanley report for CY2025."""
         with open(FIXTURE_FILE, "rb") as f:
             data = f.read()
 
-        result = process_schwab_file(data, "Share Sale Cost Basis Report.xlsx",
+        result = process_morgan_stanley_file(data, "Share Sale Cost Basis Report.xlsx",
                                      target_year=2025, ticker_symbol="MU")
 
         txs = result["transactions"]
@@ -469,7 +469,7 @@ class TestRealFixtureFile:
         with open(FIXTURE_FILE, "rb") as f:
             data = f.read()
 
-        result = process_schwab_file(data, "Share Sale Cost Basis Report.xlsx",
+        result = process_morgan_stanley_file(data, "Share Sale Cost Basis Report.xlsx",
                                      target_year=2025, ticker_symbol="MU")
 
         txs = result["transactions"]

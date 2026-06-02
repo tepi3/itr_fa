@@ -353,12 +353,12 @@ def _parse_espp_sales(ws, target_year: int, ticker: str):
 
 
 # --- Entry Point ---
-def process_schwab_file(file_bytes: bytes, filename: str,
+def process_morgan_stanley_file(file_bytes: bytes, filename: str,
                         target_year: int = 2025,
                         ticker_symbol: str = "",
                         company_info_map: dict = None) -> dict:
     """
-    Parse a Schwab Share Sale Cost Basis Report XLSX and extract transactions.
+    Parse a Morgan Stanley Share Sale Cost Basis Report XLSX and extract transactions.
     
     The file has four sheets:
       - Releases Report  → RSU vesting events (BUY)
@@ -438,7 +438,7 @@ def process_schwab_file(file_bytes: bytes, filename: str,
     # Sort all transactions chronologically
     all_transactions.sort(key=lambda tx: parse_sort_date(tx["date"]))
 
-    logger.info(f"Schwab extraction: {len(all_transactions)} transactions found, "
+    logger.info(f"Morgan Stanley extraction: {len(all_transactions)} transactions found, "
                 f"{total_skipped} skipped, ticker={ticker}")
 
     return {

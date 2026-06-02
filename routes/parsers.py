@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from core.utils import get_user_dir
 from core.etrade_parser import process_etrade_files
 from core.ibkr_parser import process_ibkr_file
-from core.schwab_parser import process_schwab_file
+from core.morgan_stanley_parser import process_morgan_stanley_file
 from core.stock_data import get_company_info
 from core.smart_import import group_and_deduplicate_transactions
 
@@ -163,9 +163,9 @@ def api_upload_ibkr():
         logger.exception("IBKR upload error")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@parsers_bp.route("/api/upload-schwab", methods=["POST"])
-def api_upload_schwab():
-    """Upload and parse a MS at Work Share Sale Cost Basis Report (.xlsx)."""
+@parsers_bp.route("/api/upload-morgan-stanley", methods=["POST"])
+def api_upload_morgan_stanley():
+    """Upload and parse a Morgan Stanley Share Sale Cost Basis Report (.xlsx)."""
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
     file = request.files["file"]
@@ -184,7 +184,7 @@ def api_upload_schwab():
 
     try:
         file_bytes = file.read()
-        result = process_schwab_file(
+        result = process_morgan_stanley_file(
             file_bytes, file.filename,
             target_year=int(calendar_year),
             ticker_symbol=ticker
@@ -198,5 +198,5 @@ def api_upload_schwab():
             "company_name": result.get("company_name", "")
         })
     except Exception as e:
-        logger.exception("MS at Work upload error")
+        logger.exception("Morgan Stanley upload error")
         return jsonify({"success": False, "error": str(e)}), 500

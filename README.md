@@ -35,7 +35,8 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 - **Auto stock lookup** — Enter a ticker symbol, company info auto-filled via Yahoo Finance.
 - **E-Trade Import** — Parse Holdings reports (Expanded "By Status" View) or Gain & Loss `.xlsx` exports.
 - **IBKR Import** — Upload Interactive Brokers CSV transaction history with automatic FIFO sells.
-- **FIFO Sells** — Supports partial sells and fractional shares.
+- **Morgan Stanley Import** — Upload MS at Work "Share Sale Cost Basis Report" (.xlsx) for RSU and ESPP history.
+- **Tax-Lot Matching** — Supports partial sells and fractional shares.
 - **Multi-User Profiles** — Separate portfolios per individual with dedicated local storage.
 - **Manual Override** — Click any calculated cell to adjust values.
 
@@ -48,6 +49,7 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 - **Calendar Editor** — Sunday-aligned grid for daily rates since 2010; inline edits sync across the app.
 - **Fetch Modes** — *Overwrite All* or *Only Add Missing* (preserves manual overrides).
 - **Import/Export** — Backup and restore rates as JSON.
+- **RBI Reference Rates** — Fetch and import official RBI daily exchange rates for secondary reference and audit verification.
 - **Database Purge** — *Clear SBI TT Overrides* restores defaults, keeping only official SBI TT rates.
 
 ### Dividends
@@ -131,12 +133,8 @@ Select or create a profile, choose your calendar year, or try the Demo Profile.
 ![Profile Selection](docs/screenshots/01_profile_selection.png)
 
 ### 2. Portfolio Dashboard & Stock Cards
-Track foreign assets with live prices and dynamic stat cards. Expand any stock to view acquisition lots, sells, and dividends.
+Track foreign assets with live prices and dynamic stat cards. Expand any stock to view acquisition lots, sells, and dividends. After generating the FA Report, dashboard metrics update with calculated values — total assets at cost, market value, dividends, and unrealized gains/losses.
 ![Portfolio Dashboard](docs/screenshots/02_portfolio_dashboard.png)
-![Expanded Stock Cards](docs/screenshots/02c_stock_cards.png)
-
-After generating the FA Report, dashboard metrics update with calculated values — total assets at cost, market value, dividends, and unrealized gains/losses.
-![Portfolio Metrics](docs/screenshots/02b_dashboard_summary.png)
 
 ### 3. Schedule FA Section A3 Report
 All values converted to ₹ using exact date-of-event SBI TT buying rates.

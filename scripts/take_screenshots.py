@@ -108,10 +108,6 @@ def run_screenshot_flow():
             page.locator(".toggle-details-btn").first.click()
             time.sleep(1.5) # Let expansion transition complete
             
-            # Screenshot of the active stock cards (before report generation)
-            print("Capturing 02c_stock_cards.png...")
-            page.locator("#stockCards").screenshot(path=str(SCREENSHOTS_DIR / "02c_stock_cards.png"))
-            
             # 3. Generate FA Report
             print("Generating FA Report Section A3...")
             page.click("#calcFab")
@@ -125,12 +121,6 @@ def run_screenshot_flow():
             page.evaluate("window.scrollTo(0, 0)")
             time.sleep(0.5)
             page.screenshot(path=str(SCREENSHOTS_DIR / "02_portfolio_dashboard.png"))
-            
-            # 2b. Portfolio Dashboard Metrics (post-report — shows updated values)
-            print("Capturing 02b_dashboard_summary.png (post-report)...")
-            page.locator("#portfolioDashboard").scroll_into_view_if_needed()
-            time.sleep(0.5)
-            page.locator("#portfolioDashboard").screenshot(path=str(SCREENSHOTS_DIR / "02b_dashboard_summary.png"))
             
             # Screenshot FA Report Section A3
             print("Capturing 03_fa_report_preview.png...")

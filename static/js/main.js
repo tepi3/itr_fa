@@ -2046,8 +2046,8 @@ function selectPlatform(platform) {
         document.getElementById("etradeUploadModal").classList.remove("hidden");
     } else if (platform === "ibkr") {
         document.getElementById("ibkrUploadModal").classList.remove("hidden");
-    } else if (platform === "schwab") {
-        document.getElementById("schwabUploadModal").classList.remove("hidden");
+    } else if (platform === "ms") {
+        document.getElementById("msUploadModal").classList.remove("hidden");
     }
 }
 
@@ -2073,11 +2073,11 @@ function closeIbkrModal() {
     document.getElementById("ibkrFileName").textContent = "No file chosen";
 }
 
-function closeSchwabModal() {
-    document.getElementById("schwabUploadModal").classList.add("hidden");
-    document.getElementById("schwabFileInput").value = "";
-    document.getElementById("schwabFileName").textContent = "No file chosen";
-    document.getElementById("schwabTickerInput").value = "";
+function closeMSModal() {
+    document.getElementById("msUploadModal").classList.add("hidden");
+    document.getElementById("msFileInput").value = "";
+    document.getElementById("msFileName").textContent = "No file chosen";
+    document.getElementById("msTickerInput").value = "";
 }
 
 function closeImportReview() {
@@ -2180,7 +2180,7 @@ function showImportReview(transactions, label) {
                 closeImportReview();
                 closeEtradeModal();
                 closeIbkrModal();
-                closeSchwabModal();
+                closeMSModal();
                 showToast(`${label} imported successfully (${selectedTxs.length} tx)`, "success");
                 // Enrich missing company info for new stocks
                 if (state.portfolio.stocks.length > 0) {
@@ -2274,12 +2274,12 @@ async function importIbkrDocs() {
     }
 }
 
-async function importSchwabDocs() {
-    const schwabFile = document.getElementById("schwabFileInput").files[0];
-    const ticker = document.getElementById("schwabTickerInput").value.trim().toUpperCase();
+async function importMSDocs() {
+    const msFile = document.getElementById("msFileInput").files[0];
+    const ticker = document.getElementById("msTickerInput").value.trim().toUpperCase();
 
-    if (!schwabFile) {
-        showToast("Please choose the MS at Work report file to import", "warning");
+    if (!msFile) {
+        showToast("Please choose the Morgan Stanley report file to import", "warning");
         return;
     }
     if (!ticker) {
@@ -2287,13 +2287,13 @@ async function importSchwabDocs() {
         return;
     }
 
-    showLoading("Parsing MS at Work Equity Plan Report...");
+    showLoading("Parsing Morgan Stanley Equity Plan Report...");
     try {
         const fd = new FormData();
-        fd.append("file", schwabFile);
+        fd.append("file", msFile);
         fd.append("ticker", ticker);
         fd.append("portfolio", JSON.stringify(state.portfolio));
-        const resp = await fetch("/api/upload-schwab", { method: "POST", body: fd });
+        const resp = await fetch("/api/upload-morgan-stanley", { method: "POST", body: fd });
         const result = await resp.json();
 
         await hideLoading();
@@ -2307,14 +2307,14 @@ async function importSchwabDocs() {
                     "warning"
                 );
             }
-            closeSchwabModal();
-            showImportReview(result.transactions || [], `MS at Work (${ticker})`);
+            closeMSModal();
+            showImportReview(result.transactions || [], `Morgan Stanley (${ticker})`);
         } else {
-            showToast("MS at Work import error: " + result.error, "error");
+            showToast("Morgan Stanley import error: " + result.error, "error");
         }
     } catch (err) {
         await hideLoading();
-        showToast("MS at Work upload failed: " + err.message, "error");
+        showToast("Morgan Stanley upload failed: " + err.message, "error");
     }
 }
 
@@ -2515,7 +2515,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     safeAddListener("uploadDocsBtn", "click", openPlatformModal);
     safeAddListener("etradeImportBtn", "click", importEtradeDocs);
     safeAddListener("ibkrImportBtn", "click", importIbkrDocs);
-    safeAddListener("schwabImportBtn", "click", importSchwabDocs);
+    safeAddListener("msImportBtn", "click", importMSDocs);
     safeAddListener("historyBtn", "click", toggleHistoryPanel);
     
     const switchUserBtn = document.getElementById("switchUserBtn");
@@ -2601,9 +2601,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("ibkrFileName").textContent = f ? f.name : "No file chosen";
     });
 
-    document.getElementById("schwabFileInput").addEventListener("change", e => {
+    document.getElementById("msFileInput").addEventListener("change", e => {
         const f = e.target.files[0];
-        document.getElementById("schwabFileName").textContent = f ? f.name : "No file chosen";
+        document.getElementById("msFileName").textContent = f ? f.name : "No file chosen";
     });
 
     // Native open file input reader
@@ -2824,6 +2824,7 @@ window.closePlatformModal = closePlatformModal;
 window.selectPlatform = selectPlatform;
 window.closeEtradeModal = closeEtradeModal;
 window.closeIbkrModal = closeIbkrModal;
+window.closeMSModal = closeMSModal;
 window.closeImportReview = closeImportReview;
 window.closeAboutModal = closeAboutModal;
 window.checkForUpdate = checkForUpdate;
@@ -2848,5 +2849,6 @@ window.selectUser = selectUser;
 window.openPlatformModal = openPlatformModal;
 window.importEtradeDocs = importEtradeDocs;
 window.importIbkrDocs = importIbkrDocs;
+window.importMSDocs = importMSDocs;
 window.showImportReview = showImportReview;
 window.renderPortfolio = renderPortfolio;
