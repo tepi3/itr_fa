@@ -10,151 +10,83 @@ A local web tool to automate filling Section A3 (Foreign Equity & Debt Interest)
 ## Quick Start
 
 ### Option 1: Download the Portable App (Easiest)
-You can run FA Desk without installing Python by downloading the standalone executable:
-1. Go to the **[Releases](https://github.com/tepi3/itr_fa/releases/latest)** page on this GitHub repository.
-2. Download `fa_desk_macOS.zip`, `fa_desk_Windows.exe`, or `fa_desk_Linux` from the **Assets** section.
-3. Run the executable. The app will launch in a **standalone desktop window**.
-   - *Note:* In developer/source mode, it still opens in your browser automatically.
-   - *Note for Desktop users:* Refer to **Windows** or **macOS Installation** below to bypass security warnings.
-   - *Data storage:* Your saved portfolios will be safely stored in a `.fa_desk_data` folder in your user's home directory.
+1. Go to **[Releases](https://github.com/tepi3/itr_fa/releases/latest)** and download the executable for your OS (`fa_desk_macOS.zip`, `fa_desk_Windows.exe`, or `fa_desk_Linux`).
+2. Run the executable — the app launches in a **standalone desktop window**.
+3. Saved portfolios are stored in `~/.fa_desk_data`.
 
-   #### Windows Installation
+> **Note (Unsigned App):** Since the app is unsigned, your OS will show a security warning on first launch:
+> - **Windows:** Click *More info* → *Run anyway* on the SmartScreen prompt.
+> - **macOS:** Go to *System Settings > Privacy & Security*, find the blocked app message, and click *Open Anyway*. Alternatively, run `xattr -cr /path/to/fa_desk_macOS.app` in Terminal.
 
-   Because this app is currently unsigned, Windows SmartScreen will block it upon first launch. Please follow these steps to run the app:
-
-   1. Double-click the `fa_desk_Windows.exe` file.
-   2. When the blue "Windows protected your PC" screen appears, click **More info**.
-   3. Click the **Run anyway** button that appears at the bottom.
-   4. The application will now launch. You only need to do this once.
-
-   ####  macOS Installation
-   Because this app is currently unsigned, macOS will block it upon first launch. Please follow one of these methods to run the app:
-
-   ##### Method 1: The "Open Anyway" (Recommended)
-   1. Double-click the `fa_desk_macOS` app. When the warning appears, click **Done**.
-   2. Open **System Settings > Privacy & Security**.
-   3. Scroll down to the **Security** section.
-   4. Look for the message: *"fa_desk_macOS" was blocked from use because it is not from an identified developer.*
-   5. Click **Open Anyway**, enter your password, and click **Open** on the final dialog.
-
-   ##### Method 2: The Terminal Bypass
-   1. Open **Terminal**.
-   2. Run the following command:
-      ```bash
-      xattr -cr /path/to/fa_desk_macOS.app
-      ```
-      *(Tip: You can drag the app icon directly into the terminal window to auto-fill the path).*
-
-   The app will now open normally with a double-click.
-
-### Onboarding Demo Profile (No Setup Required!)
-
-If you want to quickly test the application's capabilities without importing or manually typing transaction data:
-1. Launch the app (either standalone or via Python).
-2. On the welcome/user selection screen, click the **Try with Demo Profile (CY2025)** button.
-3. This will instantly initialize a profile named `DemoUser` and load a highly realistic pre-configured portfolio featuring:
-   - **Apple Inc. (AAPL)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
-   - **Tesla, Inc. (TSLA)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
-   - **NVIDIA Corporation (NVDA)**: 2 lots bought in 2021 & 2022, with partial sells in 2025.
-4. You can immediately click **Generate FA Report** to watch the progressive loader run, test validation audit details, view consolidated reports, simulate sells, and export formatted CSV sheets!
+### Demo Profile (No Setup Required!)
+Launch the app and click **Try with Demo Profile (CY2025)** to explore with a pre-loaded portfolio (AAPL, TSLA, NVDA with buy lots and partial sells). Generate reports, validate audits, simulate sells, and export CSV — all instantly.
 
 ### Option 2: Run via Python (For Developers)
-
-#### One-liner to Clone, Install & Run
 ```bash
+# One-liner
 git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r requirements.txt && python3 app.py
+
+# Opens at http://127.0.0.1:5001 (port 5001 avoids macOS AirPlay conflicts)
 ```
-
-#### Manual Setup
-```bash
-# Clone the repository
-git clone https://github.com/tepi3/itr_fa.git
-cd itr_fa
-
-# Install dependencies
-pip3 install -r requirements.txt
-
-# Run the app
-python3 app.py
-
-# Open in browser: http://127.0.0.1:5001
-```
-*Note: The app runs on port 5001 to avoid conflicts with macOS AirPlay (Control Center).*
 
 ## Features
 
 ### Portfolio Management
-- **Auto stock lookup** — Enter ticker symbol (AAPL, AMZN, etc.), company info auto-filled via Yahoo Finance.
-- **E-Trade Import** — Automatically parse your E-Trade Holdings reports (Expanded "By Status" View) to populate all acquisition lots and sale transactions.
-- **E-Trade Sell Details Import** — Upload the Gain and Loss Expanded (G&L Expanded) exported `.xlsx` file from E-Trade to populate both acquisition lots and sell transactions.
-- **IBKR Import** — Upload your Interactive Brokers CSV transaction history to build the portfolio and apply FIFO sells.
-- **FIFO Sells** — Supports partial sells and fractional shares using First-In-First-Out logic.
-- **Multi-User Profiles** — Manage separate portfolios for different individuals with dedicated local storage.
-- **Manual Override** — Click any calculated cell in the results table to manually adjust values if needed.
+- **Auto stock lookup** — Enter a ticker symbol, company info auto-filled via Yahoo Finance.
+- **E-Trade Import** — Parse Holdings reports (Expanded "By Status" View) or Gain & Loss `.xlsx` exports.
+- **IBKR Import** — Upload Interactive Brokers CSV transaction history with automatic FIFO sells.
+- **FIFO Sells** — Supports partial sells and fractional shares.
+- **Multi-User Profiles** — Separate portfolios per individual with dedicated local storage.
+- **Manual Override** — Click any calculated cell to adjust values.
 
 ### SBI Rates & Currency
-- **Dual-Rate Logic** — Automatically applies the correct SBI TT Buying Rate based on context:
-  - **Schedule FA (A3)**: Uses the rate of the **actual event date** (Buy, Peak, Closing, Dividend, Sale) with a lookback limit extending into the **last 5 days of the preceding month**. Highlight alerts flag lookup gaps > 5 days.
-  - **Tax Calculation (Rule 115)**: Uses the rate on the **last day of the preceding month** with a strict **5-day lookback window**. Prompts exact date guidelines if rates are missing.
-- **Technical References**:
-  - [Rule 115 / 206 in Income Tax Rules](static/docs/Income_Tax_Rules_Rule_115_206.pdf) — Rule for conversion of income into Rupees.
-  - [Guide to Fill FSI, TR, and FA Schedule in ITR](static/docs/Guide_to_Fill_FSI_TR_FA_Schedule.pdf) — Official guide from the Income Tax Department.
-- **Baseline rates**: Shipped with a built-in, verified database of 195 baseline **month-end rates** extracted directly from official historical records (covering every month from January 2010 through April 2026).
-- **SBI TT Rates Calendar Editor**: Populate and edit daily rates for any month/year since 2010 in a modern Sunday-aligned calendar grid. Inline edits from the calendar or report table update the same active database cache.
-- **Fetch Choices (Overwrite vs. Merge)**: Select between *Overwrite All* (updates active database including custom edits on conflicting dates) and *Only Add Missing* (merges fetched rates while fully preserving your manual overrides).
-- **Import & Export**: Backup and restore your customized rates database as JSON using native, secure cross-platform dialogs on both Windows and macOS.
-- **Refined Database Purge**: Click *Clear SBI TT Overrides* to securely restore original rates to default, purge post-2020 fetched rates, and delete custom overrides and RBI fallback rates in the cache. Only official SBI TT rates will be retained.
+- **Dual-Rate Logic** — Automatically applies the correct SBI TT Buying Rate:
+  - *Schedule FA (A3)*: Rate of the actual event date (Buy, Peak, Closing, Dividend, Sale) with lookback into the last 5 days of the preceding month.
+  - *Tax Calculation (Rule 115)*: Rate on the last day of the preceding month with strict 5-day lookback.
+- **Technical References**: [Rule 115/206](static/docs/Income_Tax_Rules_Rule_115_206.pdf) · [FSI/TR/FA Guide](static/docs/Guide_to_Fill_FSI_TR_FA_Schedule.pdf)
+- **195 baseline month-end rates** built-in (Jan 2010 – Apr 2026).
+- **Calendar Editor** — Sunday-aligned grid for daily rates since 2010; inline edits sync across the app.
+- **Fetch Modes** — *Overwrite All* or *Only Add Missing* (preserves manual overrides).
+- **Import/Export** — Backup and restore rates as JSON.
+- **Database Purge** — *Clear SBI TT Overrides* restores defaults, keeping only official SBI TT rates.
 
 ### Dividends
-- **Dividend Auto-Fetch** — Automatically fetches dividend events for the current year when importing data or adding stocks.
-- **Exact Payment Dates** — Fetches precise historical payment dates from Nasdaq. This ensures the correct monthly SBI rate is automatically used for tax calculation as per Rule 115, eliminating the need for manual verification.
-- **Per-Stock Fetch Dividends** — Re-fetch dividend data for any individual stock with a single click (Fetch Dividends button per stock card).
-- **Batch Fetch All Dividends** — Refresh dividend data for all stocks at once from the header (Fetch All Dividends).
+- **Auto-Fetch** on import or stock addition; fetches exact payment dates from Nasdaq for correct Rule 115 rate lookup.
+- **Per-Stock or Batch Fetch** — Refresh dividends individually or for all stocks at once.
 
 ### Tax Computation
-- **Schedule FA A3 Calculator** — Computes all 12 portal columns: Initial Value, Peak Value, Closing Balance, Dividends, and Sale Proceeds — all converted to ₹.
-- **Validate A3 (Audit Trail)** — Provides a complete mathematical breakdown (`Quantity × Price × Rate`) for every calculated cell in Section A3.
-  - **Click to Validate**: Click any calculated value in the A3 report table to instantly jump to its detailed breakdown in the validation section.
-  - **Override Tracking**: Clearly flags cells where a manual override has been applied, while still showing the original calculated math.
-- **ITR Tax Year Summary** — Capital gains (LTCG/STCG) and dividends mapped to Indian tax years with advance-tax quarterly buckets.
-- **ITR §70/74 Set-Off** — Automatic capital gains netting: STCL vs STCG, residual STCL vs LTCG, LTCL vs LTCG, with carry-forward tracking.
-- **Consolidated Tax Statement** — Generate a unified tax view for any complete Tax Year (Apr–Mar) by combining two calendar year reports. If a year's report is missing, that portion is treated as zero.
+- **Schedule FA A3 Calculator** — All 12 portal columns (Initial/Peak/Closing Value, Dividends, Sale Proceeds) in ₹.
+- **Validate A3 (Audit Trail)** — Click any cell for a full `Quantity × Price × Rate` breakdown. Overrides clearly flagged.
+- **ITR Tax Year Summary** — LTCG/STCG and dividends mapped to Indian tax years with advance-tax quarterly buckets.
+- **§70/74 Set-Off** — Automatic capital gains netting (STCL→STCG→LTCG, LTCL→LTCG) with carry-forward.
+- **Consolidated Tax Statement** — Unified view for any Financial Year (Apr–Mar) by combining two calendar year reports.
 
 ### Sell Simulator & Smart Allocator
-- **Smart Sell Allocator (Batch Selection)** — Select any stock from your portfolio and batch-allocate sells with a single click. Choose between entering a **Share Quantity** or an **INR Target (₹)**.
-- **INR Target Met Guarantee** — In INR Target mode, the allocator automatically calculates required share quantities based on the latest currency rates, applying individual lot constraint checks and ceiling rounding to guarantee your cash proceeds meet or exceed your target.
-- **Four Allocation Strategies** — Optimize your draws using advanced batch drawdown algorithms:
-  - **MinTax (Lowest Tax):** Sorts lots by prioritized tax brackets (STCL > LTCL > LTCG > STCG) then by gain/loss ascending to harvest capital losses first.
-  - **MaxLoss (Harvest Loss):** Maximizes capital loss or minimizes capital gain based on current sell prices.
-  - **FIFO (First In, First Out):** Drawdowns from the oldest buy lots first.
-  - **LIFO (Last In, First Out):** Drawdowns from the newest buy lots first.
-- **Dual-Proceeds Simulation (Actual vs. ITR Tax)** — Simultaneously simulates and compares actual cash proceeds and tax proceeds:
-  - **Tax proceeds:** Computed using the SBI TT rate of the last working day of the previous month (Rule 115).
-  - **Actual proceeds:** Computed using the latest available SBI TT rate on the exact simulated sell date.
-- **Side-by-Side Proceeds Cards & Table** — Displays a side-by-side summary grid comparing total actual vs. taxable proceeds, plus highly condensed, compact breakdowns with no horizontal scrolling.
-- **Calendar Year Locking & Protection** — Automatically detects the active running calendar year (e.g. 2026) and locks editing to it. If the running year is unavailable, it dynamically falls back to the year in which the user opened the simulator to protect previous years from manual changes. Dropdown modifications automatically redirect to the main portfolio page.
-- **Manual Over-Allocation Safety Guards** — Highlights overallocated acquisition lots in premium red (`.qty-over-limit`) with clear warning tooltips, and disables the simulation button until errors are corrected.
+- **Batch Sell Allocation** — Select a stock and allocate sells by **Share Quantity** or **INR Target (₹)**.
+- **INR Target Guarantee** — Auto-calculates required shares, applies lot constraints, ensures proceeds meet or exceed target.
+- **Four Strategies** — MinTax (harvest losses first), MaxLoss, FIFO, and LIFO.
+- **Dual-Proceeds Simulation** — Side-by-side comparison of actual vs. taxable (Rule 115) proceeds.
+- **Calendar Year Locking** — Protects previous years from accidental edits.
+- **Over-Allocation Guards** — Red highlights and tooltips for over-allocated lots; simulation disabled until corrected.
 
 ### Productivity
-- **Undo / Redo** — Undo any portfolio change (add/remove stock, lot, sell, dividend) with Undo or **Ctrl+Z** (⌘+Z on Mac). Redo with Redo or **Ctrl+Shift+Z**. Supports up to 50 levels.
-- **Save / Open Anywhere** — Use the "Save As" and "Open..." buttons to download your portfolio JSON to any external folder on your computer, or load it from any directory, in addition to the built-in server-side Save/Load.
-- **Unsaved Changes Indicator** — A pulsing dot on the Save button warns you about unsaved portfolio modifications.
-- **Interactive Tutorial** — Click Help to launch a guided step-by-step walkthrough of every feature with spotlight highlights.
-- **Inline Help** — Click the ? icons next to section headers for quick context-sensitive help.
-- **CSV Export** — Generate ready-to-use `.csv` reports strictly matching the ITR portal's Schedule FA A3 template.
-- **Resolution Scale / UI Density** — Toggle between **Compact**, **Standard**, and **Zoomed** modes directly from the header dropdown menu. This dynamically resizes font sizes and spacing to fit large reports on high-DPI displays (2K/4K) or increase visibility on small screens. Your preference is persisted automatically across sessions.
+- **Undo/Redo** — Up to 50 levels (`Ctrl+Z` / `Ctrl+Shift+Z`, `⌘` on Mac).
+- **Save/Open Anywhere** — Download/upload portfolio JSON to any folder, plus built-in server-side save.
+- **Unsaved Changes Indicator** — Pulsing dot on Save button for unsaved modifications.
+- **Interactive Tutorial & Inline Help** — Guided walkthrough with spotlight highlights; `?` icons for context help.
+- **CSV Export** — ITR portal-compatible `.csv` output.
+- **Resolution Scale** — Compact / Standard / Zoomed modes, persisted across sessions.
 
 ## Workflow
 
-1.  **Select User & Year** — Choose an existing profile or create a new one. The app will automatically try to load your portfolio or import holdings from the previous year.
-2.  **Fetch SBI Rates** — Click "Fetch SBI Rates" button (if rates are missing for your year).
-3.  **Import Data (Optional)** — Click "Upload ETRADE Docs" to import holdings and/or sell transactions, or use "Import Prev Year" to bring over holdings from a previous year's save.
-4.  **Add Stocks/Lots Manually** — Enter ticker symbols and add acquisition lots (date, quantity, price) or sells as needed.
-5.  **Fetch Dividends** — Click "Fetch All Dividends" to pull exact historical data (Ex-Date, Payment Date, and Amount) from Nasdaq.
-6.  **Calculate** — Click "Generate FA Report" to compute all 12 portal columns.
-7.  **Review Tax Summary** — Review the ITR Tax Year Summary with LTCG/STCG netting, or generate a Consolidated FY Statement.
-8.  **Export** — Click "Export CSV" to download the formatted file for tax filing.
-9.  **Save** — Click "Save" to store your portfolio locally for future use.
+1. **Select User & Year** — Choose or create a profile; auto-loads previous portfolio.
+2. **Fetch SBI Rates** — If rates are missing for your year.
+3. **Import Data** — Upload E-Trade/IBKR docs or import from a previous year.
+4. **Add Stocks/Lots** — Enter tickers and acquisition details manually.
+5. **Fetch Dividends** — Pull exact dates and amounts from Nasdaq.
+6. **Generate FA Report** — Compute all 12 portal columns.
+7. **Review Tax Summary** — LTCG/STCG netting and Consolidated FY Statement.
+8. **Export & Save** — Download CSV and save portfolio locally.
 
 ## Keyboard Shortcuts
 
@@ -164,121 +96,83 @@ python3 app.py
 | `Ctrl+Shift+Z` / `⌘+Shift+Z` | Redo |
 | `Ctrl+S` / `⌘+S` | Save Portfolio |
 | `Ctrl+F` / `⌘+F` | Quick Search / Find |
-| `?` | Toggle Keyboard Shortcuts Help Modal |
+| `?` | Toggle Keyboard Shortcuts Modal |
 
 ## Data Sources
 
-- **Stock data**: [Yahoo Finance](https://finance.yahoo.com) via `yfinance` (free, no login).
-- **SBI TT rates**: [sbi-fx-ratekeeper](https://github.com/sahilgupta/sbi-fx-ratekeeper) on GitHub (free, MIT License).
+- **Stock data**: [Yahoo Finance](https://finance.yahoo.com) via `yfinance`.
+- **SBI TT rates**: [sbi-fx-ratekeeper](https://github.com/sahilgupta/sbi-fx-ratekeeper) (MIT License).
 
-## Files
+## Project Structure
 
 ```text
 itr_fa/
-├── .github/
-│   └── workflows/
-│       └── build.yml         # GitHub Actions CI/CD for portable binaries
 ├── app.py                    # Flask server & API routes (Port 5001)
-├── config.py                 # Configuration constants & data path resolution
-├── desktop.py                # Standalone application entrypoint
-├── requirements.txt          # Python dependencies (Flask, yfinance, openpyxl)
-├── routes/                   # Flask Blueprints (API endpoints)
-│   ├── calculator.py
-│   ├── market.py
-│   ├── parsers.py
-│   ├── portfolio.py
-│   └── users.py
-├── core/                     # Core backend logic
-│   ├── calculator.py         # A3 column calculations & tax year summary
-│   ├── csv_export.py         # ITR-compliant CSV generation
-│   ├── etrade_parser.py      # E-Trade report parser (CSV/XLSX)
-│   ├── ibkr_parser.py        # IBKR report parser (CSV)
-│   ├── merger.py             # Data merging utility
-│   ├── models.py             # Data models
-│   ├── sbi_rates.py          # SBI TT rate fetch, cache, and locking
-│   ├── smart_import.py       # Intelligent data importing logic
-│   ├── stock_data.py         # Yahoo Finance wrapper
-│   └── utils.py              # Shared utility functions
-├── static/                   # Frontend assets
-│   ├── css/                  # Modular CSS styles
-│   │   ├── base.css
-│   │   ├── layout.css
-│   │   ├── style.css
-│   │   ├── components/
-│   │   └── views/
-│   └── js/                   # Modular JavaScript
-│       ├── main.js           # Main application logic
-│       └── modules/          # Split JS modules
-├── templates/
-│   └── index.html            # Main SPA template
+├── config.py                 # Configuration & data path resolution
+├── desktop.py                # Standalone desktop entrypoint
+├── requirements.txt          # Python dependencies
+├── routes/                   # Flask Blueprints (calculator, market, parsers, portfolio, users)
+├── core/                     # Backend logic (calculator, CSV export, parsers, SBI rates, models)
+├── static/                   # Frontend (modular CSS & JS)
+├── templates/index.html      # Main SPA template
 └── tests/                    # Pytest test suite
 ```
 
 ## Notes
 
-- **Local Only**: All data is stored locally on your machine in the `~/.fa_desk_data` folder. No cloud hosting or external accounts are used.
-- **macOS Compatibility**: Port moved to 5001 to resolve 403 Forbidden errors caused by AirPlay Receiver on port 5000.
-- **Using Upload Etrade**: Current Holding will not contain sold stocks.
-- **License**: This tool is open-source and free for personal, non-commercial use.
+- **Local Only** — All data stored in `~/.fa_desk_data`. No cloud, no external accounts.
+- **macOS** — Port 5001 avoids AirPlay Receiver conflict on port 5000.
+- **License** — Open-source, free for personal non-commercial use.
 
-## Visual Walkthrough & Features
-
-Here is a preview of the key features and modern dark-mode user interface of FA Desk:
+## Visual Walkthrough
 
 ### 1. Profile & Tax Year Selection
-On launch, select or create your profile, choose your calendar year, or quickly explore the app using the pre-configured onboarding Demo Profile.
+Select or create a profile, choose your calendar year, or try the Demo Profile.
 ![Profile Selection](docs/screenshots/01_profile_selection.png)
 
 ### 2. Portfolio Dashboard & Stock Cards
-Track your foreign assets (such as US stocks and ETFs) with live Yahoo Finance prices and dynamic portfolio stat cards.
+Track foreign assets with live prices and dynamic stat cards. Expand any stock to view acquisition lots, sells, and dividends.
 ![Portfolio Dashboard](docs/screenshots/02_portfolio_dashboard.png)
-
-#### Detailed Stock Holdings (Acquisition Lots, Sells, and Dividends)
-Expand any stock card to view its complete composition: detailed acquisition lots, recorded sell transactions, and historical dividend payments mapped precisely to payment dates.
 ![Expanded Stock Cards](docs/screenshots/02c_stock_cards.png)
 
-#### Portfolio Metrics Overview
-After generating the FA Report, the dashboard metrics update to reflect calculated values — total assets at cost, current market value, total dividends received, and net unrealized gains/losses across your entire portfolio.
-![Portfolio Metrics Overview](docs/screenshots/02b_dashboard_summary.png)
+After generating the FA Report, dashboard metrics update with calculated values — total assets at cost, market value, dividends, and unrealized gains/losses.
+![Portfolio Metrics](docs/screenshots/02b_dashboard_summary.png)
 
 ### 3. Schedule FA Section A3 Report
-Generate your Schedule FA Section A3 report converted to Indian Rupees (₹) using exact date-of-event SBI TT buying rates.
-![FA Report Preview](docs/screenshots/03_fa_report_preview.png)
+All values converted to ₹ using exact date-of-event SBI TT buying rates.
+![FA Report](docs/screenshots/03_fa_report_preview.png)
 
-### 4. Calculation Audit Trail (Validate A3)
-Verify every single converted rupee with a crystal-clear mathematical audit trail showing the precise exchange rates and parameters used.
-![Validate A3 Calculation](docs/screenshots/04_validate_a3.png)
+### 4. Calculation Audit Trail
+Verify every converted rupee with a clear mathematical breakdown showing precise exchange rates.
+![Validate A3](docs/screenshots/04_validate_a3.png)
 
-### 5. ITR Capital Gains & Dividend Summary
-Automatically map your capital gains (STCG/LTCG) and dividends into Indian Tax Years (April–March) and quarterly advance-tax buckets.
+### 5. Capital Gains & Dividend Summary
+STCG/LTCG and dividends mapped to Indian Tax Years with quarterly advance-tax buckets, plus step-by-step audit trail.
 ![ITR Summary](docs/screenshots/05_capital_gains_summary.png)
-
-#### Capital Gains & Dividend Audit Trail (Validate Tax Summary)
-Gain absolute clarity on your tax calculations with a step-by-step math breakdown for both Capital Gains and Dividend Tax schedules, including matching details and exchange rates under Rule 115.
 ![Validate Tax Details](docs/screenshots/06_validate_tax_details.png)
 
-### 6. Sell Simulator & Tax Impact Simulator
-Simulate hypothetical sales based on your current holdings, fetch live intraday prices, and preview STCG/LTCG tax impacts before executing trades.
+### 6. Sell Simulator
+Simulate sales, fetch live prices, and preview STCG/LTCG tax impact before executing trades.
 ![Sell Simulator](docs/screenshots/07_sell_simulator.png)
 
 ### 7. Consolidated Tax Statement
-Generate a unified tax statement combining multiple calendar years to perfectly align with Indian Financial Years.
+Unified tax statement combining calendar years to align with Indian Financial Years.
 ![Tax Statement](docs/screenshots/08_tax_statement.png)
 
-### 8. SBI TT Rates Used in Calculation
-Every exchange rate applied during report generation is listed in full — stock by stock, event by event (Buy, Peak, Closing, Dividend, Sale) — with the exact rate date and source. Click any rate to override it inline.
+### 8. SBI TT Rates Used
+Every exchange rate listed by stock and event, with exact date and source. Click any rate to override inline.
 ![SBI Rates Used](docs/screenshots/09_sbi_rates_used.png)
 
 ### 9. SBI TT Rates Calendar Editor
-Populate and edit daily rates for any month/year since 2010 in a modern Sunday-aligned calendar grid. Inline edits from the calendar or report table update the same active database cache.
-![SBI TT Rates Editor](docs/screenshots/09b_sbi_rate_editor.png)
+Edit daily rates in a Sunday-aligned calendar grid; inline edits sync across the app.
+![SBI Rates Editor](docs/screenshots/09b_sbi_rate_editor.png)
 
-### 10. End-of-Year Asset Allocation
-Visualize how your foreign portfolio is distributed across stocks as of December 31st with an interactive donut chart showing INR values and percentage breakdown.
+### 10. Asset Allocation
+Interactive donut chart showing portfolio distribution across stocks as of Dec 31st in INR.
 ![Asset Pie Chart](docs/screenshots/10_asset_pie_chart.png)
 
-### 11. NAV Flow & Cash Movement Chart
-Visualize how your portfolio Net Asset Value (NAV) transitioned throughout the active calendar year using a highly interactive Sankey cash-flow diagram. It maps Starting NAV cost, new deposits, dividends, and market appreciation (gains) flowing in from the left to form the Gross Value, which then flows out to Ending NAV assets and realized sales on the right.
+### 11. NAV Flow & Cash Movement
+Sankey diagram showing portfolio NAV transitions: starting cost, deposits, dividends, and gains flowing to ending assets and realized sales.
 ![NAV Flow Chart](docs/screenshots/11_nav_flow_chart.png)
 
 ---
