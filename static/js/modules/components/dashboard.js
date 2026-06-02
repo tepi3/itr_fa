@@ -271,7 +271,14 @@ export function restoreTheme() {
 export function setDensity(density) {
     const root = document.documentElement;
     root.dataset.density = density;
-    try { localStorage.setItem("fa_desk_density", density); } catch(e) {}
+    try {
+        localStorage.setItem("fa_desk_density", density);
+        if (window.fa_desk_settings) {
+            window.fa_desk_settings.fa_desk_density = density;
+        }
+        apiPost("/api/settings", { fa_desk_density: density })
+            .catch(e => console.error("Failed to save density settings to backend:", e));
+    } catch(e) {}
     
     document.querySelectorAll(".density-option").forEach(btn => {
         const isActive = btn.dataset.density === density;
@@ -285,7 +292,8 @@ export function setDensity(density) {
 
 export function restoreDensity() {
     try {
-        const saved = localStorage.getItem("fa_desk_density");
+        const settings = window.fa_desk_settings || {};
+        const saved = settings.fa_desk_density || localStorage.getItem("fa_desk_density");
         setDensity(saved || "standard");
     } catch(e) {
         setDensity("standard");
@@ -573,7 +581,8 @@ export async function renderNavFlowSankey(rows) {
         });
     });
 
-    const valuationBasis = localStorage.getItem("fa_desk_sankey_valuation_basis") || "market";
+    const settings = window.fa_desk_settings || {};
+    const valuationBasis = settings.fa_desk_sankey_valuation_basis || localStorage.getItem("fa_desk_sankey_valuation_basis") || "market";
     const isMarket = valuationBasis === "market";
 
     const startingNav = isMarket ? startingNavMarketValue : startingNavCost;
@@ -587,7 +596,9 @@ export async function renderNavFlowSankey(rows) {
     }
 
     // Calculate reinvested portion and adjust flows if toggle is active
-    const offsetNetFlows = localStorage.getItem("fa_desk_sankey_net_flows") === "true";
+    const offsetNetFlows = (settings.fa_desk_sankey_net_flows != null)
+        ? settings.fa_desk_sankey_net_flows === "true"
+        : localStorage.getItem("fa_desk_sankey_net_flows") === "true";
     const reinvested = Math.min(depositsCost, totalSaleProceeds);
 
     const fmtLocal = val => "₹" + Math.round(val).toLocaleString("en-IN");

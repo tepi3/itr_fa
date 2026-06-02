@@ -2587,6 +2587,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const res = await apiGet("/api/settings");
         if (res && res.success && res.settings) {
             backendSettings = res.settings;
+            window.fa_desk_settings = res.settings;
         }
     } catch (e) {
         console.error("Failed to load settings from backend:", e);
@@ -2668,9 +2669,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const netFlowsCb = document.getElementById("sankeyNetFlowsCheckbox");
     if (netFlowsCb) {
-        netFlowsCb.checked = localStorage.getItem("fa_desk_sankey_net_flows") === "true";
+        const savedNetFlows = (window.fa_desk_settings && window.fa_desk_settings.fa_desk_sankey_net_flows != null)
+            ? window.fa_desk_settings.fa_desk_sankey_net_flows === "true"
+            : localStorage.getItem("fa_desk_sankey_net_flows") === "true";
+        netFlowsCb.checked = savedNetFlows;
         netFlowsCb.addEventListener("change", (e) => {
-            localStorage.setItem("fa_desk_sankey_net_flows", e.target.checked ? "true" : "false");
+            const valStr = e.target.checked ? "true" : "false";
+            localStorage.setItem("fa_desk_sankey_net_flows", valStr);
+            if (window.fa_desk_settings) {
+                window.fa_desk_settings.fa_desk_sankey_net_flows = valStr;
+            }
+            apiPost("/api/settings", { fa_desk_sankey_net_flows: valStr })
+                .catch(err => console.error("Failed to save sankey net flows settings:", err));
             if (state.calculatedRows && state.calculatedRows.length > 0) {
                 renderNavFlowSankey(state.calculatedRows);
             }
@@ -2679,14 +2689,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const sankeyBasisSelect = document.getElementById("sankeyValuationBasis");
     if (sankeyBasisSelect) {
-        let savedBasis = localStorage.getItem("fa_desk_sankey_valuation_basis");
-        if (!savedBasis) {
-            savedBasis = "market";
-            localStorage.setItem("fa_desk_sankey_valuation_basis", "market");
-        }
+        const savedBasis = (window.fa_desk_settings && window.fa_desk_settings.fa_desk_sankey_valuation_basis)
+            || localStorage.getItem("fa_desk_sankey_valuation_basis")
+            || "market";
         sankeyBasisSelect.value = savedBasis;
         sankeyBasisSelect.addEventListener("change", (e) => {
-            localStorage.setItem("fa_desk_sankey_valuation_basis", e.target.value);
+            const val = e.target.value;
+            localStorage.setItem("fa_desk_sankey_valuation_basis", val);
+            if (window.fa_desk_settings) {
+                window.fa_desk_settings.fa_desk_sankey_valuation_basis = val;
+            }
+            apiPost("/api/settings", { fa_desk_sankey_valuation_basis: val })
+                .catch(err => console.error("Failed to save sankey basis settings:", err));
             if (state.calculatedRows && state.calculatedRows.length > 0) {
                 renderNavFlowSankey(state.calculatedRows);
             }
