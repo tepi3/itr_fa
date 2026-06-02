@@ -126,11 +126,7 @@ def test_ui_regression_flow():
             # Assert details exist inside expanded card
             assert page.locator(".lots-table").first.is_visible()
             
-            # 2. Portfolio Dashboard & Stock Cards
-            print("Capturing 02_portfolio_dashboard.png...")
-            page.screenshot(path=str(SCREENSHOTS_DIR / "02_portfolio_dashboard.png"))
-            
-            # Screenshot of the active stock cards
+            # Screenshot of the active stock cards (before report generation)
             print("Capturing 02c_stock_cards.png...")
             page.locator("#stockCards").screenshot(path=str(SCREENSHOTS_DIR / "02c_stock_cards.png"))
             
@@ -141,6 +137,12 @@ def test_ui_regression_flow():
             # Wait for calculation results
             page.wait_for_selector("#resultsSection", state="visible")
             time.sleep(2.0)
+            
+            # 2. Portfolio Dashboard (post-report — shows updated values and preview)
+            print("Capturing 02_portfolio_dashboard.png...")
+            page.evaluate("window.scrollTo(0, 0)")
+            time.sleep(0.5)
+            page.screenshot(path=str(SCREENSHOTS_DIR / "02_portfolio_dashboard.png"))
             
             # Assert A3 report header and rows exist
             assert page.locator("#resultsSection").is_visible()
