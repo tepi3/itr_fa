@@ -1255,17 +1255,17 @@
     <div id="ibkrUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeIbkrModal()">
         <div class="modal-box">
             <div class="modal-header">
-                <h2 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>Upload IBKR Docs</h2>
+                <h2 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>Upload IBKR Activity Statement</h2>
                 <button class="btn btn-sm btn-outline" onclick="closeIbkrModal()"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Close</button>
             </div>
-            <p class="hint" style="margin:12px 0 20px;">Import your IBKR CSV export to build the portfolio automatically.</p>
+            <p class="hint" style="margin:12px 0 20px;">Import your IBKR Activity Statement CSV export for the current calendar year to build the portfolio automatically.</p>
 
             <div class="modal-file-row">
                 <div class="modal-file-label">
                     <span class="modal-file-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
                     <div>
-                        <strong>Transaction History File</strong>
-                        <p class="hint" style="margin:2px 0 0;">IBKR CSV export containing the 'Transaction History' section. Populates stock lots with buy and sell details.</p>
+                        <strong>Activity Statement File</strong>
+                        <p class="hint" style="margin:2px 0 0;">IBKR Activity Statement CSV containing the 'Trades' section for the current calendar year. Populates stock lots with purchase details (sells can be added manually in the UI).</p>
                     </div>
                 </div>
                 <label class="btn btn-outline btn-sm modal-file-pick" for="ibkrFileInput">Choose File</label>

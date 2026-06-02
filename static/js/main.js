@@ -2204,7 +2204,7 @@ async function importIbkrDocs() {
         return;
     }
 
-    showLoading("Parsing IBKR Transaction History...");
+    showLoading("Parsing IBKR Activity Statement...");
     try {
         const fd = new FormData();
         fd.append("file", ibkrFile);

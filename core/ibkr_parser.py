@@ -12,7 +12,8 @@ def parse_date(date_val) -> str:
         return date_val.strftime("%d/%m/%Y")
     if not date_val:
         return None
-    date_str = str(date_val).strip().split(" ")[0]
+    # Strip any trailing commas or parts that contain time if present
+    date_str = str(date_val).strip().split(",")[0].strip().split(" ")[0]
     for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%d-%b-%Y", "%d-%b-%y", "%d/%m/%Y"):
         try:
             return datetime.strptime(date_str, fmt).strftime("%d/%m/%Y")
@@ -30,7 +31,7 @@ def find_col_index(headers: list, possible_names: list) -> int:
 
 def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict:
     """
-    Parses an IBKR CSV and extracts transactions.
+    Parses an IBKR CSV and extracts transactions. Supports only the modern "Trades" (Activity Statement) section.
     """
     calendar_year = int(portfolio.get("calendar_year", 9999))
 
@@ -45,39 +46,44 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
     if not rows:
         raise ValueError("Empty file.")
 
-    # Find the header row for 'Transaction History'
+    # Detect the "Trades" header row for the Activity Statement
     header_idx = -1
     for i, row in enumerate(rows):
-        if len(row) > 1 and row[0] == "Transaction History" and row[1] == "Header":
+        if len(row) > 1 and row[0] == "Trades" and row[1] == "Header":
             header_idx = i
             break
-            
+
     if header_idx == -1:
-        raise ValueError("Could not find 'Transaction History' section in IBKR file.")
+        raise ValueError("Could not find 'Trades' section in IBKR Activity Statement.")
 
     headers = rows[header_idx]
-    date_idx  = find_col_index(headers, ["date", "transaction date"])
-    type_idx  = find_col_index(headers, ["transaction type", "type"])
+    
+    date_idx   = find_col_index(headers, ["date/time", "date"])
     symbol_idx = find_col_index(headers, ["symbol", "ticker"])
-    qty_idx   = find_col_index(headers, ["quantity", "qty"])
-    price_idx = find_col_index(headers, ["price", "execution price"])
+    qty_idx    = find_col_index(headers, ["quantity", "qty"])
+    price_idx  = find_col_index(headers, ["t. price", "price", "execution price"])
 
-    if date_idx == -1 or symbol_idx == -1 or qty_idx == -1 or price_idx == -1 or type_idx == -1:
-        raise ValueError(f"Missing required columns in IBKR Transaction History.")
+    if date_idx == -1 or symbol_idx == -1 or qty_idx == -1 or price_idx == -1:
+        raise ValueError("Missing required columns in IBKR Trades CSV section.")
 
     transactions = []
     skipped_count = 0
 
     for row in rows[header_idx+1:]:
-        if len(row) <= max(date_idx, symbol_idx, qty_idx, price_idx, type_idx):
+        if len(row) <= max(date_idx, symbol_idx, qty_idx, price_idx):
             continue
             
-        if row[0] != "Transaction History" or row[1] != "Data":
+        if row[0] != "Trades" or row[1] != "Data":
             continue
 
-        sym = str(row[symbol_idx] or "").strip()
-        t_type = str(row[type_idx] or "").strip().lower()
+        # Filter to only stocks asset class
+        asset_cat_idx = find_col_index(headers, ["asset category"])
+        if asset_cat_idx != -1:
+            asset_cat = str(row[asset_cat_idx] or "").strip().lower()
+            if asset_cat != "stocks":
+                continue
 
+        sym = str(row[symbol_idx] or "").strip()
         if not sym or sym == '-':
             continue
 
@@ -96,17 +102,17 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
             continue
 
         try:
-            # Use higher precision for quantity (fractional shares)
-            qty = tax_round(float(str(row[qty_idx]).replace(",", "")), 6)
-            if qty <= 0:
+            qty_raw = float(str(row[qty_idx]).replace(",", ""))
+            # Skip any sell transactions (qty < 0) or zero transactions to avoid incorrect matching
+            if qty_raw <= 0:
                 continue
+            qty = tax_round(qty_raw, 6)
             price = tax_round(float(str(row[price_idx]).replace("$", "").replace(",", "")), 2)
         except (ValueError, TypeError):
             continue
 
-        is_sell = "sell" in t_type or "sold" in t_type
         transactions.append({
-            "type": "SELL" if is_sell else "BUY",
+            "type": "BUY",
             "date": date_val,
             "symbol": sym,
             "qty": qty,
