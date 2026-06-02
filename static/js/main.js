@@ -26,6 +26,7 @@ import {
     showLoading, 
     hideLoading, 
     toggleSection, 
+    initCollapsibleSections,
     updateCalcButtonVisibility, 
     saveFileRobustly,
     startSmoothProgress, 
@@ -2583,6 +2584,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     initYearSelectors();
     initFYYearSelector();
+    initCollapsibleSections();
     
     const safeAddListener = (id, event, handler) => {
         const el = document.getElementById(id);

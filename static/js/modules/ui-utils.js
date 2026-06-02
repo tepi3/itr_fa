@@ -130,6 +130,15 @@ export function toggleSection(id) {
         if (icon) icon.style.transform = isCollapsed ? "rotate(-90deg)" : "";
     }
 
+    try {
+        const key = "fa_desk_collapsible_states";
+        const states = JSON.parse(localStorage.getItem(key) || "{}");
+        states[id] = isCollapsed;
+        localStorage.setItem(key, JSON.stringify(states));
+    } catch (e) {
+        console.error("Failed to save collapsible state:", e);
+    }
+
     // Auto-hide Rates Editor card if collapsed and UNLOCKED
     if (id === "monthlyRatesContent" && isCollapsed) {
         const lockCheckbox = document.getElementById("lockRatesCardCheckbox");
@@ -139,6 +148,29 @@ export function toggleSection(id) {
                 section.classList.add("hidden");
             }
         }
+    }
+}
+
+export function initCollapsibleSections() {
+    try {
+        const key = "fa_desk_collapsible_states";
+        const states = JSON.parse(localStorage.getItem(key) || "{}");
+        for (const [id, isCollapsed] of Object.entries(states)) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            if (isCollapsed) {
+                el.classList.add("collapsed");
+            } else {
+                el.classList.remove("collapsed");
+            }
+            const header = el.previousElementSibling;
+            if (header) {
+                const icon = header.querySelector(".toggle-icon");
+                if (icon) icon.style.transform = isCollapsed ? "rotate(-90deg)" : "";
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load collapsible states:", e);
     }
 }
 

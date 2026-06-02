@@ -1038,6 +1038,7 @@ export function initSimTaxRates() {
             stcgInput.value = "30";
         }
         stcgInput.addEventListener("input", () => {
+            localStorage.setItem("fa_sim_stcg_tax_rate", stcgInput.value);
             shRenderTaxLiability();
         });
     }
@@ -1050,6 +1051,7 @@ export function initSimTaxRates() {
             ltcgInput.value = "12.5";
         }
         ltcgInput.addEventListener("input", () => {
+            localStorage.setItem("fa_sim_ltcg_tax_rate", ltcgInput.value);
             shRenderTaxLiability();
         });
     }
