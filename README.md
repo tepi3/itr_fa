@@ -109,8 +109,8 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 
 To comply with ITR Schedule FA requirements, the tool handles transaction costs as follows:
 - **Acquisition Cost (Initial Value):** Commissions, brokerage, and fees are **included** in the buy cost. This represents the total historical cost of investment in INR.
-- **Sale Proceeds:** Commissions and fees are **excluded** from the sale proceeds. The tool reports **Gross Proceeds** to match the portal requirements for Section A3.
-- **Capital Gains:** For tax summary calculations, both buy and sell commissions are correctly accounted for to compute net capital gains/losses.
+- **Sale Proceeds (Schedule FA):** Commissions and fees are **excluded** from the sale proceeds. The tool reports **Gross Proceeds** to match the portal requirements for Section A3.
+- **Capital Gains Summary:** To ensure consistency between the FA report and the Tax Summary, the tool uses **Gross Proceeds** for gain calculations as well. This means sale commissions are **not deducted** from the profit, resulting in a slightly higher (conservative) gain calculation that matches your FA disclosure.
 
 ## Project Structure
 
