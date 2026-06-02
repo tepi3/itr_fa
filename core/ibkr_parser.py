@@ -62,6 +62,7 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
     symbol_idx = find_col_index(headers, ["symbol", "ticker"])
     qty_idx    = find_col_index(headers, ["quantity", "qty"])
     price_idx  = find_col_index(headers, ["t. price", "price", "execution price"])
+    basis_idx  = find_col_index(headers, ["basis"])
 
     if date_idx == -1 or symbol_idx == -1 or qty_idx == -1 or price_idx == -1:
         raise ValueError("Missing required columns in IBKR Trades CSV section.")
@@ -107,8 +108,16 @@ def process_ibkr_file(file_bytes: bytes, filename: str, portfolio: dict) -> dict
             if qty_raw <= 0:
                 continue
             qty = tax_round(qty_raw, 6)
-            price = tax_round(float(str(row[price_idx]).replace("$", "").replace(",", "")), 2)
-        except (ValueError, TypeError):
+
+            # Use Basis (Total Cost including commission) if available, otherwise fallback to execution price
+            if basis_idx != -1:
+                basis_raw = float(str(row[basis_idx]).replace(",", ""))
+                # Basis is total cost, we need per-share price. 
+                # Note: IBKR reports Basis as a positive number for BUYS in most statements, but we take abs() to be safe.
+                price = tax_round(abs(basis_raw) / qty_raw, 2)
+            else:
+                price = tax_round(float(str(row[price_idx]).replace("$", "").replace(",", "")), 2)
+        except (ValueError, TypeError, ZeroDivisionError):
             continue
 
         transactions.append({

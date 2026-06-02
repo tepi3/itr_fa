@@ -46,5 +46,6 @@ def test_process_ibkr_file_new_activity_statement_skips_sells():
     assert txs[0]["symbol"] == "VWRA"
     assert txs[0]["type"] == "BUY"
     assert txs[0]["qty"] == 25.707
-    assert txs[0]["price"] == 180.69
+    # Basis (4647.31739745) / Qty (25.707) = 180.78023... -> Rounded to 2 decimals in parser: 180.78
+    assert txs[0]["price"] == 180.78
     assert txs[0]["date"] == "21/04/2026"
