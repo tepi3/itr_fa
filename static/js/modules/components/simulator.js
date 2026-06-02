@@ -13,7 +13,7 @@ export const simState = {
     lastResults: null,
 };
 
-export function initSellHelper() {
+export function initSellHelper(settings = {}) {
     const addRowBtn = document.getElementById("shAddRowBtn");
     const refreshBtn = document.getElementById("shRefreshBtn");
     const simulateBtn = document.getElementById("shSimulateBtn");
@@ -140,7 +140,7 @@ export function initSellHelper() {
         allocDateInput.value = formatAppDate(new Date());
     }
 
-    initSimTaxRates();
+    initSimTaxRates(settings);
 }
 
 export function shValidateAllSells() {
@@ -1026,32 +1026,28 @@ export function shRenderLotsReference() {
     }
 }
 
-export function initSimTaxRates() {
+export function initSimTaxRates(settings = {}) {
     const stcgInput = document.getElementById("shStcgTaxRateInput");
     const ltcgInput = document.getElementById("shLtcgTaxRateInput");
 
     if (stcgInput) {
-        const savedStcg = localStorage.getItem("fa_sim_stcg_tax_rate");
-        if (savedStcg !== null) {
-            stcgInput.value = savedStcg;
-        } else {
-            stcgInput.value = "30";
-        }
+        const savedStcg = settings.fa_sim_stcg_tax_rate || localStorage.getItem("fa_sim_stcg_tax_rate") || "30";
+        stcgInput.value = savedStcg;
         stcgInput.addEventListener("input", () => {
             localStorage.setItem("fa_sim_stcg_tax_rate", stcgInput.value);
+            apiPost("/api/settings", { fa_sim_stcg_tax_rate: stcgInput.value })
+                .catch(e => console.error("Failed to save STCG rate to settings:", e));
             shRenderTaxLiability();
         });
     }
 
     if (ltcgInput) {
-        const savedLtcg = localStorage.getItem("fa_sim_ltcg_tax_rate");
-        if (savedLtcg !== null) {
-            ltcgInput.value = savedLtcg;
-        } else {
-            ltcgInput.value = "12.5";
-        }
+        const savedLtcg = settings.fa_sim_ltcg_tax_rate || localStorage.getItem("fa_sim_ltcg_tax_rate") || "12.5";
+        ltcgInput.value = savedLtcg;
         ltcgInput.addEventListener("input", () => {
             localStorage.setItem("fa_sim_ltcg_tax_rate", ltcgInput.value);
+            apiPost("/api/settings", { fa_sim_ltcg_tax_rate: ltcgInput.value })
+                .catch(e => console.error("Failed to save LTCG rate to settings:", e));
             shRenderTaxLiability();
         });
     }
@@ -1080,6 +1076,8 @@ export function shRenderTaxLiability() {
 
     localStorage.setItem("fa_sim_stcg_tax_rate", stcgRate);
     localStorage.setItem("fa_sim_ltcg_tax_rate", ltcgRate);
+    apiPost("/api/settings", { fa_sim_stcg_tax_rate: stcgRate, fa_sim_ltcg_tax_rate: ltcgRate })
+        .catch(e => console.error("Failed to save tax rates to settings:", e));
 
     const off = data.offset;
     const netStcg = Math.max(0, off.net_stcg || 0);

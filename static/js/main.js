@@ -2582,9 +2582,19 @@ export function showTutorialStepByTitle(title) {
 document.addEventListener("DOMContentLoaded", async () => {
     startSmoothProgress("Initialising FA Desk...", 1.5);
     
+    let backendSettings = {};
+    try {
+        const res = await apiGet("/api/settings");
+        if (res && res.success && res.settings) {
+            backendSettings = res.settings;
+        }
+    } catch (e) {
+        console.error("Failed to load settings from backend:", e);
+    }
+    
     initYearSelectors();
     initFYYearSelector();
-    initCollapsibleSections();
+    initCollapsibleSections(backendSettings);
     
     const safeAddListener = (id, event, handler) => {
         const el = document.getElementById(id);
@@ -2797,7 +2807,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Initialize core components & managers
     await checkDisclaimer();
     await initUserSelection();
-    initSellHelper();
+    initSellHelper(backendSettings);
     initTutorial();
     initQuickJump();
     initSectionToggles();

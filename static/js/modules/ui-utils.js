@@ -1,5 +1,6 @@
 import { INFO_SVG } from './constants.js';
 import { formatINR, formatAppDate, parseAppDate } from './utils.js';
+import { apiPost } from './api.js';
 
 // ===== Toast Notifications =====
 export function showToast(message, type = "info", duration = 4000) {
@@ -135,6 +136,10 @@ export function toggleSection(id) {
         const states = JSON.parse(localStorage.getItem(key) || "{}");
         states[id] = isCollapsed;
         localStorage.setItem(key, JSON.stringify(states));
+
+        // Save to backend settings
+        apiPost("/api/settings", { [key]: states })
+            .catch(e => console.error("Failed to save collapsible states to settings:", e));
     } catch (e) {
         console.error("Failed to save collapsible state:", e);
     }
@@ -151,10 +156,10 @@ export function toggleSection(id) {
     }
 }
 
-export function initCollapsibleSections() {
+export function initCollapsibleSections(settings = {}) {
     try {
         const key = "fa_desk_collapsible_states";
-        const states = JSON.parse(localStorage.getItem(key) || "{}");
+        const states = settings[key] || JSON.parse(localStorage.getItem(key) || "{}");
         for (const [id, isCollapsed] of Object.entries(states)) {
             const el = document.getElementById(id);
             if (!el) continue;
