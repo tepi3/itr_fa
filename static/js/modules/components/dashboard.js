@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { parseAppDate } from '../utils.js';
+import { parseAppDate, calculateXIRR } from '../utils.js';
 import { apiPost } from '../api.js';
 import { BOX_SVG, BRIEFCASE_SVG, TREND_UP_SVG, CURRENCY_SVG, PIE_CHART_SVG } from '../constants.js';
 import { updateSbiModeHints } from './resultsTable.js';
@@ -105,6 +105,7 @@ export function updateDashboard() {
         let totalDivsUSD = 0;
         
         const refDate = new Date(state.portfolio.calendar_year, 11, 31); // Dec 31 of calendar year
+        const unrealizedCashFlows = [];
 
         state.calculatedRows.forEach(row => {
             const closing = row.closing_balance || 0;
@@ -133,6 +134,16 @@ export function updateDashboard() {
                     } else {
                         stcgUnrealized += gain;
                     }
+
+                    if (acquireDate && costBasisRemaining > 0) {
+                        unrealizedCashFlows.push({ date: acquireDate, amount: -costBasisRemaining });
+                        const valuationDate = details.closing.components?.rate_date
+                            ? parseAppDate(details.closing.components.rate_date)
+                            : refDate;
+                        if (valuationDate) {
+                            unrealizedCashFlows.push({ date: valuationDate, amount: closing });
+                        }
+                    }
                 }
             }
             
@@ -154,7 +165,13 @@ export function updateDashboard() {
         if (divsUSDEl) divsUSDEl.textContent = "$" + Math.round(totalDivsUSD).toLocaleString("en-US");
         
         const gainEl = document.getElementById("dashUnrealizedGain");
-        gainEl.textContent = (totalUnrealizedGain >= 0 ? "+" : "") + "\u20b9" + Math.round(totalUnrealizedGain).toLocaleString("en-IN");
+        const overallXirr = calculateXIRR(unrealizedCashFlows);
+        let xirrSuffix = "";
+        if (overallXirr !== null) {
+            const xirrPct = overallXirr * 100;
+            xirrSuffix = ` <span style="font-size: 0.6em; font-weight: 600; margin-left: 4px;">(XIRR ${xirrPct >= 0 ? "+" : ""}${xirrPct.toFixed(2)}%)</span>`;
+        }
+        gainEl.innerHTML = (totalUnrealizedGain >= 0 ? "+" : "") + "\u20b9" + Math.round(totalUnrealizedGain).toLocaleString("en-IN") + xirrSuffix;
         gainEl.style.color = totalUnrealizedGain >= 0 ? "var(--success)" : "var(--danger)";
         
         const gainUSDEl = document.getElementById("dashUnrealizedUSD");

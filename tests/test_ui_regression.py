@@ -156,6 +156,12 @@ def test_ui_regression_flow():
             
             # Screenshot FA Report Section A3
             print("Capturing 03_fa_report_preview.png...")
+            page.evaluate("""
+                const el = document.getElementById('resultsContent');
+                if (el && el.classList.contains('collapsed')) {
+                    window.toggleSection('resultsContent');
+                }
+            """)
             page.locator("#resultsSection").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#resultsSection").screenshot(path=str(SCREENSHOTS_DIR / "03_fa_report_preview.png"))
@@ -164,6 +170,12 @@ def test_ui_regression_flow():
             print("Asserting and capturing 04_validate_a3.png...")
             assert page.locator("#validateA3Section").is_visible()
             assert page.locator("#validateA3TableBody tr").count() > 0
+            page.evaluate("""
+                const el = document.getElementById('validateA3Content');
+                if (el && el.classList.contains('collapsed')) {
+                    window.toggleSection('validateA3Content');
+                }
+            """)
             page.locator("#validateA3Section").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#validateA3Section").screenshot(path=str(SCREENSHOTS_DIR / "04_validate_a3.png"))
@@ -172,6 +184,12 @@ def test_ui_regression_flow():
             print("Asserting and capturing 05_capital_gains_summary.png...")
             assert page.locator("#taxYearSection").is_visible()
             assert page.locator(".tax-block").count() > 0
+            page.evaluate("""
+                const el = document.getElementById('taxYearContent');
+                if (el && el.classList.contains('collapsed')) {
+                    window.toggleSection('taxYearContent');
+                }
+            """)
             page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#taxYearSection").scroll_into_view_if_needed()
             time.sleep(0.5)
@@ -181,6 +199,12 @@ def test_ui_regression_flow():
             # 6. Validate Capital Gains & Dividends breakdown
             print("Asserting and capturing 06_validate_tax_details.png...")
             assert page.locator("#validateTaxSection").is_visible()
+            page.evaluate("""
+                const el = document.getElementById('validateTaxContent');
+                if (el && el.classList.contains('collapsed')) {
+                    window.toggleSection('validateTaxContent');
+                }
+            """)
             page.locator("#validateTaxSection").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#validateTaxSection").screenshot(path=str(SCREENSHOTS_DIR / "06_validate_tax_details.png"))
@@ -245,7 +269,12 @@ def test_ui_regression_flow():
             time.sleep(0.5)
             assert page.locator("#sbiRatesSection").is_visible()
             
-            page.locator("#sbiRatesSection .collapsible-header").click()
+            page.evaluate("""
+                const el = document.getElementById('sbiRatesContent');
+                if (el && el.classList.contains('collapsed')) {
+                    window.toggleSection('sbiRatesContent');
+                }
+            """)
             time.sleep(0.5)
             page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#sbiRatesSection").screenshot(path=str(SCREENSHOTS_DIR / "09_sbi_rates_used.png"))
@@ -275,6 +304,12 @@ def test_ui_regression_flow():
             page.keyboard.press("Enter")
             time.sleep(1.0)
             
+            page.evaluate("""
+                const el = document.getElementById('monthlyRatesContent');
+                if (el && el.classList.contains('collapsed')) {
+                    window.toggleSection('monthlyRatesContent');
+                }
+            """)
             page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#monthlyRatesSection").scroll_into_view_if_needed()
             time.sleep(0.5)
