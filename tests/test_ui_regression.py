@@ -126,9 +126,7 @@ def test_ui_regression_flow():
             # Assert details exist inside expanded card
             assert page.locator(".lots-table").first.is_visible()
             
-            # Screenshot of the active stock cards (before report generation)
-            print("Capturing 02c_stock_cards.png...")
-            page.locator("#stockCards").screenshot(path=str(SCREENSHOTS_DIR / "02c_stock_cards.png"))
+
             
             # 3. Generate FA Report
             print("Generating FA Report Section A3...")
@@ -148,11 +146,7 @@ def test_ui_regression_flow():
             assert page.locator("#resultsSection").is_visible()
             assert page.locator("#a3TableBody tr").count() > 0
             
-            # 2b. Portfolio Dashboard Metrics (post-report)
-            print("Capturing 02b_dashboard_summary.png...")
-            page.locator("#portfolioDashboard").scroll_into_view_if_needed()
-            time.sleep(0.5)
-            page.locator("#portfolioDashboard").screenshot(path=str(SCREENSHOTS_DIR / "02b_dashboard_summary.png"))
+
             
             # Screenshot FA Report Section A3
             print("Capturing 03_fa_report_preview.png...")
