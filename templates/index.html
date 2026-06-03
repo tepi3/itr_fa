@@ -248,9 +248,7 @@
                         <label class="section-toggle-item">
                             <input type="checkbox" data-section="validateA3Section" checked> Validate A3
                         </label>
-                        <label class="section-toggle-item">
-                            <input type="checkbox" data-section="stockSummarySection" checked> Per-Stock Summary
-                        </label>
+
                         <label class="section-toggle-item">
                             <input type="checkbox" data-section="taxYearSection" checked> Tax Summary
                         </label>
@@ -580,33 +578,7 @@
         </section>
 
 
-        <!-- Per-Stock Summary -->
-        <section id="stockSummarySection" class="card hidden">
-            <div class="collapsible-header" onclick="toggleSection('stockSummaryContent')">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <h2><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Per-Stock Summary</h2>
-                    <button class="btn-help-inline" onclick="event.stopPropagation(); showTutorialStepByTitle('Per-Stock Summary')" title="Per stock dividends, G&L, and XIRR"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
-                </div>
-                <span class="toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-            </div>
-            <div id="stockSummaryContent" class="collapsible-content">
-                <div>
-                    <div class="table-wrapper">
-                        <table id="stockSummaryTable">
-                            <thead>
-                                <tr>
-                                    <th>Entity Name</th>
-                                    <th>Total Dividends (₹)</th>
-                                    <th>Unrealized G/L (₹)</th>
-                                    <th>Overall XIRR</th>
-                                </tr>
-                            </thead>
-                            <tbody id="stockSummaryTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
+
 
         <!-- ITR Tax Year Capital Gains & Dividend Summary -->
         <section id="taxYearSection" class="card hidden">
@@ -1060,7 +1032,7 @@
             <button class="qj-btn" data-target="stockCards"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><polygon points="12 22.08 12 12 3 6.92 3 17.08 12 22.08"></polygon><polygon points="12 22.08 21 17.08 21 6.92 12 12 12 22.08"></polygon><polygon points="12 12 21 6.92 12 1.83 3 6.92 12 12"></polygon></svg>Stocks</button>
             <button class="qj-btn" data-target="resultsSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>A3 Report</button>
             <button class="qj-btn" data-target="validateA3Section"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Validate A3</button>
-            <button class="qj-btn" data-target="stockSummarySection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Per-Stock Summary</button>
+
             <button class="qj-btn" data-target="taxYearSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Tax Summary</button>
             <button class="qj-btn" data-target="validateTaxSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Validate Tax</button>
             <button class="qj-btn" data-target="validatePeakSection"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>Validate Peak</button>

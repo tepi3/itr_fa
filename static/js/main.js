@@ -1220,85 +1220,7 @@ async function calculateAll() {
         state.calculatedRows = result.rows;
         renderResultsTable(result.rows);
         
-        // Populate Per-Stock Summary
-        const summaryTbody = document.getElementById("stockSummaryTableBody");
-        const summarySection = document.getElementById("stockSummarySection");
-        if (summaryTbody && summarySection) {
-            summaryTbody.innerHTML = "";
-            const stockData = {};
-            const refDate = new Date(state.portfolio.calendar_year, 11, 31);
 
-            result.rows.forEach(row => {
-                const entity = row.entity_name;
-                if (!stockData[entity]) {
-                    stockData[entity] = {
-                        dividends: 0,
-                        unrealizedGL: 0,
-                        cashFlows: []
-                    };
-                }
-
-                stockData[entity].dividends += row.total_dividends || 0;
-
-                const closing = row.closing_balance || 0;
-                const details = row.calculation_details;
-                if (closing > 0 && details && details.initial && details.closing) {
-                    const initialRate = details.initial.rate || 0;
-                    const buyPrice = details.initial.components?.buy_price || 0;
-                    const remainingQty = details.closing.remaining_qty || 0;
-                    const costBasisRemaining = buyPrice * remainingQty * initialRate;
-                    const gain = closing - costBasisRemaining;
-                    stockData[entity].unrealizedGL += gain;
-
-                    if (row.acquire_date_raw) {
-                        const acquireDate = parseAppDate(row.acquire_date_raw);
-                        if (acquireDate && costBasisRemaining > 0) {
-                            stockData[entity].cashFlows.push({ date: acquireDate, amount: -costBasisRemaining });
-                            const valuationDate = details.closing.components?.rate_date
-                                ? parseAppDate(details.closing.components.rate_date)
-                                : refDate;
-                            if (valuationDate) {
-                                stockData[entity].cashFlows.push({ date: valuationDate, amount: closing });
-                            }
-                        }
-                    }
-                }
-            });
-
-            const entities = Object.keys(stockData).sort();
-            if (entities.length > 0) {
-                showSectionIfVisible(summarySection.id);
-                entities.forEach(entity => {
-                    const data = stockData[entity];
-                    const overallXirr = calculateXIRR(data.cashFlows);
-                    
-                    let xirrText = "—";
-                    let xirrColor = "var(--text-muted)";
-                    if (overallXirr !== null) {
-                        const xirrPct = overallXirr * 100;
-                        xirrText = (xirrPct >= 0 ? "+" : "") + xirrPct.toFixed(2) + "%";
-                        xirrColor = xirrPct >= 0 ? "var(--success)" : "var(--danger)";
-                    }
-
-                    const glText = (data.unrealizedGL >= 0 ? "+" : "") + "₹" + formatINR(data.unrealizedGL);
-                    const glColor = data.unrealizedGL >= 0 ? "var(--success)" : "var(--danger)";
-
-                    const divText = data.dividends > 0 ? "₹" + formatINR(data.dividends) : "—";
-                    const divColor = data.dividends > 0 ? "var(--success)" : "var(--text-muted)";
-
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td><strong>${entity}</strong></td>
-                        <td style="color:${divColor}; font-weight:600; font-variant-numeric:tabular-nums;">${divText}</td>
-                        <td style="color:${glColor}; font-weight:600; font-variant-numeric:tabular-nums;">${glText}</td>
-                        <td style="color:${xirrColor}; font-weight:700; font-variant-numeric:tabular-nums;">${xirrText}</td>
-                    `;
-                    summaryTbody.appendChild(tr);
-                });
-            } else {
-                summarySection.classList.add("hidden");
-            }
-        }
 
         await collectSbiRates(result.rows);
 
@@ -2105,7 +2027,7 @@ async function switchTab(tab) {
 
     const allA3Els = [
         "addStockSection", "stockCards", "portfolioDashboard", "stockFilterBar",
-        "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
+        "resultsSection", "sbiRatesSection", "taxYearSection",
         "monthlyRatesSection", "assetPieChartSection", "validateA3Section", "validateTaxSection",
         "validatePeakSection", "navFlowSection"
     ];
@@ -2128,7 +2050,7 @@ async function switchTab(tab) {
         const hasCalculated = state.calculatedRows && state.calculatedRows.length > 0;
         if (hasCalculated) {
             const calculatedEls = [
-                "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
+                "resultsSection", "sbiRatesSection", "taxYearSection",
                 "assetPieChartSection", "validateA3Section", "validateTaxSection",
                 "validatePeakSection", "navFlowSection"
             ];
@@ -2562,7 +2484,7 @@ export function showTutorialStepByTitle(title) {
         { title: "Add Stock", selector: "#tickerInput", desc: "Enter a ticker symbol and lookup/add stocks to your portfolio." },
         { title: "Generate FA Report", selector: "#calcFab", desc: "Click the floating action button to calculate Schedule FA Section A3 values for all stocks in the portfolio." },
         { title: "FA Report Breakdown", selector: "#resultsSection", desc: "Inspect computed initial value, peak value, closing balance, dividends, and sales proceeds for each lot." },
-        { title: "Per-Stock Summary", selector: "#stockSummarySection", desc: "View a per-stock summary of total dividends, unrealized G/L, and overall XIRR." },
+        { title: "Per-Stock Summary", selector: "#assetPieChartSection", desc: "View per-stock units, USD/INR values, dividends, unrealized G/L, and overall XIRR next to the pie chart." },
         { title: "Tax Summary", selector: "#taxYearSection", desc: "Check the consolidated financial year-wise tax summary for Indian Income Tax filing." },
         { title: "Tax Calculation Audit", selector: "#validateTaxSection", desc: "Audit the exact capital gains and dividend tax computations." },
         { title: "Asset Chart", selector: "#assetPieChartSection", desc: "Visualize the asset allocation by stock value in a doughnut chart." },
@@ -3016,7 +2938,7 @@ window.addEventListener("portfolio-state-change", (e) => {
         }
     } else if (type === "clear-calculated") {
         const calculatedEls = [
-            "resultsSection", "stockSummarySection", "sbiRatesSection", "taxYearSection",
+            "resultsSection", "sbiRatesSection", "taxYearSection",
             "assetPieChartSection", "validateA3Section", "validateTaxSection",
             "validatePeakSection", "navFlowSection"
         ];
@@ -3035,9 +2957,7 @@ window.addEventListener("portfolio-state-change", (e) => {
         const sbiRatesBody = document.getElementById("sbiRatesTableBody");
         if (sbiRatesBody) sbiRatesBody.innerHTML = "";
         
-        const divContainer = document.getElementById("stockSummaryTableBody");
-        if (divContainer) divContainer.innerHTML = "";
-        
+
         const taxYearBody = document.getElementById("taxYearTableBody");
         if (taxYearBody) taxYearBody.innerHTML = "";
         

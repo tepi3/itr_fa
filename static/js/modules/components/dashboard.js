@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { parseAppDate, calculateXIRR } from '../utils.js';
+import { parseAppDate, calculateXIRR, formatINR } from '../utils.js';
 import { apiPost } from '../api.js';
 import { BOX_SVG, BRIEFCASE_SVG, TREND_UP_SVG, CURRENCY_SVG, PIE_CHART_SVG } from '../constants.js';
 import { updateSbiModeHints } from './resultsTable.js';
@@ -413,15 +413,63 @@ export async function renderAssetPieChart(rows) {
         }
     }
 
+    // Ensure all stocks from calculated rows exist in stockTotals
+    rows.forEach(row => {
+        const entity = row.entity_name;
+        if (!stockTotals[entity]) {
+            stockTotals[entity] = { value: 0, qty: 0, price: 0, rate: 0 };
+        }
+    });
+
     if (chartTitleEl) chartTitleEl.innerHTML = `${PIE_CHART_SVG}${chartLabel} (INR)`;
 
     container.innerHTML = "";
     legendContainer.innerHTML = "";
 
-    if (totalAssets === 0) {
+    const totalStocksCount = Object.keys(stockTotals).length;
+    if (totalStocksCount === 0) {
         container.innerHTML = '<div style="color:var(--text-muted); font-size:14px; text-align:center; width:100%;">No assets to display</div>';
         return;
     }
+
+    // Pre-calculate per-stock dividends, unrealized GL, and cash flows
+    const stockStats = {};
+    const refDate = new Date(state.portfolio.calendar_year, 11, 31);
+    rows.forEach(row => {
+        const entity = row.entity_name;
+        if (!stockStats[entity]) {
+            stockStats[entity] = {
+                dividends: 0,
+                unrealizedGL: 0,
+                cashFlows: []
+            };
+        }
+        stockStats[entity].dividends += row.total_dividends || 0;
+
+        const closing = row.closing_balance || 0;
+        const details = row.calculation_details;
+        if (closing > 0 && details && details.initial && details.closing) {
+            const initialRate = details.initial.rate || 0;
+            const buyPrice = details.initial.components?.buy_price || 0;
+            const remainingQty = details.closing.remaining_qty || 0;
+            const costBasisRemaining = buyPrice * remainingQty * initialRate;
+            const gain = closing - costBasisRemaining;
+            stockStats[entity].unrealizedGL += gain;
+
+            if (row.acquire_date_raw) {
+                const acquireDate = parseAppDate(row.acquire_date_raw);
+                if (acquireDate && costBasisRemaining > 0) {
+                    stockStats[entity].cashFlows.push({ date: acquireDate, amount: -costBasisRemaining });
+                    const valuationDate = details.closing.components?.rate_date
+                        ? parseAppDate(details.closing.components.rate_date)
+                        : refDate;
+                    if (valuationDate) {
+                        stockStats[entity].cashFlows.push({ date: valuationDate, amount: closing });
+                    }
+                }
+            }
+        }
+    });
 
     const sortedStocks = Object.entries(stockTotals).sort((a, b) => b[1].value - a[1].value);
     
@@ -434,58 +482,84 @@ export async function renderAssetPieChart(rows) {
     let startAngle = -0.5 * Math.PI; 
 
     legendContainer.innerHTML = `
-        <table class="pie-legend-table">
-            <thead>
-                <tr>
-                    <th>Stock</th>
-                    <th class="text-right">Units</th>
-                    <th class="text-right">Value (USD)</th>
-                    <th class="text-right">Value (INR)</th>
-                    <th class="text-right">%</th>
-                </tr>
-            </thead>
-            <tbody id="pieLegendTableBody"></tbody>
-        </table>
+        <div class="table-wrapper">
+            <table class="pie-legend-table">
+                <thead>
+                    <tr>
+                        <th>Stock</th>
+                        <th class="text-right">Units</th>
+                        <th class="text-right">Value (USD)</th>
+                        <th class="text-right">Value (INR)</th>
+                        <th class="text-right">%</th>
+                        <th class="text-right">Dividends (₹)</th>
+                        <th class="text-right">Unrealized G/L (₹)</th>
+                        <th class="text-right">XIRR</th>
+                    </tr>
+                </thead>
+                <tbody id="pieLegendTableBody"></tbody>
+            </table>
+        </div>
     `;
     const tbody = document.getElementById("pieLegendTableBody");
 
     sortedStocks.forEach(([entity, data], idx) => {
         const { value, qty, price, rate } = data;
-        if (value <= 0) return;
+        const stats = stockStats[entity] || { dividends: 0, unrealizedGL: 0, cashFlows: [] };
+        
+        if (value <= 0 && stats.dividends <= 0) return;
 
-        const sliceAngle = (value / totalAssets) * 2 * Math.PI;
-        const endAngle = startAngle + sliceAngle;
         const color = colors[idx % colors.length];
 
-        const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
-        const innerRadius = radius * 0.58;
+        if (value > 0 && totalAssets > 0) {
+            const sliceAngle = (value / totalAssets) * 2 * Math.PI;
+            const endAngle = startAngle + sliceAngle;
 
-        const x1_out = centerX + radius * Math.cos(startAngle);
-        const y1_out = centerY + radius * Math.sin(startAngle);
-        let x2_out = centerX + radius * Math.cos(endAngle);
-        let y2_out = centerY + radius * Math.sin(endAngle);
+            const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+            const innerRadius = radius * 0.58;
 
-        const x1_in = centerX + innerRadius * Math.cos(startAngle);
-        const y1_in = centerY + innerRadius * Math.sin(startAngle);
-        let x2_in = centerX + innerRadius * Math.cos(endAngle);
-        let y2_in = centerY + innerRadius * Math.sin(endAngle);
+            const x1_out = centerX + radius * Math.cos(startAngle);
+            const y1_out = centerY + radius * Math.sin(startAngle);
+            let x2_out = centerX + radius * Math.cos(endAngle);
+            let y2_out = centerY + radius * Math.sin(endAngle);
 
-        if (sliceAngle >= 2 * Math.PI - 0.001) {
-            x2_out -= 0.01;
-            x2_in -= 0.01;
+            const x1_in = centerX + innerRadius * Math.cos(startAngle);
+            const y1_in = centerY + innerRadius * Math.sin(startAngle);
+            let x2_in = centerX + innerRadius * Math.cos(endAngle);
+            let y2_in = centerY + innerRadius * Math.sin(endAngle);
+
+            if (sliceAngle >= 2 * Math.PI - 0.001) {
+                x2_out -= 0.01;
+                x2_in -= 0.01;
+            }
+
+            svgContent += `<path d="M ${x1_out} ${y1_out} 
+                                 A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2_out} ${y2_out} 
+                                 L ${x2_in} ${y2_in} 
+                                 A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x1_in} ${y1_in} 
+                                 Z" 
+                                 fill="transparent" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" />`;
+
+            startAngle = endAngle;
         }
 
-        svgContent += `<path d="M ${x1_out} ${y1_out} 
-                             A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2_out} ${y2_out} 
-                             L ${x2_in} ${y2_in} 
-                             A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x1_in} ${y1_in} 
-                             Z" 
-                             fill="transparent" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" />`;
-
-        startAngle = endAngle;
-
-        const pct = ((value / totalAssets) * 100).toFixed(1);
+        const pct = totalAssets > 0 ? ((value / totalAssets) * 100).toFixed(1) + "%" : "0.0%";
         const valueUsd = qty * price;
+
+        const overallXirr = calculateXIRR(stats.cashFlows);
+        let xirrText = "—";
+        let xirrColor = "var(--text-muted)";
+        if (overallXirr !== null) {
+            const xirrPct = overallXirr * 100;
+            xirrText = (xirrPct >= 0 ? "+" : "") + xirrPct.toFixed(2) + "%";
+            xirrColor = xirrPct >= 0 ? "var(--success)" : "var(--danger)";
+        }
+
+        const glText = (stats.unrealizedGL >= 0 ? "+" : "") + "₹" + formatINR(stats.unrealizedGL);
+        const glColor = stats.unrealizedGL >= 0 ? "var(--success)" : "var(--danger)";
+
+        const divText = stats.dividends > 0 ? "₹" + formatINR(stats.dividends) : "—";
+        const divColor = stats.dividends > 0 ? "var(--success)" : "var(--text-muted)";
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>
@@ -497,7 +571,10 @@ export async function renderAssetPieChart(rows) {
             <td class="text-right" style="font-variant-numeric:tabular-nums;">${qty % 1 === 0 ? qty : qty.toFixed(2)}</td>
             <td class="text-right" style="font-variant-numeric:tabular-nums;">$${valueUsd.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="text-right" style="font-weight:700; font-variant-numeric:tabular-nums;">₹${Math.round(value).toLocaleString("en-IN")}</td>
-            <td class="text-right" style="color:var(--text-muted); font-size:0.75rem;">${pct}%</td>
+            <td class="text-right" style="color:var(--text-muted); font-size:0.75rem;">${pct}</td>
+            <td class="text-right" style="color:${divColor}; font-weight:600; font-variant-numeric:tabular-nums;">${divText}</td>
+            <td class="text-right" style="color:${glColor}; font-weight:600; font-variant-numeric:tabular-nums;">${glText}</td>
+            <td class="text-right" style="color:${xirrColor}; font-weight:700; font-variant-numeric:tabular-nums;">${xirrText}</td>
         `;
         if (tbody) tbody.appendChild(tr);
     });
