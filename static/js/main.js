@@ -1220,28 +1220,78 @@ async function calculateAll() {
         state.calculatedRows = result.rows;
         renderResultsTable(result.rows);
         
-        // Populate Per-Stock Dividend Summary
+        // Populate Per-Stock Summary
         const summaryTbody = document.getElementById("stockSummaryTableBody");
         const summarySection = document.getElementById("stockSummarySection");
         if (summaryTbody && summarySection) {
             summaryTbody.innerHTML = "";
-            const stockTotals = {};
+            const stockData = {};
+            const refDate = new Date(state.portfolio.calendar_year, 11, 31);
 
             result.rows.forEach(row => {
                 const entity = row.entity_name;
-                if (!stockTotals[entity]) stockTotals[entity] = 0;
-                stockTotals[entity] += row.total_dividends || 0;
+                if (!stockData[entity]) {
+                    stockData[entity] = {
+                        dividends: 0,
+                        unrealizedGL: 0,
+                        cashFlows: []
+                    };
+                }
+
+                stockData[entity].dividends += row.total_dividends || 0;
+
+                const closing = row.closing_balance || 0;
+                const details = row.calculation_details;
+                if (closing > 0 && details && details.initial && details.closing) {
+                    const initialRate = details.initial.rate || 0;
+                    const buyPrice = details.initial.components?.buy_price || 0;
+                    const remainingQty = details.closing.remaining_qty || 0;
+                    const costBasisRemaining = buyPrice * remainingQty * initialRate;
+                    const gain = closing - costBasisRemaining;
+                    stockData[entity].unrealizedGL += gain;
+
+                    if (row.acquire_date_raw) {
+                        const acquireDate = parseAppDate(row.acquire_date_raw);
+                        if (acquireDate && costBasisRemaining > 0) {
+                            stockData[entity].cashFlows.push({ date: acquireDate, amount: -costBasisRemaining });
+                            const valuationDate = details.closing.components?.rate_date
+                                ? parseAppDate(details.closing.components.rate_date)
+                                : refDate;
+                            if (valuationDate) {
+                                stockData[entity].cashFlows.push({ date: valuationDate, amount: closing });
+                            }
+                        }
+                    }
+                }
             });
 
-            const hasDividends = Object.values(stockTotals).some(t => t > 0);
-            if (hasDividends) {
+            const entities = Object.keys(stockData).sort();
+            if (entities.length > 0) {
                 showSectionIfVisible(summarySection.id);
-                Object.entries(stockTotals).forEach(([entity, total]) => {
-                    if (total === 0) return;
+                entities.forEach(entity => {
+                    const data = stockData[entity];
+                    const overallXirr = calculateXIRR(data.cashFlows);
+                    
+                    let xirrText = "—";
+                    let xirrColor = "var(--text-muted)";
+                    if (overallXirr !== null) {
+                        const xirrPct = overallXirr * 100;
+                        xirrText = (xirrPct >= 0 ? "+" : "") + xirrPct.toFixed(2) + "%";
+                        xirrColor = xirrPct >= 0 ? "var(--success)" : "var(--danger)";
+                    }
+
+                    const glText = (data.unrealizedGL >= 0 ? "+" : "") + "₹" + formatINR(data.unrealizedGL);
+                    const glColor = data.unrealizedGL >= 0 ? "var(--success)" : "var(--danger)";
+
+                    const divText = data.dividends > 0 ? "₹" + formatINR(data.dividends) : "—";
+                    const divColor = data.dividends > 0 ? "var(--success)" : "var(--text-muted)";
+
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td><strong>${entity}</strong></td>
-                        <td style="color:var(--success); font-weight:600;">₹${formatINR(total)}</td>
+                        <td style="color:${divColor}; font-weight:600; font-variant-numeric:tabular-nums;">${divText}</td>
+                        <td style="color:${glColor}; font-weight:600; font-variant-numeric:tabular-nums;">${glText}</td>
+                        <td style="color:${xirrColor}; font-weight:700; font-variant-numeric:tabular-nums;">${xirrText}</td>
                     `;
                     summaryTbody.appendChild(tr);
                 });
@@ -2512,7 +2562,7 @@ export function showTutorialStepByTitle(title) {
         { title: "Add Stock", selector: "#tickerInput", desc: "Enter a ticker symbol and lookup/add stocks to your portfolio." },
         { title: "Generate FA Report", selector: "#calcFab", desc: "Click the floating action button to calculate Schedule FA Section A3 values for all stocks in the portfolio." },
         { title: "FA Report Breakdown", selector: "#resultsSection", desc: "Inspect computed initial value, peak value, closing balance, dividends, and sales proceeds for each lot." },
-        { title: "Dividends", selector: "#stockSummarySection", desc: "View detailed dividend calculations and rules applied for each stock." },
+        { title: "Per-Stock Summary", selector: "#stockSummarySection", desc: "View a per-stock summary of total dividends, unrealized G/L, and overall XIRR." },
         { title: "Tax Summary", selector: "#taxYearSection", desc: "Check the consolidated financial year-wise tax summary for Indian Income Tax filing." },
         { title: "Tax Calculation Audit", selector: "#validateTaxSection", desc: "Audit the exact capital gains and dividend tax computations." },
         { title: "Asset Chart", selector: "#assetPieChartSection", desc: "Visualize the asset allocation by stock value in a doughnut chart." },
@@ -2522,7 +2572,7 @@ export function showTutorialStepByTitle(title) {
         { title: "Sell Simulator", selector: "#tabSellHelper", desc: "Switch to the Sell Simulator tab to simulate hypothetical sales and estimate tax impacts." }
     ];
 
-    const step = steps.find(s => s.title.toLowerCase() === title.toLowerCase());
+    const step = steps.find(s => s.title.toLowerCase() === title.toLowerCase() || (title.toLowerCase() === 'dividends' && s.title === 'Per-Stock Summary'));
     if (step) {
         const overlay = document.getElementById("tutorialOverlay");
         const ttTitle = document.getElementById("tutorialTitle");
