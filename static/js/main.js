@@ -211,6 +211,109 @@ async function checkDisclaimer() {
     });
 }
 
+// ===== FIFO Methodology Agreement Check =====
+async function checkFifoAgreement() {
+    return new Promise(async (resolve) => {
+        try {
+            const res = await fetch("/api/fifo-agreement");
+            const data = await res.json();
+            if (data.success && data.accepted) {
+                document.getElementById("fifoAgreementModal").classList.add("hidden");
+                resolve();
+                return;
+            }
+        } catch (e) {
+            if (localStorage.getItem("fifoAgreementAccepted")) {
+                document.getElementById("fifoAgreementModal").classList.add("hidden");
+                resolve();
+                return;
+            }
+        }
+
+        const modal = document.getElementById("fifoAgreementModal");
+        if (!modal) {
+            resolve();
+            return;
+        }
+        
+        modal.classList.remove("hidden");
+
+        const container = document.getElementById("fifoTextContainer");
+        const acceptBtn = document.getElementById("acceptFifoBtn");
+
+        const checkScroll = () => {
+            // If scrollable height is not enough to scroll or if user has scrolled to the bottom (within 15px)
+            if (container.scrollHeight - container.scrollTop - container.clientHeight <= 15) {
+                acceptBtn.disabled = false;
+            }
+        };
+
+        container.addEventListener("scroll", checkScroll);
+        // Trigger check in case the box doesn't have a scrollbar or is already at the bottom
+        setTimeout(checkScroll, 150);
+
+        acceptBtn.addEventListener("click", async () => {
+            try {
+                await fetch("/api/fifo-agreement/accept", { method: "POST" });
+            } catch (e) {
+                console.error("Failed to save FIFO agreement acceptance to server:", e);
+            }
+            localStorage.setItem("fifoAgreementAccepted", "true");
+            
+            // Switch to success state
+            document.getElementById("fifoInitialState").classList.add("hidden");
+            document.getElementById("fifoSuccessState").classList.remove("hidden");
+        });
+
+        document.getElementById("fifoGetStartedBtn").addEventListener("click", () => {
+            modal.classList.add("hidden");
+            resolve();
+        });
+        
+        document.getElementById("declineFifoBtn").addEventListener("click", async () => {
+            try {
+                await fetch("/api/shutdown", { method: "POST" });
+            } catch (e) {
+                // Expected to fail as server terminates
+            }
+            document.body.innerHTML = `
+                <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background-color:var(--bg-primary);color:var(--text-primary);font-family:'Inter', sans-serif;padding:20px;text-align:center;">
+                    <h1 style="font-size:2rem;margin-bottom:16px;">🛑 Access Denied</h1>
+                    <p style="font-size:1.1rem;color:var(--text-secondary);">You must accept the Specific Lot Identification methodology agreement to use this application.</p>
+                    <p style="font-size:1.1rem;color:var(--text-muted);margin-top:8px;">The application session has ended.</p>
+                </div>`;
+            try { window.close(); } catch(e) {}
+        });
+    });
+}
+
+// ===== FIFO Methodology Reference Mode =====
+function openFifoModalReference() {
+    const aboutModal = document.getElementById("aboutModal");
+    if (aboutModal) aboutModal.classList.add("hidden");
+    
+    const modal = document.getElementById("fifoAgreementModal");
+    const actions = document.getElementById("fifoActionButtons");
+    const closeBtn = document.getElementById("closeFifoRefBtn");
+    
+    if (actions) actions.classList.add("hidden");
+    if (closeBtn) closeBtn.classList.remove("hidden");
+    if (modal) modal.classList.remove("hidden");
+}
+
+function closeFifoModalReference() {
+    const modal = document.getElementById("fifoAgreementModal");
+    const actions = document.getElementById("fifoActionButtons");
+    const closeBtn = document.getElementById("closeFifoRefBtn");
+    
+    if (modal) modal.classList.add("hidden");
+    if (actions) actions.classList.remove("hidden");
+    if (closeBtn) closeBtn.classList.add("hidden");
+    
+    const aboutModal = document.getElementById("aboutModal");
+    if (aboutModal) aboutModal.classList.remove("hidden");
+}
+
 // ===== Year Selectors =====
 function initYearSelectors() {
     const mainSelect = document.getElementById("yearSelect");
@@ -1619,13 +1722,40 @@ async function openAboutModal() {
     try {
         const res = await fetch("/api/disclaimer");
         const data = await res.json();
-        if (data.success && data.accepted) {
-            thankYouEl.classList.remove("hidden");
-        } else {
-            thankYouEl.classList.add("hidden");
+        const statusBadge = document.getElementById("disclaimerStatusBadge");
+        if (statusBadge) {
+            if (data.success && data.accepted) {
+                statusBadge.style.color = "var(--success)";
+                statusBadge.textContent = "Agreed ✓";
+                if (thankYouEl) thankYouEl.classList.remove("hidden");
+            } else {
+                statusBadge.style.color = "var(--danger)";
+                statusBadge.textContent = "Pending ✗";
+                if (thankYouEl) thankYouEl.classList.add("hidden");
+            }
         }
     } catch (e) {
-        thankYouEl.classList.add("hidden");
+        const statusBadge = document.getElementById("disclaimerStatusBadge");
+        if (statusBadge) statusBadge.textContent = "Unknown";
+        if (thankYouEl) thankYouEl.classList.add("hidden");
+    }
+
+    try {
+        const res = await fetch("/api/fifo-agreement");
+        const data = await res.json();
+        const statusBadge = document.getElementById("fifoStatusBadge");
+        if (statusBadge) {
+            if (data.success && data.accepted) {
+                statusBadge.style.color = "var(--success)";
+                statusBadge.textContent = "Agreed ✓";
+            } else {
+                statusBadge.style.color = "var(--danger)";
+                statusBadge.textContent = "Pending ✗";
+            }
+        }
+    } catch (e) {
+        const statusBadge = document.getElementById("fifoStatusBadge");
+        if (statusBadge) statusBadge.textContent = "Unknown";
     }
 
     try {
@@ -2806,6 +2936,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Initialize core components & managers
     await checkDisclaimer();
+    await checkFifoAgreement();
     await initUserSelection();
     initSellHelper(backendSettings);
     initTutorial();
@@ -2987,6 +3118,8 @@ window.closeIbkrModal = closeIbkrModal;
 window.closeMSModal = closeMSModal;
 window.closeImportReview = closeImportReview;
 window.closeAboutModal = closeAboutModal;
+window.openFifoModalReference = openFifoModalReference;
+window.closeFifoModalReference = closeFifoModalReference;
 window.checkForUpdate = checkForUpdate;
 window.toggleHistoryPanel = toggleHistoryPanel;
 window.calculateAll = calculateAll;

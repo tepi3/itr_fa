@@ -1476,6 +1476,24 @@
                     <div id="updateResult" class="about-update-result hidden"></div>
                 </div>
 
+                <!-- Agreements Status in About -->
+                <div style="margin-top: 20px; padding: 12px 14px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: left;">
+                    <strong style="display: block; font-size: 0.8rem; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">User Agreements Status</strong>
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; padding: 5px 8px; background: var(--bg-tertiary); border-radius: 4px; border: 1px solid var(--border);">
+                            <span style="color: var(--text-secondary);">General Disclaimer</span>
+                            <span id="disclaimerStatusBadge" style="font-weight: 600; color: var(--text-muted);">Checking...</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; padding: 5px 8px; background: var(--bg-tertiary); border-radius: 4px; border: 1px solid var(--border);">
+                            <span style="color: var(--text-secondary);">Methodology Election</span>
+                            <span id="fifoStatusBadge" style="font-weight: 600; color: var(--text-muted);">Checking...</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" style="width: 100%; font-size: 0.72rem; padding: 6px; font-weight: 600;" onclick="openFifoModalReference()">
+                        View Specific Lot vs. FIFO Rationale
+                    </button>
+                </div>
+
                 <!-- Disclaimer in About -->
                 <div style="margin-top: 20px; padding: 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: left;">
                     <div id="aboutThankYou" class="hidden" style="margin-bottom: 12px; padding: 8px; background: rgba(var(--success-rgb, 34, 197, 94), 0.1); border-radius: 6px; border: 1px solid var(--success); display: flex; align-items: center; gap: 8px;">
@@ -1537,6 +1555,195 @@
                     Thank you for accepting our terms and conditions.<br>You can now proceed to use FA Desk.
                 </p>
                 <button id="getStartedBtn" class="btn btn-primary" style="width: 100%; padding: 14px; font-weight: 600; font-size: 1rem;">Get Started</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== First-Time FIFO Agreement Acceptance Modal ===== -->
+    <div id="fifoAgreementModal" class="modal-backdrop hidden" style="z-index: 11000;">
+        <div class="modal-box" style="max-width: 650px; border: 1px solid var(--border-light); border-radius: var(--radius); padding: 28px 32px; box-shadow: var(--shadow-lg);">
+            <!-- Initial Acceptance State -->
+            <div id="fifoInitialState">
+                <div class="about-accent-bar" style="height: 4px; margin-bottom: 20px;"></div>
+                <div class="modal-header" style="margin-bottom: 4px;">
+                    <h2 style="margin:0; color: var(--accent); display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Filing Position: Specific Lot vs. FIFO
+                    </h2>
+                </div>
+                <div style="margin-top: 16px; font-size: 0.9rem; line-height: 1.6; color: var(--text-primary);">
+                    <p style="margin-bottom: 12px;">
+                        This application calculates capital gains on foreign securities (such as US RSUs and shares) using the <strong>Specific Lot Identification Method</strong> as its default, rather than the First-In-First-Out (FIFO) method.
+                    </p>
+                    <p style="margin-bottom: 12px; font-weight: 500; color: var(--text-secondary);">
+                        Please review the legal interpretations, methodology options, and risk disclosures below regarding this filing position.
+                    </p>
+                    
+                    <div id="fifoTextContainer" style="max-height: 280px; overflow-y: auto; padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.82rem; color: var(--text-secondary); margin-top: 16px; margin-bottom: 16px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.25); scroll-behavior: smooth;">
+                        <h3 style="color: var(--text-primary); font-size: 1rem; margin-top: 0; margin-bottom: 12px; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 8px; text-transform: uppercase;">
+                            Methodology Document: Specific Lot vs. FIFO Analysis
+                        </h3>
+                        
+                        <p style="margin-bottom: 12px; line-height: 1.5; font-style: italic; color: var(--text-muted);">
+                            <strong>Important Notice:</strong> The tax treatment of foreign stock lot selection under Indian tax laws is a subject of interpretation and remains a legal grey area. There is no direct statutory rule, CBDT circular, or judicial precedent explicitly confirming whether specific lot identification is permitted or if FIFO is mandatory for foreign securities. This document outlines both interpretations and the position adopted by this tool.
+                        </p>
+                        
+                        <h4 style="color: var(--text-primary); margin-top: 14px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">1. Subject Matter & Factual Background</h4>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            This methodology document establishes the reasoned basis for electing the <strong>Specific Lot Identification Method</strong> (lot-based pricing) instead of the First-In-First-Out (FIFO) method for computing capital gains under Section 45 of the Income Tax Act, 1961 ("the Act") on the sale of equity shares/Restricted Stock Units (RSUs) held through a foreign registered broker-dealer (e.g., E*Trade, Morgan Stanley, or Interactive Brokers).
+                        </p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            The factual characteristics of foreign brokerage accounts include:
+                        </p>
+                        <ul style="padding-left: 18px; margin-bottom: 10px; line-height: 1.5;">
+                            <li style="margin-bottom: 4px;">Upon vesting, RSU shares are credited directly to the brokerage account. This account is not a demat account maintained with any depository registered under the Indian Depositories Act, 1996. The foreign broker is not a "depository" or "participant" under Indian law.</li>
+                            <li style="margin-bottom: 4px;">The broker maintains rigorous lot-level digital tracking, recording: a unique lot identifier, the exact acquisition/vest date, number of shares, and the Fair Market Value (FMV) on the vest date (which establishes the cost of acquisition).</li>
+                            <li style="margin-bottom: 4px;">When selling shares, the broker permits specific lot selection — the investor can designate which lot(s) to sell at the time of the transaction. The broker's trade confirmations and Gain/Loss reports document precisely which lots were sold.</li>
+                        </ul>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">2. Legal Provisions at Issue</h4>
+                        <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">2.1 Section 45(2A) of the Income Tax Act, 1961</p>
+                        <p style="margin-bottom: 10px; line-height: 1.5; font-style: italic; padding-left: 8px; border-left: 2px solid var(--border);">
+                            "where any person holds any securities, as a beneficial owner thereof, in an account with a depository referred to in the Depositories Act, 1996, the profit or gain arising from the transfer of such securities shall be chargeable to income-tax... and the cost of acquisition and the period of holding of any securities shall be determined on the basis of the first-in-first-out method."
+                        </p>
+                        <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">2.2 Section 2(e) of the Depositories Act, 1996</p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            A "depository" is defined as a company formed and registered under the Companies Act and granted a certificate of registration under Section 12(1A) of the SEBI Act, 1992. In India, this refers only to NSDL and CDSL. US brokers are regulated by the SEC/FINRA and fall outside this definition.
+                        </p>
+                        <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">2.3 CBDT Circular No. 704 (dated 28-4-1995)</p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            This circular mandates the FIFO method only "in cases where the dates of purchase and sale could not be correlated through specific numbers of the scrips." Since US broker records provide direct lot correlation, the condition for applying FIFO under Circular 704 is not triggered.
+                        </p>
+                        <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">2.4 CBDT Circular No. 768 (dated 24-6-1998)</p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            This circular explains that FIFO was introduced under Section 45(2A) solely because dematerialized securities are fungible (identical, interchangeable, and lacking unique distinctive numbers), making it impossible to link a sale to its purchase.
+                        </p>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">3. Arguments Supporting Specific Lot Identification (Tool Default)</h4>
+                        <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">3.1 Interpretation of Depository Requirements</p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            The statutory pre-condition for Section 45(2A) is that the securities must be held "in an account with a depository referred to in the Depositories Act, 1996." Because a US brokerage account does not meet this description, the statutory FIFO mandate does not apply directly.
+                        </p>
+                        <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">3.2 Fungibility Argument</p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            Circular 768 states that FIFO was created to resolve a specific problem: that demat securities are fungible and "it is not possible to link the purchase of a security with its sale." Where a distinct trail linking every share lot is available (as with US broker lot tracking), the problem does not arise, and the solution (FIFO) is not applicable.
+                        </p>
+                        <p style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">3.3 Argument on Dematerialised Holdings Limitation</p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            Paragraph 5(a) of Circular 768 explicitly states: "FIFO method will be applied only in respect of the dematerialised holdings because in case of sale... [identifiable securities] are identified separately." This suggests that identifiable, traceable holdings are excluded from FIFO.
+                        </p>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">4. Arguments Supporting the FIFO-Everywhere Position (Conservative / Standard Practice)</h4>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            While there are strong textual and logical reasons to support Specific Lot Identification, many tax professionals and authorities recommend adopting the <strong>FIFO method across all accounts</strong> due to the following considerations:
+                        </p>
+                        <ul style="padding-left: 18px; margin-bottom: 10px; line-height: 1.5;">
+                            <li style="margin-bottom: 4px;"><strong>Fungibility of Book-Entry Assets:</strong> Regardless of physical location, electronic securities are essentially book entries and fungible by nature. Under a broad interpretation, the tax department may contend that a uniform sequencing method (FIFO) must be applied to all electronic holdings to prevent taxpayers from selectively optimizing cost basis to reduce tax liability.</li>
+                            <li style="margin-bottom: 4px;"><strong>Administrative Precedent:</strong> Indian tax systems and tax officers are universally accustomed to the FIFO method for all equity transactions. Selecting a non-FIFO position on foreign equity may trigger audit questions and demand letters from Assessing Officers who apply the Indian depository rules by analogy.</li>
+                            <li style="margin-bottom: 4px;"><strong>Risk Minimization:</strong> Filing with FIFO is considered a conservative tax position that avoids potential litigation, even if it results in a higher tax liability for the filing year.</li>
+                        </ul>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">5. Historical & Chronological Context</h4>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            When Section 45(2A) was enacted (1997) and Circular 768 was issued (1998), Indian residents were legally prohibited from investing in foreign equity under FERA/FEMA. The Liberalised Remittance Scheme (LRS) was only introduced by the RBI in February 2004 (Circular No. 64). 
+                        </p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            Therefore, the legislature could not have contemplated foreign broker scenarios when enacting Section 45(2A). Despite 22 years of awareness and extensive subsequent legislation around foreign assets (such as Schedule FA in ITR forms, TCS under Section 206C(1G), and the Black Money Act of 2015), the legislature has consciously chosen not to extend the FIFO mandate to foreign broker-held securities.
+                        </p>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">6. Legal Principles of Statutory Interpretation</h4>
+                        <ul style="padding-left: 18px; margin-bottom: 10px; line-height: 1.5;">
+                            <li style="margin-bottom: 4px;"><strong>Strict Construction of Deeming Provisions:</strong> A legal fiction (such as deemed FIFO sequencing) must be restricted to its defined domain and cannot be extended by implication (<em>CIT v. Vatika Township Pvt. Ltd.</em>).</li>
+                            <li style="margin-bottom: 4px;"><strong>Expressio Unius Est Exclusio Alterius:</strong> The express mention of depositories registered under the Depositories Act, 1996 excludes all other custody types, including foreign broker-dealers.</li>
+                            <li style="margin-bottom: 4px;"><strong>No Casus Omissus:</strong> Assessing officers cannot supply a gap in the statute by reading a FIFO requirement into foreign assets when the text does not contain it (<em>Padma Sundara Rao v. State of Tamil Nadu</em>).</li>
+                        </ul>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">7. Fallback to Section 48 & The Parity Argument</h4>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            In the absence of a specific statutory mandate extending FIFO to foreign securities, the general principles of capital gains computation under Section 48 apply. Section 48 requires computing gains based on the actual cost of acquisition of the specific asset transferred, without prescribing any sequencing method.
+                        </p>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            Additionally, Circular 768 para 5(b) establishes that FIFO applies "account-wise." This allows Indian depository investors to achieve specific lot identification by maintaining multiple demat accounts and transferring specific lots to sell from. Denying the same economic outcome when achieved directly through a foreign broker's digital lot selection system would create an inconsistency in tax administration.
+                        </p>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">8. Tax Risk & Legal Grey Area (Scrutiny Warning)</h4>
+                        <p style="margin-bottom: 10px; line-height: 1.5; font-weight: 600; color: var(--text-primary);">
+                            Please note that this methodology is a reasoned interpretation of the Act and is not explicitly confirmed by the Income Tax Department or the courts.
+                        </p>
+                        <p style="margin-bottom: 10px; line-height: 1.5; color: var(--warning);">
+                            <strong>Potential Litigious Position:</strong> Assessing officers or tax authorities may adopt an alternative interpretation. They might argue that because all dematerialized/electronic assets are fungible, a broad FIFO principle should apply to all electronic shares by analogy, regardless of where they are custodied. If an Assessing Officer disputes this Specific Lot Identification method and applies FIFO, they may recalculate your capital gains, which could result in additional tax liability, interest, penalties, or litigation.
+                        </p>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">9. Supporting Documentation Requirement</h4>
+                        <p style="margin-bottom: 10px; line-height: 1.5;">
+                            To substantiate this Specific Lot Identification method in the event of an audit or inquiry, you must maintain:
+                        </p>
+                        <ol style="padding-left: 18px; margin-bottom: 12px; line-height: 1.5;">
+                            <li style="margin-bottom: 4px;"><strong>Gain/Loss Reports</strong> showing lot ID, acquisition date, cost basis, sale date, and proceeds.</li>
+                            <li style="margin-bottom: 4px;"><strong>Trade Confirmations</strong> confirming specific lot selection at the time of each sale.</li>
+                            <li style="margin-bottom: 4px;"><strong>Benefit History / Vest Schedules</strong> showing FMV at vest (taxable under Section 17(2)).</li>
+                            <li style="margin-bottom: 4px;"><strong>Prior Year ITRs</strong> demonstrating a consistent filing position.</li>
+                        </ol>
+
+                        <h4 style="color: var(--text-primary); margin-top: 16px; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem;">10. Comparison Summary</h4>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 12px; font-size: 0.8rem; line-height: 1.4; border: 1px solid var(--border);">
+                            <thead>
+                                <tr style="background: var(--bg-hover);">
+                                    <th style="padding: 6px; border: 1px solid var(--border); text-align: left; color: var(--text-primary); font-weight: 600;">Feature</th>
+                                    <th style="padding: 6px; border: 1px solid var(--border); text-align: left; color: var(--text-primary); font-weight: 600;">Indian Demat System</th>
+                                    <th style="padding: 6px; border: 1px solid var(--border); text-align: left; color: var(--text-primary); font-weight: 600;">Foreign Brokerage System</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid var(--border); font-weight: 600;">Traceability</td>
+                                    <td style="padding: 6px; border: 1px solid var(--border);">Fungible; no unique lot correlation</td>
+                                    <td style="padding: 6px; border: 1px solid var(--border);">Fully traceable via unique vest/lot IDs</td>
+                                </tr>
+                                <tr style="background: rgba(255,255,255,0.015);">
+                                    <td style="padding: 6px; border: 1px solid var(--border); font-weight: 600;">Sale Allocation</td>
+                                    <td style="padding: 6px; border: 1px solid var(--border);">Automatically sequenced via FIFO</td>
+                                    <td style="padding: 6px; border: 1px solid var(--border);">Selected specifically at trade confirmation</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid var(--border); font-weight: 600;">Applicability</td>
+                                    <td style="padding: 6px; border: 1px solid var(--border);">FIFO mandatory (Section 45(2A))</td>
+                                    <td style="padding: 6px; border: 1px solid var(--border);"><strong>Legal Grey Area:</strong> Tool defaults to Specific Lot; FIFO is widely recommended as a conservative alternative.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div style="padding: 14px; background: rgba(99, 102, 241, 0.04); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 8px; font-size: 0.8rem; margin-top: 16px; line-height: 1.5; color: var(--text-primary);">
+                            <strong style="color: var(--accent); display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 700;">METHODOLOGY ELECTION & RISK ACKNOWLEDGMENT</strong>
+                            By clicking <strong>"I Accept & Continue"</strong>, you acknowledge and agree to the following conditions:
+                            <ul style="padding-left: 18px; margin-top: 6px; margin-bottom: 0;">
+                                <li style="margin-bottom: 6px;"><strong>Legal Grey Area & Dual Views:</strong> You understand that applying Specific Lot Identification vs. FIFO to foreign brokerage accounts is subject to interpretation and is a legal grey area. You acknowledge that many practitioners recommend FIFO to avoid disputes.</li>
+                                <li style="margin-bottom: 6px;"><strong>Taxpayer Selection:</strong> You choose to proceed with the Specific Lot Identification method for your calculations based on the lot-level tracking of your foreign broker records, accepting the risk of tax authority scrutiny.</li>
+                                <li style="margin-bottom: 6px;"><strong>Non-Binding Rationale:</strong> You agree that this represents a reasoned explanation for your information/reference and is not legally binding on the Income Tax Department.</li>
+                                <li><strong>Sole Responsibility & Disclaimer:</strong> You assume sole responsibility for adopting this filing position. The author and developers of this application are not responsible or liable for any tax consequences, additional assessments, interest, penalties, or litigation that may arise from your choice of methodology. You are strongly advised to consult a qualified tax professional before filing.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end; align-items: center;">
+                    <div id="fifoActionButtons" style="display: flex; gap: 12px; width: 100%; justify-content: flex-end;">
+                        <button id="declineFifoBtn" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger); font-weight: 600;">Decline & Exit</button>
+                        <button id="acceptFifoBtn" class="btn btn-primary" style="font-weight: 600;" disabled>I Accept & Continue</button>
+                    </div>
+                    <button id="closeFifoRefBtn" class="btn btn-primary hidden" style="font-weight: 600;" onclick="closeFifoModalReference()">Close</button>
+                </div>
+            </div>
+
+            <!-- Success State -->
+            <div id="fifoSuccessState" class="hidden" style="text-align: center; padding: 20px 0;">
+                <div style="width: 64px; height: 64px; background: rgba(var(--success-rgb, 34, 197, 94), 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; border: 2px solid var(--success);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h2 style="margin: 0 0 12px; color: var(--text-primary);">Agreement Confirmed</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem; line-height: 1.5;">
+                    Thank you for reading the legal reasoning and agreeing to the methodology.<br>You can now proceed to use FA Desk.
+                </p>
+                <button id="fifoGetStartedBtn" class="btn btn-primary" style="width: 100%; padding: 14px; font-weight: 600; font-size: 1rem;">Get Started</button>
             </div>
         </div>
     </div>

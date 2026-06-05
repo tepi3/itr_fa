@@ -51,6 +51,22 @@ def test_disclaimer_accept(client):
     assert res_get2.get_json()["accepted"] is True
 
 @pytest.mark.unit
+def test_fifo_agreement_accept(client):
+    # Initially not accepted
+    res_get = client.get("/api/fifo-agreement")
+    assert res_get.status_code == 200
+    assert res_get.get_json()["accepted"] is False
+    
+    # Accept it
+    res_post = client.post("/api/fifo-agreement/accept")
+    assert res_post.status_code == 200
+    assert res_post.get_json()["success"] is True
+    
+    # Check accepted
+    res_get2 = client.get("/api/fifo-agreement")
+    assert res_get2.get_json()["accepted"] is True
+
+@pytest.mark.unit
 def test_heartbeat(client):
     res = client.post("/api/heartbeat")
     assert res.status_code == 200

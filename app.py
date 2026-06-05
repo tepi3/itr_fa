@@ -232,6 +232,28 @@ def init_flask_app():
             logger.error(f"Error saving settings: {e}")
             return {"success": False, "error": str(e)}, 500
 
+    @state.app.route("/api/fifo-agreement", methods=["GET"])
+    def check_fifo_agreement():
+        """Check if the user has already accepted the FIFO specific lot agreement."""
+        from core.utils import load_app_settings
+        try:
+            settings = load_app_settings()
+            return {"success": True, "accepted": settings.get("fifo_agreement_accepted", False)}
+        except Exception as e:
+            logger.error(f"Error reading settings: {e}")
+        return {"success": True, "accepted": False}
+
+    @state.app.route("/api/fifo-agreement/accept", methods=["POST"])
+    def accept_fifo_agreement():
+        """Record that the user has accepted the FIFO specific lot agreement."""
+        from core.utils import save_app_settings
+        try:
+            save_app_settings({"fifo_agreement_accepted": True})
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error saving settings: {e}")
+            return {"success": False, "error": str(e)}, 500
+
     @state.app.route("/api/save-native", methods=["POST"])
     def save_native():
         """Trigger a native save file dialog using pywebview."""

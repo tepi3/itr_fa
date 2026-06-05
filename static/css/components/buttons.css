@@ -31,6 +31,34 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Disabled button state (looks "dead") */
+.btn:disabled,
+.btn-primary:disabled,
+.btn-accent:disabled {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-muted) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+}
+
+/* Glowing animation for the accept button when active */
+#acceptFifoBtn:not(:disabled) {
+    animation: fifoBtnGlowPulse 1.5s infinite alternate;
+}
+
+@keyframes fifoBtnGlowPulse {
+    from {
+        box-shadow: 0 0 6px var(--accent), 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+    to {
+        box-shadow: 0 0 16px var(--accent-hover), 0 4px 12px rgba(99, 102, 241, 0.35);
+    }
+}
+
 .btn-outline {
     background: transparent;
     color: var(--text-secondary);
