@@ -183,13 +183,6 @@ async function checkDisclaimer() {
                 console.error("Failed to save disclaimer acceptance to server:", e);
             }
             localStorage.setItem("disclaimerAccepted", "true");
-            
-            // Switch to success state
-            document.getElementById("disclaimerInitialState").classList.add("hidden");
-            document.getElementById("disclaimerSuccessState").classList.remove("hidden");
-        });
-
-        document.getElementById("getStartedBtn").addEventListener("click", () => {
             modal.classList.add("hidden");
             resolve();
         });
