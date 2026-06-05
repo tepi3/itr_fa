@@ -684,15 +684,24 @@ async function fetchSbiRates(overwriteChoice = null) {
 async function importRbiRates() {
     const yearSelect = document.getElementById("importRbiYearSelect");
     const monthSelect = document.getElementById("importRbiMonthSelect");
+    const normalizeCheck = document.getElementById("importRbiNormalizeCheckbox");
     const year = yearSelect ? parseInt(yearSelect.value) : null;
     const month = monthSelect ? parseInt(monthSelect.value) : null;
+    const normalize = normalizeCheck ? normalizeCheck.checked : true;
 
     document.getElementById("rbiRatesModal").classList.add("hidden");
-    showLoading(`Normalizing & Importing RBI Reference Rates up to ${month}/${year}...`);
+    const loadingMsg = normalize 
+        ? `Normalizing & Importing RBI Reference Rates up to ${month}/${year}...`
+        : `Importing RBI Reference Rates up to ${month}/${year} as is...`;
+    showLoading(loadingMsg);
+    
     try {
-        const res = await apiPost("/api/import-rbi-rates", { year, month });
+        const res = await apiPost("/api/import-rbi-rates", { year, month, normalize });
         if (res.success) {
-            showToast(`Successfully normalized and imported RBI Reference rates up to ${month}/${year}! Filled ${res.imported} missing rate entries.`, "success");
+            const successMsg = normalize
+                ? `Successfully normalized and imported RBI Reference rates up to ${month}/${year}! Filled ${res.imported} missing rate entries.`
+                : `Successfully imported RBI Reference rates up to ${month}/${year} as is! Filled ${res.imported} missing rate entries.`;
+            showToast(successMsg, "success");
             
             // Sync Rates Editor if visible
             const ratesSection = document.getElementById("monthlyRatesSection");
@@ -2734,9 +2743,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     safeAddListener("fetchRatesBtn", "click", fetchSbiRates);
     safeAddListener("importSbiRatesBtn", "click", openSbiImportFile);
     safeAddListener("importRbiRatesBtn", "click", () => {
+        const normalizeCheck = document.getElementById("importRbiNormalizeCheckbox");
+        if (normalizeCheck) {
+            normalizeCheck.checked = true;
+        }
+        const confirmBtn = document.getElementById("confirmRbiRatesBtn");
+        if (confirmBtn) {
+            confirmBtn.textContent = "Normalize & Import Gaps";
+        }
         document.getElementById("rbiRatesModal").classList.remove("hidden");
     });
     safeAddListener("confirmRbiRatesBtn", "click", importRbiRates);
+    safeAddListener("importRbiNormalizeCheckbox", "change", (e) => {
+        const confirmBtn = document.getElementById("confirmRbiRatesBtn");
+        if (confirmBtn) {
+            confirmBtn.textContent = e.target.checked ? "Normalize & Import Gaps" : "Import Gaps (As Is)";
+        }
+    });
     safeAddListener("exportSbiRatesBtn", "click", exportSbiRates);
     safeAddListener("exportCsvBtn", "click", exportCSV);
     safeAddListener("importSbiFileInput", "change", handleSbiImportFileSelect);

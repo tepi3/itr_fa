@@ -577,15 +577,16 @@ def _get_static_path(filename: str) -> Path:
     return base_dir / "static" / filename
 
 
-def normalize_and_import_rbi_rates(till_year: int = None, till_month: int = None) -> int:
+def normalize_and_import_rbi_rates(till_year: int = None, till_month: int = None, normalize: bool = True) -> int:
     """
     Load sbi_baseline_rates.json and rbi_reference_rates.json from static/data/,
     calculate chronological spread/delta for each month, and import
-    normalized RBI rates to fill missing SBI TT rates.
+    RBI rates (normalized or as-is) to fill missing SBI TT rates.
     
     Args:
         till_year: Optional cutoff year (inclusive).
         till_month: Optional cutoff month (inclusive, only if till_year is provided).
+        normalize: Whether to normalize RBI rates using average monthly spread.
     
     Returns: count of filled rates.
     """
@@ -712,8 +713,11 @@ def normalize_and_import_rbi_rates(till_year: int = None, till_month: int = None
         if ym not in deltas:
             continue
             
-        delta = deltas[ym]
-        normalized_usd = round(rbi_usd_val - delta, 4)
+        if normalize:
+            delta = deltas[ym]
+            imported_usd = round(rbi_usd_val - delta, 4)
+        else:
+            imported_usd = round(rbi_usd_val, 4)
         
         # Check if it already exists in baseline SBI TT rates or manual overrides
         # (We NEVER override SBI TT rates)
@@ -727,12 +731,15 @@ def normalize_and_import_rbi_rates(till_year: int = None, till_month: int = None
             continue
             
         # If missing (or already populated as an rbi fallback), we can fill/update it
-        cache["rates"]["USD"][date_str] = normalized_usd
+        cache["rates"]["USD"][date_str] = imported_usd
         rbi_usd_list.add(date_str)
         filled_count += 1
         
     cache["rbi_USD"] = sorted(list(rbi_usd_list))
     _save_cache(cache)
-    logger.info(f"Successfully normalized and filled {filled_count} missing rates with RBI fallback.")
+    if normalize:
+        logger.info(f"Successfully normalized and filled {filled_count} missing rates with RBI fallback.")
+    else:
+        logger.info(f"Successfully filled {filled_count} missing rates with raw RBI fallback.")
     return filled_count
 

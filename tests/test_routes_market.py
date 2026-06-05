@@ -130,10 +130,15 @@ def test_import_export_rates(client, tmp_data_dir):
 
 @pytest.mark.unit
 def test_api_import_rbi_rates(client, monkeypatch):
-    # Mock normalize_and_import_rbi_rates to return 42
-    monkeypatch.setattr("routes.market.normalize_and_import_rbi_rates", lambda *args, **kwargs: 42)
+    called_args = []
+    def mock_normalize_and_import(till_year=None, till_month=None, normalize=True):
+        called_args.append((till_year, till_month, normalize))
+        return 42
+
+    monkeypatch.setattr("routes.market.normalize_and_import_rbi_rates", mock_normalize_and_import)
     
-    res = client.post("/api/import-rbi-rates")
+    res = client.post("/api/import-rbi-rates", json={"year": 2024, "month": 6, "normalize": False})
     assert res.status_code == 200
     assert res.get_json()["success"] is True
     assert res.get_json()["imported"] == 42
+    assert called_args == [(2024, 6, False)]

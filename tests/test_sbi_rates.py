@@ -184,8 +184,65 @@ def test_normalize_and_import_rbi_rates(tmp_path, monkeypatch):
     cache_after = _load_cache()
     # Should remain 99.99
     assert cache_after["rates"]["USD"]["2010-01-15"] == 99.99
+
+
+def test_normalize_and_import_rbi_rates_as_is(tmp_path, monkeypatch):
+    from core.sbi_rates import normalize_and_import_rbi_rates, _load_cache
     
-    # 5. Verify clear cache resets rbi_USD
+    # 1. Setup temporary cache file
+    fake_cache_file = tmp_path / "sbi_cache.json"
+    monkeypatch.setattr("core.sbi_rates.SBI_CACHE_FILE", fake_cache_file)
+    
+    # Write empty cache
+    with open(fake_cache_file, "w") as f:
+        json.dump({"rates": {"USD": {}}, "manual_USD": [], "rbi_USD": []}, f)
+        
+    # 2. Mock static files paths using monkeypatch
+    sbi_mock_file = tmp_path / "sbi_baseline_rates.json"
+    rbi_mock_file = tmp_path / "rbi_reference_rates.json"
+    
+    sbi_mock_data = {
+        "2010-01-29": 45.93,
+        "2010-02-26": 45.51
+    }
+    with open(sbi_mock_file, "w") as f:
+        json.dump(sbi_mock_data, f)
+        
+    rbi_mock_data = [
+        {"date": "2010-01-15", "usd": 45.67},
+        {"date": "2010-01-29", "usd": 46.37},
+        {"date": "2010-02-15", "usd": 46.38},
+        {"date": "2010-02-26", "usd": 46.23}
+    ]
+    with open(rbi_mock_file, "w") as f:
+        json.dump(rbi_mock_data, f)
+        
+    def mock_get_static_path(filename):
+        if filename == "data/sbi_baseline_rates.json":
+            return sbi_mock_file
+        if filename == "data/rbi_reference_rates.json":
+            return rbi_mock_file
+        return tmp_path / filename
+        
+    monkeypatch.setattr("core.sbi_rates._get_static_path", mock_get_static_path)
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: sbi_mock_data)
+    
+    # 3. Perform import as-is (normalize=False)
+    count = normalize_and_import_rbi_rates(normalize=False)
+    
+    # Should still import the 2 missing rates
+    assert count == 2
+    
+    cache = _load_cache()
+    # Check values - should be imported exactly as-is from rbi_mock_data
+    # 2010-01-15 RBI: 45.67 -> As-is: 45.67
+    assert cache["rates"]["USD"]["2010-01-15"] == 45.67
+    # 2010-02-15 RBI: 46.38 -> As-is: 46.38
+    assert cache["rates"]["USD"]["2010-02-15"] == 46.38
+    
+    # Verify that rbi_USD is correctly populated
+    assert "2010-01-15" in cache["rbi_USD"]
+    assert "2010-02-15" in cache["rbi_USD"]
 def test_refresh_cache_modes(tmp_path, monkeypatch):
     from core.sbi_rates import refresh_cache, _load_cache
     fake_cache_file = tmp_path / "sbi_cache.json"
