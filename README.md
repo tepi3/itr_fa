@@ -61,7 +61,10 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 - **Validate A3 (Audit Trail)** — Click any cell for a full `Quantity × Price × Rate` breakdown. Overrides clearly flagged.
 - **ITR Tax Year Summary** — LTCG/STCG and dividends mapped to Indian tax years with advance-tax quarterly buckets.
 - **§70/74 Set-Off** — Automatic capital gains netting (STCL→STCG→LTCG, LTCL→LTCG) with carry-forward.
-- **Consolidated Tax Statement** — Unified view for any Financial Year (Apr–Mar) by combining two calendar year reports.
+- **Consolidated Tax Statement** — Unified view for any Financial Year (Apr–Mar) combining two calendar year reports. Includes:
+  - **ITR Schedule CG Summaries:** Short-term and Long-term Full Value of Consideration (B8/B9 fields) and Cost of Acquisition without indexation.
+  - **Schedule FSI:** Income from outside India with tax paid limits and slab rates.
+  - **Form 67 (Double Taxation Relief):** Automatically derived Foreign Tax Credit claim table with DTAA Article mapping.
 
 ### Sell Simulator & Smart Allocator
 - **Batch Sell Allocation** — Select a stock and allocate sells by **Share Quantity** or **INR Target (₹)**.
@@ -76,7 +79,7 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 - **Save/Open Anywhere** — Download/upload portfolio JSON to any folder, plus built-in server-side save.
 - **Unsaved Changes Indicator** — Pulsing dot on Save button for unsaved modifications.
 - **Interactive Tutorial & Inline Help** — Guided walkthrough with spotlight highlights; `?` icons for context help.
-- **CSV Export** — ITR portal-compatible `.csv` output.
+- **CSV Export** — Generates `.csv` exports perfectly aligned with the official ITR portal template (DD-MMM-YYYY date formats, exact column structures).
 - **Resolution Scale** — Compact / Standard / Zoomed modes, persisted across sessions.
 
 ## Workflow
