@@ -1817,14 +1817,14 @@ export function renderConsolidatedTaxSummary(data) {
         block.appendChild(offCard);
     }
 
-    // ITR B9 Section — Full Value of Consideration & Cost of Acquisition
+    // ITR B8 Section — Full Value of Consideration & Cost of Acquisition
     const totalProceeds = data.total_proceeds_inr || 0;
     const totalCost = data.total_cost_acquisition_inr || 0;
     const balance = totalProceeds - totalCost;
     if (totalProceeds > 0 || totalCost > 0) {
         const itrHeader = document.createElement("div");
         itrHeader.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 10px;";
-        itrHeader.textContent = "ITR Schedule CG — B9 Summary";
+        itrHeader.textContent = "ITR Schedule CG — B8 Summary";
         block.appendChild(itrHeader);
 
         const itrCard = document.createElement("div");
