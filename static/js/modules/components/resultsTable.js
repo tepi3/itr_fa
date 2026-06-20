@@ -1886,10 +1886,10 @@ export function renderConsolidatedTaxSummary(data) {
 
         rowsData.forEach(r => {
             const row = document.createElement("div");
-            row.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:${r.bold ? '10px 12px' : '4px 0'};${r.bold ? 'border-radius:7px;background:' + (balanceVal >= 0 ? 'var(--success)' : 'var(--danger)') + '18;border:1px solid ' + (balanceVal >= 0 ? 'var(--success)' : 'var(--danger)') + '44;margin-top:6px;' : ''}`;
+            row.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:${r.bold ? '10px 12px' : '4px 12px'};${r.bold ? 'border-radius:7px;background:' + (balanceVal >= 0 ? 'var(--success)' : 'var(--danger)') + '18;border:1px solid ' + (balanceVal >= 0 ? 'var(--success)' : 'var(--danger)') + '44;margin-top:6px;' : ''}`;
             const lbl = document.createElement("span");
             lbl.style.cssText = `font-size:0.84rem;color:${r.bold ? 'var(--text-main)' : 'var(--text-muted)'};font-weight:${r.bold ? '700' : '500'};`;
-            lbl.innerHTML = `<span style="font-weight:700;color:var(--accent);margin-right:8px;font-size:0.72rem;opacity:0.7;">${r.code}</span>${r.label}${r.sublabel ? ` <span style="opacity:0.5;font-size:0.75rem;">${r.sublabel}</span>` : ''}`;
+            lbl.innerHTML = `<span style="display:inline-block;width:45px;font-weight:700;color:var(--accent);margin-right:8px;font-size:0.72rem;opacity:0.7;">${r.code}</span>${r.label}${r.sublabel ? ` <span style="opacity:0.5;font-size:0.75rem;">${r.sublabel}</span>` : ''}`;
             const valWrap = document.createElement("span");
             valWrap.style.cssText = "display:flex;align-items:center;gap:0;";
             const val = document.createElement("span");
