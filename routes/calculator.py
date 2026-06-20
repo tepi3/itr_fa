@@ -98,6 +98,8 @@ def api_consolidated_tax_summary():
                 "stcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
                 "dividends": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
             },
+            "total_proceeds_inr": 0,
+            "total_cost_acquisition_inr": 0,
             "errors": []
         }
 
@@ -121,6 +123,9 @@ def api_consolidated_tax_summary():
             for cat in ["ltcg", "ltcl", "stcg", "stcl", "dividends"]:
                 for q in ["total", "q1", "q2", "q3", "q4", "q5"]:
                     consolidated["totals"][cat][q] += source_ty["totals"][cat].get(q, 0)
+
+            consolidated["total_proceeds_inr"] += source_ty.get("total_proceeds_inr", 0)
+            consolidated["total_cost_acquisition_inr"] += source_ty.get("total_cost_acquisition_inr", 0)
 
         if cy_start_res:
             merge_ty(cy_start_res["tax_years"]["curr"])

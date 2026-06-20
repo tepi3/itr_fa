@@ -1754,6 +1754,7 @@ export function renderConsolidatedTaxSummary(data) {
             td.style.cssText = `padding:7px 10px;text-align:right;font-weight:700;color:${val > 0 ? meta.color : "var(--text-muted)"};font-variant-numeric:tabular-nums;`;
             td.textContent = val > 0 ? formatINR(val) : "—";
             if (qk === "total") { td.style.borderLeft = "1px solid var(--border)"; td.style.background = meta.color + "11"; }
+            tr.appendChild(td);
         });
         tbody.appendChild(tr);
     });
@@ -1814,6 +1815,71 @@ export function renderConsolidatedTaxSummary(data) {
         ], "Net LTCG (Taxable)", off.net_ltcg));
 
         block.appendChild(offCard);
+    }
+
+    // ITR B9 Section — Full Value of Consideration & Cost of Acquisition
+    const totalProceeds = data.total_proceeds_inr || 0;
+    const totalCost = data.total_cost_acquisition_inr || 0;
+    const balance = totalProceeds - totalCost;
+    if (totalProceeds > 0 || totalCost > 0) {
+        const itrHeader = document.createElement("div");
+        itrHeader.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 10px;";
+        itrHeader.textContent = "ITR Schedule CG — B9 Summary";
+        block.appendChild(itrHeader);
+
+        const itrCard = document.createElement("div");
+        itrCard.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:20px 24px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px;";
+
+        const itrRows = [
+            { code: "aiii", label: "Full value of consideration", sublabel: "Total (ic + ii)", value: totalProceeds, color: "var(--text-main)" },
+            { code: "bi", label: "Cost of acquisition without indexation", sublabel: null, value: totalCost, color: "var(--text-main)" },
+            { code: "biv", label: "Total deductions", sublabel: "(bi + bii + biii)", value: totalCost, color: "var(--text-main)" },
+            { code: "c", label: "Balance", sublabel: "(aiii − biv)", value: balance, color: balance >= 0 ? "var(--success)" : "var(--danger)", bold: true },
+        ];
+
+        function makeCopyBtn(rawValue) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.title = "Copy value";
+            btn.style.cssText = "background:none;border:none;cursor:pointer;padding:2px 4px;margin-left:6px;opacity:0.4;transition:opacity 0.15s;vertical-align:middle;line-height:1;";
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+            btn.addEventListener("mouseenter", () => btn.style.opacity = "1");
+            btn.addEventListener("mouseleave", () => btn.style.opacity = "0.4");
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const text = String(Math.abs(rawValue));
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(`Copied ${text}`, "success");
+                    btn.style.opacity = "1";
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    setTimeout(() => {
+                        btn.style.opacity = "0.4";
+                        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                    }, 1500);
+                });
+            });
+            return btn;
+        }
+
+        itrRows.forEach(r => {
+            const row = document.createElement("div");
+            row.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:${r.bold ? '10px 12px' : '4px 0'};${r.bold ? 'border-radius:7px;background:' + (balance >= 0 ? 'var(--success)' : 'var(--danger)') + '18;border:1px solid ' + (balance >= 0 ? 'var(--success)' : 'var(--danger)') + '44;margin-top:6px;' : ''}`;
+            const lbl = document.createElement("span");
+            lbl.style.cssText = `font-size:0.84rem;color:${r.bold ? 'var(--text-main)' : 'var(--text-muted)'};font-weight:${r.bold ? '700' : '500'};`;
+            lbl.innerHTML = `<span style="font-weight:700;color:var(--accent);margin-right:8px;font-size:0.72rem;opacity:0.7;">${r.code}</span>${r.label}${r.sublabel ? ` <span style="opacity:0.5;font-size:0.75rem;">${r.sublabel}</span>` : ''}`;
+            const valWrap = document.createElement("span");
+            valWrap.style.cssText = "display:flex;align-items:center;gap:0;";
+            const val = document.createElement("span");
+            val.style.cssText = `font-size:${r.bold ? '1rem' : '0.88rem'};font-weight:${r.bold ? '800' : '600'};color:${r.color};font-variant-numeric:tabular-nums;white-space:nowrap;`;
+            val.textContent = r.value === 0 ? "₹0" : (r.value < 0 ? "−₹" + formatINR(Math.abs(r.value)) : "₹" + formatINR(r.value));
+            valWrap.appendChild(val);
+            valWrap.appendChild(makeCopyBtn(r.value));
+            row.appendChild(lbl);
+            row.appendChild(valWrap);
+            itrCard.appendChild(row);
+        });
+
+        block.appendChild(itrCard);
     }
 
     container.appendChild(block);

@@ -965,11 +965,15 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
             "label": f"Apr {prev_cy} – Mar {calendar_year}",
             "stocks": {},
             "totals": _make_stock_entry(),
+            "total_proceeds_inr": 0.0,
+            "total_cost_acquisition_inr": 0.0,
         },
         "curr": {
             "label": f"Apr {calendar_year} – Mar {calendar_year + 1}",
             "stocks": {},
             "totals": _make_stock_entry(),
+            "total_proceeds_inr": 0.0,
+            "total_cost_acquisition_inr": 0.0,
         },
     }
 
@@ -1081,6 +1085,10 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                 }
 
                 _accumulate_gain(ty_key, ticker, qkey, gain_inr, detail)
+                
+                # Accumulate raw proceeds & cost for ITR B9 fields
+                tax_years[ty_key]["total_proceeds_inr"] += sell_price * sell_rate * sell_qty
+                tax_years[ty_key]["total_cost_acquisition_inr"] += buy_rate_inr_per_share * sell_qty
 
             # ---- Dividends ----
             if skip_divs:
@@ -1161,6 +1169,8 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
         for ticker, stock_data in ty["stocks"].items():
             for category in ("ltcg", "ltcl", "stcg", "stcl", "dividends"):
                 stock_data[category] = _round_quarters(stock_data[category])
+        ty["total_proceeds_inr"] = round(ty["total_proceeds_inr"])
+        ty["total_cost_acquisition_inr"] = round(ty["total_cost_acquisition_inr"])
 
     # Apply Indian ITR Section 70/74 set-off rules (yearly totals per tax year)
     compute_offset_summary(tax_years)
@@ -1171,6 +1181,8 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
             ty["totals"] = {k: _empty_quarters() for k in ["ltcg", "ltcl", "stcg", "stcl", "dividends"]}
             ty["stocks"] = {}
             ty["offset"] = {}
+            ty["total_proceeds_inr"] = 0
+            ty["total_cost_acquisition_inr"] = 0
 
     return {"tax_years": tax_years, "errors": errors}
 
