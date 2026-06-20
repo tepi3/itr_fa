@@ -62,7 +62,7 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 - **ITR Tax Year Summary** — LTCG/STCG and dividends mapped to Indian tax years with advance-tax quarterly buckets.
 - **§70/74 Set-Off** — Automatic capital gains netting (STCL→STCG→LTCG, LTCL→LTCG) with carry-forward.
 - **Consolidated Tax Statement** — Unified view for any Financial Year (Apr–Mar) combining two calendar year reports. Includes:
-  - **ITR Schedule CG Summaries:** Short-term and Long-term Full Value of Consideration (B8/B9 fields) and Cost of Acquisition without indexation.
+  - **ITR Schedule CG Summaries:** Short-term A(I)5 and Long-term B(I)8 sections for Full Value of Consideration and Cost of Acquisition without indexation.
   - **Schedule FSI:** Income from outside India with tax paid limits and slab rates.
   - **Form 67 (Double Taxation Relief):** Automatically derived Foreign Tax Credit claim table with DTAA Article mapping.
 
