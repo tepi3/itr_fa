@@ -1966,6 +1966,12 @@ export function renderConsolidatedTaxSummary(data) {
         const redrawFSITable = () => {
             const slabRate = parseFloat(slabInput.value || "30") || 0;
             
+            const copyBtn = (val) => `
+                <button type="button" class="fsi-copy-btn" data-value="${val}" title="Copy ${val}" style="background:none;border:none;cursor:pointer;padding:2px;margin-left:4px;opacity:0.4;transition:opacity 0.15s;vertical-align:middle;line-height:1;display:inline-flex;align-items:center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+            `;
+
             let html = `
                 <table style="width:100%;border-collapse:collapse;font-size:0.8rem;text-align:left;min-width:900px;">
                     <thead>
@@ -2044,12 +2050,15 @@ export function renderConsolidatedTaxSummary(data) {
                         
                         <td style="padding:6px 10px;border:1px solid var(--border);text-align:center;font-weight:600;">iii</td>
                         <td style="padding:6px 10px;border:1px solid var(--border);font-weight:600;">Capital Gain</td>
-                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${formatINR(cg_income)}</td>
-                        <td style="padding:4px 6px;border:1px solid var(--border);text-align:right;">
-                            <input type="number" class="fsi-paid-input" data-key="${cg_override_key}" value="${cg_tax_paid}" style="${inputStyle}text-align:right;">
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;">₹${formatINR(cg_income)}${copyBtn(cg_income)}</td>
+                        <td style="padding:4px 6px;border:1px solid var(--border);text-align:right;white-space:nowrap;">
+                            <div style="display:inline-flex;align-items:center;justify-content:flex-end;width:100%;">
+                                <input type="number" class="fsi-paid-input" data-key="${cg_override_key}" value="${cg_tax_paid}" style="${inputStyle}text-align:right;width:80px;margin-right:2px;">
+                                ${copyBtn(cg_tax_paid)}
+                            </div>
                         </td>
-                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--text-main);">${formatINR(cg_tax_payable)}</td>
-                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--success);">${formatINR(cg_relief)}</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--text-main);white-space:nowrap;">₹${formatINR(cg_tax_payable)}${copyBtn(cg_tax_payable)}</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--success);white-space:nowrap;">₹${formatINR(cg_relief)}${copyBtn(cg_relief)}</td>
                         <td style="padding:4px 6px;border:1px solid var(--border);text-align:center;">
                             <input type="text" class="fsi-art-input" data-key="${cg_art_key}" value="${cg_art}" style="${inputStyle}text-align:center;">
                         </td>
@@ -2057,12 +2066,15 @@ export function renderConsolidatedTaxSummary(data) {
                     <tr>
                         <td style="padding:6px 10px;border:1px solid var(--border);text-align:center;font-weight:600;">iv</td>
                         <td style="padding:6px 10px;border:1px solid var(--border);font-weight:600;">Other Sources</td>
-                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${formatINR(os_income)}</td>
-                        <td style="padding:4px 6px;border:1px solid var(--border);text-align:right;">
-                            <input type="number" class="fsi-paid-input" data-key="${os_override_key}" value="${os_tax_paid}" style="${inputStyle}text-align:right;">
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;">₹${formatINR(os_income)}${copyBtn(os_income)}</td>
+                        <td style="padding:4px 6px;border:1px solid var(--border);text-align:right;white-space:nowrap;">
+                            <div style="display:inline-flex;align-items:center;justify-content:flex-end;width:100%;">
+                                <input type="number" class="fsi-paid-input" data-key="${os_override_key}" value="${os_tax_paid}" style="${inputStyle}text-align:right;width:80px;margin-right:2px;">
+                                ${copyBtn(os_tax_paid)}
+                            </div>
                         </td>
-                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--text-main);">${formatINR(os_tax_payable)}</td>
-                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--success);">${formatINR(os_relief)}</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--text-main);white-space:nowrap;">₹${formatINR(os_tax_payable)}${copyBtn(os_tax_payable)}</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--success);white-space:nowrap;">₹${formatINR(os_relief)}${copyBtn(os_relief)}</td>
                         <td style="padding:4px 6px;border:1px solid var(--border);text-align:center;">
                             <input type="text" class="fsi-art-input" data-key="${os_art_key}" value="${os_art}" style="${inputStyle}text-align:center;">
                         </td>
@@ -2070,10 +2082,10 @@ export function renderConsolidatedTaxSummary(data) {
                     <tr style="background:rgba(99, 102, 241, 0.08);font-weight:700;">
                         <td style="padding:8px 10px;border:1px solid var(--border);text-align:center;">v</td>
                         <td style="padding:8px 10px;border:1px solid var(--border);">Total</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;">${formatINR(total_income)}</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;">${formatINR(total_tax_paid)}</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;">${formatINR(total_tax_payable)}</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--success);">${formatINR(total_relief)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;">₹${formatINR(total_income)}${copyBtn(total_income)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;">₹${formatINR(total_tax_paid)}${copyBtn(total_tax_paid)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;">₹${formatINR(total_tax_payable)}${copyBtn(total_tax_payable)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--success);white-space:nowrap;">₹${formatINR(total_relief)}${copyBtn(total_relief)}</td>
                         <td style="padding:8px 10px;border:1px solid var(--border);text-align:center;color:var(--text-muted);">-</td>
                     </tr>
                 `;
@@ -2084,6 +2096,25 @@ export function renderConsolidatedTaxSummary(data) {
                 </table>
             `;
             tableContainer.innerHTML = html;
+
+            // Attach copy listeners
+            tableContainer.querySelectorAll(".fsi-copy-btn").forEach(btn => {
+                btn.addEventListener("mouseenter", () => btn.style.opacity = "1");
+                btn.addEventListener("mouseleave", () => btn.style.opacity = "0.4");
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const text = String(btn.dataset.value);
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast(`Copied ${text}`, "success");
+                        btn.style.opacity = "1";
+                        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                        setTimeout(() => {
+                            btn.style.opacity = "0.4";
+                            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                        }, 1500);
+                    });
+                });
+            });
 
             tableContainer.querySelectorAll(".fsi-paid-input").forEach(el => {
                 el.addEventListener("input", (e) => {
