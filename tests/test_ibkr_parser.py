@@ -26,13 +26,13 @@ def test_process_ibkr_file_deprecated_transaction_history():
         process_ibkr_file(old_csv, "ibkr_old.csv", portfolio)
     assert "Could not find 'Trades' section" in str(excinfo.value)
 
-def test_process_ibkr_file_new_activity_statement_skips_sells():
+def test_process_ibkr_file_new_activity_statement():
     new_csv = (
         "Statement,Header,Field Name,Field Value\n"
         "Statement,Data,Title,Activity Statement\n"
         "Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code\n"
         "Trades,Data,Order,Stocks,USD,VWRA,\"2026-04-21, 08:37:00\",25.707,180.689691524,179.32,-4644.9949,-2.32249745,4647.31739745,0,-35.2157,O;P\n"
-        "Trades,Data,Order,Stocks,USD,VWRA,\"2026-05-13, 08:49:12\",-10.5,185.52,186.4,1947.96,-1.78,-1949.74,0,15.61,O;P\n" # Should be skipped (Sell: quantity < 0)
+        "Trades,Data,Order,Stocks,USD,VWRA,\"2026-05-13, 08:49:12\",-10.5,185.52,186.4,1947.96,-1.78,-1949.74,0,15.61,O;P\n" # Now processed (Sell: quantity < 0)
         "Trades,Data,Order,Forex,USD,EUR.USD,\"2026-05-22, 10:08:23\",1000.0,1.08,1.08,-1080.0,0,1080.0,0,0,O\n" # Should be skipped (Non-Stocks)
     ).encode("utf-8")
 
@@ -40,8 +40,8 @@ def test_process_ibkr_file_new_activity_statement_skips_sells():
     result = process_ibkr_file(new_csv, "ibkr_new.csv", portfolio)
     
     txs = result["transactions"]
-    # Sell and Forex are both skipped, leaving exactly 1 BUY transaction
-    assert len(txs) == 1
+    # Forex is skipped, leaving exactly 1 BUY and 1 SELL transaction
+    assert len(txs) == 2
     
     assert txs[0]["symbol"] == "VWRA"
     assert txs[0]["type"] == "BUY"
@@ -49,3 +49,10 @@ def test_process_ibkr_file_new_activity_statement_skips_sells():
     # Basis (4647.31739745) / Qty (25.707) = 180.78023... -> Rounded to 2 decimals in parser: 180.78
     assert txs[0]["price"] == 180.78
     assert txs[0]["date"] == "21/04/2026"
+
+    assert txs[1]["symbol"] == "VWRA"
+    assert txs[1]["type"] == "SELL"
+    assert txs[1]["qty"] == 10.5
+    # Proceeds (1947.96) + Comm/Fee (-1.78) = 1946.18. Qty (10.5) -> 1946.18 / 10.5 = 185.3504... -> Rounded to 185.35
+    assert txs[1]["price"] == 185.35
+    assert txs[1]["date"] == "13/05/2026"

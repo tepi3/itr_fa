@@ -100,6 +100,10 @@ def api_consolidated_tax_summary():
             },
             "total_proceeds_inr": 0,
             "total_cost_acquisition_inr": 0,
+            "st_proceeds_inr": 0,
+            "st_cost_inr": 0,
+            "lt_proceeds_inr": 0,
+            "lt_cost_inr": 0,
             "errors": []
         }
 
@@ -126,6 +130,10 @@ def api_consolidated_tax_summary():
 
             consolidated["total_proceeds_inr"] += source_ty.get("total_proceeds_inr", 0)
             consolidated["total_cost_acquisition_inr"] += source_ty.get("total_cost_acquisition_inr", 0)
+            consolidated["st_proceeds_inr"] += source_ty.get("st_proceeds_inr", 0)
+            consolidated["st_cost_inr"] += source_ty.get("st_cost_inr", 0)
+            consolidated["lt_proceeds_inr"] += source_ty.get("lt_proceeds_inr", 0)
+            consolidated["lt_cost_inr"] += source_ty.get("lt_cost_inr", 0)
 
         if cy_start_res:
             merge_ty(cy_start_res["tax_years"]["curr"])

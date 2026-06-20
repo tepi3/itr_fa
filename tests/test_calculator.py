@@ -150,6 +150,12 @@ def test_calculate_tax_year_summary_stcg(sbi_cache, sample_portfolio, full_2024_
     totals_prev = res["tax_years"]["prev"]["totals"]
     assert totals_prev["stcg"]["total"] > 0
     assert totals_prev["ltcg"]["total"] == 0
+    
+    prev_ty = res["tax_years"]["prev"]
+    assert prev_ty["st_proceeds_inr"] > 0
+    assert prev_ty["st_cost_inr"] > 0
+    assert prev_ty["lt_proceeds_inr"] == 0
+    assert prev_ty["lt_cost_inr"] == 0
 
 @pytest.mark.unit
 def test_calculate_tax_year_summary_ltcg(sbi_cache, sample_portfolio, full_2024_sbi_rates, monkeypatch):
@@ -163,6 +169,12 @@ def test_calculate_tax_year_summary_ltcg(sbi_cache, sample_portfolio, full_2024_
     totals_curr = res["tax_years"]["curr"]["totals"]
     assert totals_curr["ltcg"]["total"] > 0
     assert totals_curr["stcg"]["total"] == 0
+
+    curr_ty = res["tax_years"]["curr"]
+    assert curr_ty["lt_proceeds_inr"] > 0
+    assert curr_ty["lt_cost_inr"] > 0
+    assert curr_ty["st_proceeds_inr"] == 0
+    assert curr_ty["st_cost_inr"] == 0
 
 @pytest.mark.unit
 def test_calculate_tax_year_summary_dividends(sbi_cache, sample_portfolio, full_2024_sbi_rates, monkeypatch):
