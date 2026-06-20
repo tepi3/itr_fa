@@ -1453,11 +1453,20 @@ export function renderTaxYearSummary(taxYears) {
 
             const labelTd = document.createElement("td");
             labelTd.style.cssText = "padding:7px 10px;font-weight:700;font-size:0.82rem;white-space:nowrap;";
+            let hint = "";
             if (cat === "dividends") {
+                hint = "(Fill Total in Schedule OS 1ai and Quarterly in 10 3a)";
+            } else if (cat === "ltcg") {
+                hint = "(Refer B(I)8 below and fill quarterly in Schedule CG F5)";
+            } else if (cat === "stcg") {
+                hint = "(Refer A(I)5 below and fill quarterly in Schedule CG F2)";
+            }
+
+            if (hint) {
                 labelTd.innerHTML =
                     "<span style=\"color:var(--text-muted);font-size:0.72rem;margin-right:5px;\">TOTAL</span>" +
                     "<span style=\"color:" + meta.color + ";font-weight:800;\">" + meta.label + "</span> " +
-                    "<span style=\"font-size:0.72rem;color:var(--text-muted);font-weight:normal;opacity:0.85;\">(Fill Total in Schedule OS 1ai and Quarterly in 10 3a)</span>";
+                    "<span style=\"font-size:0.72rem;color:var(--text-muted);font-weight:normal;opacity:0.85;\">" + hint + "</span>";
             } else {
                 labelTd.innerHTML =
                     "<span style=\"color:var(--text-muted);font-size:0.72rem;margin-right:5px;\">TOTAL</span>" +
@@ -1757,8 +1766,17 @@ export function renderConsolidatedTaxSummary(data) {
         tr.style.background = "var(--bg-input)";
         const labelTd = document.createElement("td");
         labelTd.style.cssText = "padding:7px 10px;font-weight:700;font-size:0.82rem;white-space:nowrap;";
+        let hint = "";
         if (cat === "dividends") {
-            labelTd.innerHTML = `<span style="color:var(--text-muted);font-size:0.72rem;margin-right:5px;">TOTAL</span><span style="color:${meta.color};font-weight:800;">${meta.label}</span> <span style="font-size:0.72rem;color:var(--text-muted);font-weight:normal;opacity:0.85;">(Fill Total in Schedule OS 1ai and Quarterly in 10 3a)</span>`;
+            hint = "(Fill Total in Schedule OS 1ai and Quarterly in 10 3a)";
+        } else if (cat === "ltcg") {
+            hint = "(Refer B(I)8 below and fill quarterly in Schedule CG F5)";
+        } else if (cat === "stcg") {
+            hint = "(Refer A(I)5 below and fill quarterly in Schedule CG F2)";
+        }
+
+        if (hint) {
+            labelTd.innerHTML = `<span style="color:var(--text-muted);font-size:0.72rem;margin-right:5px;">TOTAL</span><span style="color:${meta.color};font-weight:800;">${meta.label}</span> <span style="font-size:0.72rem;color:var(--text-muted);font-weight:normal;opacity:0.85;">${hint}</span>`;
         } else {
             labelTd.innerHTML = `<span style="color:var(--text-muted);font-size:0.72rem;margin-right:5px;">TOTAL</span><span style="color:${meta.color};font-weight:800;">${meta.label}</span>`;
         }
@@ -1953,7 +1971,7 @@ export function renderConsolidatedTaxSummary(data) {
     if (activeCountries.length > 0) {
         const fsiHeader = document.createElement("div");
         fsiHeader.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:25px 0 10px;";
-        fsiHeader.textContent = "Schedule FSI — Income from Outside India & Tax Relief";
+        fsiHeader.textContent = "ITR SCHEDULE FSI - INCOME FROM OUTSIDE INDIA & TAX RELIEF";
         block.appendChild(fsiHeader);
 
         const fsiCard = document.createElement("div");
@@ -1962,7 +1980,7 @@ export function renderConsolidatedTaxSummary(data) {
         const controlsRow = document.createElement("div");
         controlsRow.style.cssText = "display:flex;align-items:center;gap:12px;margin-bottom:8px;font-size:0.85rem;color:var(--text-main);font-weight:600;";
         controlsRow.innerHTML = `
-            <span>Tax Slab Rate for STCG / Other Sources:</span>
+            <span>Tax Slab Rate for Other Sources:</span>
             <div style="display:flex;align-items:center;gap:6px;">
                 <input type="number" id="fsiSlabInput" value="30" min="0" max="100" style="width:65px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);font-weight:700;text-align:center;">
                 <span>%</span>
@@ -2028,7 +2046,7 @@ export function renderConsolidatedTaxSummary(data) {
                 const cg_income = Math.max(0, net_capital_gains);
                 const os_income = Math.max(0, g.dividends);
 
-                const cg_tax_payable = Math.round((net_ltcg * 0.125) + (net_stcg * (slabRate / 100)));
+                const cg_tax_payable = Math.round((net_ltcg * 0.125) + (net_stcg * 0.30));
                 const os_tax_payable = Math.round(os_income * (slabRate / 100));
 
                 const cg_default_tax_paid = 0;
