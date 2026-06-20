@@ -190,7 +190,7 @@ def api_setup_demo():
               "sells": [
                 {
                   "id": "sell_nvda_2025",
-                  "sell_date": "17/02/2025",
+                  "sell_date": "17/04/2025",
                   "quantity": 50.0,
                   "sell_price": 135.20
                 }
