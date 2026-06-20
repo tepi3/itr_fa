@@ -2169,6 +2169,139 @@ export function renderConsolidatedTaxSummary(data) {
         slabInput.addEventListener("input", redrawFSITable);
         redrawFSITable();
         block.appendChild(fsiCard);
+
+        // ===== Form 67 Section — Foreign Tax Credit Claimed =====
+        const form67Header = document.createElement("div");
+        form67Header.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:25px 0 10px;";
+        form67Header.textContent = "DOUBLE TAXATION RELIEF (FORM 67) — FOREIGN TAX CREDIT CLAIMED";
+        block.appendChild(form67Header);
+
+        const form67Card = document.createElement("div");
+        form67Card.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:24px;display:flex;flex-direction:column;gap:16px;margin-bottom:8px;overflow-x:auto;";
+
+        const form67TableContainer = document.createElement("div");
+        form67Card.appendChild(form67TableContainer);
+
+        const redrawForm67Table = () => {
+            const slabRate = parseFloat(slabInput.value || "30") || 0;
+
+            const copyBtn = (val) => `
+                <button type="button" class="fsi-copy-btn" data-value="${val}" title="Copy ${val}" style="background:none;border:none;cursor:pointer;padding:2px;margin-left:4px;opacity:0.4;transition:opacity 0.15s;vertical-align:middle;line-height:1;display:inline-flex;align-items:center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+            `;
+
+            const thStyle = "padding:8px 6px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);text-align:center;font-size:0.72rem;line-height:1.25;";
+            const tdStyle = "padding:6px 8px;border:1px solid var(--border);font-size:0.78rem;";
+            const tdRight = `${tdStyle}text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;`;
+            const tdCenter = `${tdStyle}text-align:center;`;
+
+            let html = `
+                <table class="fsi-table" style="width:100%;border-collapse:collapse;font-size:0.78rem;text-align:left;min-width:1100px;">
+                    <thead>
+                        <tr style="background:var(--bg-card);border-bottom:1px solid var(--border);">
+                            <th rowspan="2" style="${thStyle}width:40px;">Sl.<br>No.</th>
+                            <th rowspan="2" style="${thStyle}width:120px;">Name of Country</th>
+                            <th rowspan="2" style="${thStyle}width:90px;">Source of Income</th>
+                            <th rowspan="2" style="${thStyle}width:110px;">Income from Outside India</th>
+                            <th colspan="2" style="${thStyle}">Tax Paid Outside India</th>
+                            <th rowspan="2" style="${thStyle}width:110px;">Tax Payable under Normal Provisions in India</th>
+                            <th rowspan="2" style="${thStyle}width:70px;">Tax Payable u/s 115JB/JC</th>
+                            <th colspan="3" style="${thStyle}">Credit Claimed u/s 90/90A</th>
+                            <th rowspan="2" style="${thStyle}width:80px;">Credit u/s 91</th>
+                            <th rowspan="2" style="${thStyle}width:100px;">Total FTC Claimed</th>
+                        </tr>
+                        <tr style="background:var(--bg-card);border-bottom:1px solid var(--border);">
+                            <th style="${thStyle}width:90px;">Amount</th>
+                            <th style="${thStyle}width:55px;">Rate (%)</th>
+                            <th style="${thStyle}width:80px;">DTAA Article</th>
+                            <th style="${thStyle}width:65px;">DTAA Rate (%)</th>
+                            <th style="${thStyle}width:90px;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            let globalSlNo = 0;
+
+            activeCountries.forEach((country) => {
+                const g = countryGroups[country];
+                const os_income = Math.max(0, g.dividends);
+                if (os_income <= 0) return;
+
+                const slabRate = parseFloat(slabInput.value || "30") || 0;
+                const os_tax_payable = Math.round(os_income * (slabRate / 100));
+
+                const os_override_key = `${country}_os`;
+                let os_default_tax_paid = 0;
+                const isUS = (country.includes("UNITED STATES") || country.startsWith("2-"));
+                if (isUS) {
+                    os_default_tax_paid = Math.round(os_income * 0.25);
+                }
+                const os_tax_paid = (os_override_key in window._fsiTaxPaidOverrides) ? window._fsiTaxPaidOverrides[os_override_key] : os_default_tax_paid;
+
+                const f67_art_key = `${country}_f67_art`;
+                const os_art = (f67_art_key in window._fsiDTAAArticles) ? window._fsiDTAAArticles[f67_art_key] : "10,25";
+
+                const os_relief = Math.min(os_tax_paid, os_tax_payable);
+                const os_paid_rate = os_income > 0 ? Math.round((os_tax_paid / os_income) * 100) : 0;
+                const os_dtaa_rate = os_art ? os_paid_rate : 0;
+                const os_dtaa_amount = os_art ? os_relief : 0;
+                const os_s91 = os_art ? 0 : os_relief;
+                const os_total_ftc = os_dtaa_amount + os_s91;
+
+                // Clean country name for display (remove code prefix like "2-")
+                const countryDisplay = country.replace(/^\d+-/, "").split(" ").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+
+                globalSlNo++;
+                html += `
+                    <tr style="border-top:1px solid var(--border);">
+                        <td style="${tdCenter}font-weight:700;">${globalSlNo}</td>
+                        <td style="${tdStyle}font-weight:600;font-size:0.76rem;line-height:1.2;">${countryDisplay}</td>
+                        <td style="${tdCenter}font-weight:600;">Dividend</td>
+                        <td style="${tdRight}font-weight:600;">₹${formatINR(os_income)}${copyBtn(os_income)}</td>
+                        <td style="${tdRight}">₹${formatINR(os_tax_paid)}${copyBtn(os_tax_paid)}</td>
+                        <td style="${tdCenter}">${os_paid_rate}</td>
+                        <td style="${tdRight}">₹${formatINR(os_tax_payable)}${copyBtn(os_tax_payable)}</td>
+                        <td style="${tdCenter}color:var(--text-muted);">-</td>
+                        <td style="${tdCenter}">${os_art || "-"}</td>
+                        <td style="${tdCenter}">${os_art ? os_dtaa_rate : "-"}</td>
+                        <td style="${tdRight}font-weight:600;">₹${formatINR(os_dtaa_amount)}${copyBtn(os_dtaa_amount)}</td>
+                        <td style="${tdRight}">₹${formatINR(os_s91)}${copyBtn(os_s91)}</td>
+                        <td style="${tdRight}font-weight:700;color:var(--success);">₹${formatINR(os_total_ftc)}${copyBtn(os_total_ftc)}</td>
+                    </tr>`;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+            form67TableContainer.innerHTML = html;
+
+            // Attach copy listeners (reuse same pattern as FSI)
+            form67TableContainer.querySelectorAll(".fsi-copy-btn").forEach(btn => {
+                btn.addEventListener("mouseenter", () => btn.style.opacity = "1");
+                btn.addEventListener("mouseleave", () => btn.style.opacity = "0.4");
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const text = String(btn.dataset.value);
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast(`Copied ${text}`, "success");
+                        btn.style.opacity = "1";
+                        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                        setTimeout(() => {
+                            btn.style.opacity = "0.4";
+                            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                        }, 1500);
+                    });
+                });
+            });
+        };
+
+        // Redraw Form 67 whenever FSI redraws (they share the same slab rate input)
+        slabInput.addEventListener("input", redrawForm67Table);
+        redrawForm67Table();
+        block.appendChild(form67Card);
     }
 
     container.appendChild(block);
