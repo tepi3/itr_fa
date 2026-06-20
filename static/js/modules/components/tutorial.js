@@ -27,7 +27,7 @@ const tutorialStepsSell = [
 
 const tutorialStepsTax = [
     { selector: "#fyYearSelect", title: "Select Tax Year", desc: "Choose the Indian Financial Year (e.g., 2024-25) to generate the tax statement for." },
-    { selector: "#generateFYBtn", title: "Generate Tax Statement", desc: "Combines data from two calendar years to generate a complete view of Capital Gains and Dividends for the Indian Financial Year." }
+    { selector: "#generateFYBtn", title: "Generate Tax Statement", desc: "Combines data from two calendar years to generate a complete view of Capital Gains and Dividends for the Indian Financial Year. Generates Schedule CG, Schedule FSI, and Form 67 (Double Taxation Relief)." }
 ];
 
 let activeTutorialSteps = [];

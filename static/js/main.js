@@ -2622,7 +2622,7 @@ export function showTutorialStepByTitle(title) {
         { title: "Asset Chart", selector: "#assetPieChartSection", desc: "Visualize the asset allocation by stock value in a doughnut chart." },
         { title: "Peak Value Audit", selector: "#validatePeakSection", desc: "Verify how peak dates and INR values were determined. Shows the winning day and runner-up candidates with full price × qty × rate breakdowns." },
         { title: "SBI Rates Used", selector: "#sbiRatesSection", desc: "See all SBI TT rates referenced during calculation, with the option to manually override them." },
-        { title: "Generate Tax Statement", selector: "#generateFYBtn", desc: "Generate a consolidated tax summary across financial years." },
+        { title: "Generate Tax Statement", selector: "#generateFYBtn", desc: "Generate a consolidated tax summary across financial years. Generates Schedule CG, Schedule FSI, and Form 67 (Double Taxation Relief)." },
         { title: "Sell Simulator", selector: "#tabSellHelper", desc: "Switch to the Sell Simulator tab to simulate hypothetical sales and estimate tax impacts." }
     ];
 
