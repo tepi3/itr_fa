@@ -1989,7 +1989,7 @@ export function renderConsolidatedTaxSummary(data) {
         fsiCard.appendChild(controlsRow);
 
         const tableContainer = document.createElement("div");
-        tableContainer.style.cssText = "width:100%;overflow-x:auto;";
+        tableContainer.style.cssText = "width:100%;overflow-x:auto;overflow-y:hidden;";
         fsiCard.appendChild(tableContainer);
 
         if (window._fsiTaxPaidOverrides === undefined) window._fsiTaxPaidOverrides = {};
@@ -2180,6 +2180,7 @@ export function renderConsolidatedTaxSummary(data) {
         form67Card.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:24px;display:flex;flex-direction:column;gap:16px;margin-bottom:8px;overflow-x:auto;";
 
         const form67TableContainer = document.createElement("div");
+        form67TableContainer.style.cssText = "width:100%;overflow-x:auto;overflow-y:hidden;";
         form67Card.appendChild(form67TableContainer);
 
         const redrawForm67Table = () => {
