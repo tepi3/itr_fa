@@ -32,6 +32,11 @@ tr:hover td {
     background: var(--bg-hover) !important; 
 }
 
+/* FSI table: only highlight non-rowspan cells on hover */
+.fsi-table tr:hover td[rowspan] {
+    background: var(--bg-input) !important;
+}
+
 .lots-table input, .sells-table input, .sells-table select {
     width: 100%;
     min-width: 100px;

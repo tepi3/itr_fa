@@ -2007,7 +2007,7 @@ export function renderConsolidatedTaxSummary(data) {
             `;
 
             let html = `
-                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;text-align:left;min-width:900px;">
+                <table class="fsi-table" style="width:100%;border-collapse:collapse;font-size:0.8rem;text-align:left;min-width:900px;">
                     <thead>
                         <tr style="background:var(--bg-card);border-bottom:1px solid var(--border);">
                             <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);width:50px;">Sl. No.</th>
@@ -2079,8 +2079,8 @@ export function renderConsolidatedTaxSummary(data) {
 
                 html += `
                     <tr style="border-top:1px solid var(--border);">
-                        <td rowspan="3" style="padding:10px;font-weight:700;border:1px solid var(--border);vertical-align:middle;text-align:center;">${cIdx + 1}</td>
-                        <td rowspan="3" style="padding:10px;font-weight:700;border:1px solid var(--border);vertical-align:middle;font-size:0.76rem;line-height:1.2;">${country}</td>
+                        <td rowspan="3" style="padding:10px;font-weight:700;border:1px solid var(--border);vertical-align:middle;text-align:center;background:var(--bg-input);">${cIdx + 1}</td>
+                        <td rowspan="3" style="padding:10px;font-weight:700;border:1px solid var(--border);vertical-align:middle;font-size:0.76rem;line-height:1.2;background:var(--bg-input);">${country}</td>
                         
                         <td style="padding:6px 10px;border:1px solid var(--border);text-align:center;font-weight:600;">iii</td>
                         <td style="padding:6px 10px;border:1px solid var(--border);font-weight:600;">Capital Gain</td>
@@ -2113,14 +2113,14 @@ export function renderConsolidatedTaxSummary(data) {
                             <input type="text" class="fsi-art-input" data-key="${os_art_key}" value="${os_art}" style="${inputStyle}text-align:center;">
                         </td>
                     </tr>
-                    <tr style="background:rgba(99, 102, 241, 0.08);font-weight:700;">
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:center;">v</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);">Total</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;">₹${formatINR(total_income)}${copyBtn(total_income)}</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;">₹${formatINR(total_tax_paid)}${copyBtn(total_tax_paid)}</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;">₹${formatINR(total_tax_payable)}${copyBtn(total_tax_payable)}</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--success);white-space:nowrap;">₹${formatINR(total_relief)}${copyBtn(total_relief)}</td>
-                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:center;color:var(--text-muted);">-</td>
+                    <tr style="font-weight:700;">
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:center;background:rgba(99, 102, 241, 0.08);">v</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);background:rgba(99, 102, 241, 0.08);">Total</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;background:rgba(99, 102, 241, 0.08);">₹${formatINR(total_income)}${copyBtn(total_income)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;background:rgba(99, 102, 241, 0.08);">₹${formatINR(total_tax_paid)}${copyBtn(total_tax_paid)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;background:rgba(99, 102, 241, 0.08);">₹${formatINR(total_tax_payable)}${copyBtn(total_tax_payable)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--success);white-space:nowrap;background:rgba(99, 102, 241, 0.08);">₹${formatINR(total_relief)}${copyBtn(total_relief)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:center;color:var(--text-muted);background:rgba(99, 102, 241, 0.08);">-</td>
                     </tr>
                 `;
             });

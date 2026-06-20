@@ -950,6 +950,19 @@ export async function fetchRuntimeDataForAllStocks() {
 
 // ===== Drag and Drop Stock Reordering =====
 export function initDragAndDrop(card, stock) {
+    const handle = card.querySelector(".drag-handle");
+
+    // Only allow dragging when initiated from the drag handle
+    if (handle) {
+        handle.addEventListener("mousedown", () => {
+            card.setAttribute("draggable", "true");
+        });
+        // Reset after drag ends or mouse is released without dragging
+        handle.addEventListener("mouseup", () => {
+            card.removeAttribute("draggable");
+        });
+    }
+
     card.addEventListener("dragstart", (e) => {
         card.classList.add("dragging");
         e.dataTransfer.setData("text/plain", stock.id);
@@ -957,6 +970,7 @@ export function initDragAndDrop(card, stock) {
     });
     card.addEventListener("dragend", () => {
         card.classList.remove("dragging");
+        card.removeAttribute("draggable");
         document.querySelectorAll(".stock-card.drag-over").forEach(c => c.classList.remove("drag-over"));
     });
     card.addEventListener("dragover", (e) => {

@@ -194,7 +194,11 @@ def run_screenshot_flow():
             time.sleep(1.5)
             
             print("Capturing 08_tax_statement.png...")
-            page.screenshot(path=str(SCREENSHOTS_DIR / "08_tax_statement.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
+            page.locator("#taxStatementPanel").scroll_into_view_if_needed()
+            time.sleep(0.5)
+            page.locator("#taxStatementPanel").screenshot(path=str(SCREENSHOTS_DIR / "08_tax_statement.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = ''")
             
             # 9. SBI TT Rates Used in Calculation (visible after report generation)
             print("Capturing 09_sbi_rates_used.png...")

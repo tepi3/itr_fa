@@ -116,7 +116,14 @@ def api_setup_demo():
               "buy_date": "15/05/2025",
               "quantity": 15.0,
               "buy_price": 180.00,
-              "sells": []
+              "sells": [
+                {
+                  "id": "sell_aapl_2025_3",
+                  "sell_date": "21/06/2025",
+                  "quantity": 5.0,
+                  "sell_price": 200.00
+                }
+              ]
             }
           ]
         },
