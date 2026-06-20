@@ -1768,7 +1768,7 @@
                 <div style="padding: 12px 16px; background: rgba(245, 158, 11, 0.08); border-radius: 8px; border-left: 4px solid var(--warning); margin-bottom: 20px;">
                     <strong style="display: block; color: var(--warning); font-size: 0.92rem; margin-bottom: 6px;">Official Guidelines Warning</strong>
                     <p style="margin: 0; font-size: 0.82rem; color: var(--text-secondary);">
-                        The Income Tax Department of India specifies the use of official **SBI TT Buying Rates** for all calculations. Importing **RBI Reference Rates** is an **unofficial fallback mechanism** intended only to fill in gaps where official SBI TT daily/month-end rates are completely missing.
+                        The Income Tax Department of India specifies the use of official <strong>SBI TT Buying Rates</strong> for all calculations. Importing <strong>RBI Reference Rates</strong> is an <strong>unofficial fallback mechanism</strong> intended only to fill in gaps where official SBI TT daily/month-end rates are completely missing.
                     </p>
                 </div>
 
@@ -1783,10 +1783,10 @@
                 <div style="margin-bottom: 20px;">
                     <strong style="display: block; color: var(--text-secondary); margin-bottom: 4px;">Normalization Explanation</strong>
                     <p style="margin: 0 0 8px; color: var(--text-muted); font-size: 0.82rem;">
-                        Since RBI Reference rates have a positive spread (generally higher by **₹0.20 to ₹0.40**) over SBI TT Buying rates, they cannot be used directly without distortion. We **normalize** them using a calculated spread to match the official SBI TT baseline:
+                        Since RBI Reference rates have a positive spread (generally higher by <strong>₹0.20 to ₹0.40</strong>) over SBI TT Buying rates, they cannot be used directly without distortion. We <strong>normalize</strong> them using a calculated spread to match the official SBI TT baseline:
                     </p>
                     <ol style="margin: 0; padding-left: 20px; color: var(--text-muted); font-size: 0.82rem;">
-                        <li><strong>Calculate Average Monthly Spread:</strong> For each month, we identify all dates where both SBI and RBI rates are available and compute their **average difference**.</li>
+                        <li><strong>Calculate Average Monthly Spread:</strong> For each month, we identify all dates where both SBI and RBI rates are available and compute their <strong>average difference</strong>.</li>
                         <li><strong>Scale Daily Rates:</strong> We subtract this average spread from all daily RBI rates within that specific month.</li>
                         <li><strong>Carry-forward Fallback:</strong> If no common dates exist for a month, we use the spread from the previous available month.</li>
                     </ol>
@@ -1798,7 +1798,7 @@
                 <!-- Lookback Notice -->
                 <div style="padding: 10px 14px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
                     <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">
-                        💡 <strong>No Import Fallback:</strong> If you choose not to import, calculations will automatically look back up to the <strong>last 5 working days</strong> of the preceding day to locate an official SBI TT rate.
+                        💡 <strong>No Import Fallback:</strong> If you choose not to import, calculations will automatically look back up to the <strong>last 5 working days</strong> of the preceding month to locate an official SBI TT rate.
                     </p>
                 </div>
 
