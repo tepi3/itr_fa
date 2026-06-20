@@ -1453,9 +1453,16 @@ export function renderTaxYearSummary(taxYears) {
 
             const labelTd = document.createElement("td");
             labelTd.style.cssText = "padding:7px 10px;font-weight:700;font-size:0.82rem;white-space:nowrap;";
-            labelTd.innerHTML =
-                "<span style=\"color:var(--text-muted);font-size:0.72rem;margin-right:5px;\">TOTAL</span>" +
-                "<span style=\"color:" + meta.color + ";font-weight:800;\">" + meta.label + "</span>";
+            if (cat === "dividends") {
+                labelTd.innerHTML =
+                    "<span style=\"color:var(--text-muted);font-size:0.72rem;margin-right:5px;\">TOTAL</span>" +
+                    "<span style=\"color:" + meta.color + ";font-weight:800;\">" + meta.label + "</span> " +
+                    "<span style=\"font-size:0.72rem;color:var(--text-muted);font-weight:normal;opacity:0.85;\">(Fill Total in Schedule OS 1ai and Quarterly in 10 3a)</span>";
+            } else {
+                labelTd.innerHTML =
+                    "<span style=\"color:var(--text-muted);font-size:0.72rem;margin-right:5px;\">TOTAL</span>" +
+                    "<span style=\"color:" + meta.color + ";font-weight:800;\">" + meta.label + "</span>";
+            }
             tr.appendChild(labelTd);
 
             quarters.concat(["total"]).forEach(qk => {
@@ -1642,6 +1649,10 @@ export async function fetchConsolidatedTaxSummary() {
 }
 
 export function renderConsolidatedTaxSummary(data) {
+    // Reset/clear FSI overrides for a fresh generation
+    window._fsiTaxPaidOverrides = {};
+    window._fsiDTAAArticles = {};
+
     const container = document.getElementById("consolidatedFYBlocks");
     container.innerHTML = "";
 
@@ -1746,7 +1757,11 @@ export function renderConsolidatedTaxSummary(data) {
         tr.style.background = "var(--bg-input)";
         const labelTd = document.createElement("td");
         labelTd.style.cssText = "padding:7px 10px;font-weight:700;font-size:0.82rem;white-space:nowrap;";
-        labelTd.innerHTML = `<span style="color:var(--text-muted);font-size:0.72rem;margin-right:5px;">TOTAL</span><span style="color:${meta.color};font-weight:800;">${meta.label}</span>`;
+        if (cat === "dividends") {
+            labelTd.innerHTML = `<span style="color:var(--text-muted);font-size:0.72rem;margin-right:5px;">TOTAL</span><span style="color:${meta.color};font-weight:800;">${meta.label}</span> <span style="font-size:0.72rem;color:var(--text-muted);font-weight:normal;opacity:0.85;">(Fill Total in Schedule OS 1ai and Quarterly in 10 3a)</span>`;
+        } else {
+            labelTd.innerHTML = `<span style="color:var(--text-muted);font-size:0.72rem;margin-right:5px;">TOTAL</span><span style="color:${meta.color};font-weight:800;">${meta.label}</span>`;
+        }
         tr.appendChild(labelTd);
         quarters.concat(["total"]).forEach(qk => {
             const td = document.createElement("td");
@@ -1831,10 +1846,10 @@ export function renderConsolidatedTaxSummary(data) {
         itrCard.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:20px 24px;display:flex;flex-direction:column;gap:10px;margin-bottom:8px;";
 
         const itrRows = [
-            { code: "aiii", label: "Full value of consideration", sublabel: "Total (ic + ii)", value: totalProceeds, color: "var(--text-main)" },
+            { code: "aii", label: "Full value of consideration", sublabel: null, value: totalProceeds, color: "var(--text-main)" },
             { code: "bi", label: "Cost of acquisition without indexation", sublabel: null, value: totalCost, color: "var(--text-main)" },
-            { code: "biv", label: "Total deductions", sublabel: "(bi + bii + biii)", value: totalCost, color: "var(--text-main)" },
-            { code: "c", label: "Balance", sublabel: "(aiii − biv)", value: balance, color: balance >= 0 ? "var(--success)" : "var(--danger)", bold: true },
+            { code: "biv", label: "Total deductions", sublabel: null, value: totalCost, color: "var(--text-main)" },
+            { code: "c", label: "Balance", sublabel: null, value: balance, color: balance >= 0 ? "var(--success)" : "var(--danger)", bold: true },
         ];
 
         function makeCopyBtn(rawValue) {
@@ -1880,6 +1895,215 @@ export function renderConsolidatedTaxSummary(data) {
         });
 
         block.appendChild(itrCard);
+    }
+
+    // Schedule FSI Section — Details of Income from Outside India and Tax Relief
+    const tickerToCountry = {};
+    if (state.portfolio && state.portfolio.stocks) {
+        state.portfolio.stocks.forEach(stock => {
+            if (stock.ticker && stock.company_info && stock.company_info.country_code) {
+                tickerToCountry[stock.ticker.toUpperCase()] = stock.company_info.country_code;
+            }
+        });
+    }
+
+    const countryGroups = {};
+    Object.keys(data.stocks).forEach(ticker => {
+        const tUpper = ticker.toUpperCase();
+        let country = tickerToCountry[tUpper];
+        if (!country) {
+            if (tUpper.endsWith(".L")) {
+                country = "3-UNITED KINGDOM";
+            } else {
+                country = "2-UNITED STATES OF AMERICA";
+            }
+        }
+        if (!countryGroups[country]) {
+            countryGroups[country] = { ltcg: 0, ltcl: 0, stcg: 0, stcl: 0, dividends: 0 };
+        }
+        const sdata = data.stocks[ticker];
+        countryGroups[country].ltcg += (sdata.ltcg?.total || 0);
+        countryGroups[country].ltcl += (sdata.ltcl?.total || 0);
+        countryGroups[country].stcg += (sdata.stcg?.total || 0);
+        countryGroups[country].stcl += (sdata.stcl?.total || 0);
+        countryGroups[country].dividends += (sdata.dividends?.total || 0);
+    });
+
+    const activeCountries = Object.keys(countryGroups).filter(c => {
+        const g = countryGroups[c];
+        return (g.ltcg > 0 || g.ltcl > 0 || g.stcg > 0 || g.stcl > 0 || g.dividends > 0);
+    }).sort();
+
+    if (activeCountries.length > 0) {
+        const fsiHeader = document.createElement("div");
+        fsiHeader.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:25px 0 10px;";
+        fsiHeader.textContent = "Schedule FSI — Income from Outside India & Tax Relief";
+        block.appendChild(fsiHeader);
+
+        const fsiCard = document.createElement("div");
+        fsiCard.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:24px;display:flex;flex-direction:column;gap:16px;margin-bottom:8px;overflow-x:auto;";
+
+        const controlsRow = document.createElement("div");
+        controlsRow.style.cssText = "display:flex;align-items:center;gap:12px;margin-bottom:8px;font-size:0.85rem;color:var(--text-main);font-weight:600;";
+        controlsRow.innerHTML = `
+            <span>Tax Slab Rate for STCG / Other Sources:</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <input type="number" id="fsiSlabInput" value="30" min="0" max="100" style="width:65px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);font-weight:700;text-align:center;">
+                <span>%</span>
+            </div>
+        `;
+        fsiCard.appendChild(controlsRow);
+
+        const tableContainer = document.createElement("div");
+        tableContainer.style.cssText = "width:100%;overflow-x:auto;";
+        fsiCard.appendChild(tableContainer);
+
+        if (window._fsiTaxPaidOverrides === undefined) window._fsiTaxPaidOverrides = {};
+        if (window._fsiDTAAArticles === undefined) window._fsiDTAAArticles = {};
+
+        const slabInput = controlsRow.querySelector("#fsiSlabInput");
+
+        const redrawFSITable = () => {
+            const slabRate = parseFloat(slabInput.value || "30") || 0;
+            
+            let html = `
+                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;text-align:left;min-width:900px;">
+                    <thead>
+                        <tr style="background:var(--bg-card);border-bottom:1px solid var(--border);">
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);width:50px;">Sl. No.</th>
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);width:250px;">Country Code</th>
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);width:50px;">Sl. No.</th>
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);width:150px;">Head of Income</th>
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);text-align:right;width:130px;">Income Outside India (b)</th>
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);text-align:right;width:150px;">Tax Paid Outside India (c)</th>
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);text-align:right;width:150px;">Tax Payable in India (d)</th>
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);text-align:right;width:180px;">Tax Relief Available (e) = min(c,d)</th>
+                            <th style="padding:10px;font-weight:700;color:var(--text-muted);border:1px solid var(--border);text-align:center;width:120px;">Relevant DTAA Article (f)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            activeCountries.forEach((country, cIdx) => {
+                const g = countryGroups[country];
+                
+                const gross_stcg = g.stcg;
+                const gross_stcl = g.stcl;
+                const gross_ltcg = g.ltcg;
+                const gross_ltcl = g.ltcl;
+                
+                const stcl_vs_stcg = Math.min(gross_stcl, gross_stcg);
+                const residual_stcl = gross_stcl - stcl_vs_stcg;
+                const net_stcg = gross_stcg - stcl_vs_stcg;
+                
+                const stcl_vs_ltcg = Math.min(residual_stcl, gross_ltcg);
+                const ltcg_after_stcl = gross_ltcg - stcl_vs_ltcg;
+                const ltcl_vs_ltcg = Math.min(gross_ltcl, ltcg_after_stcl);
+                const net_ltcg = ltcg_after_stcl - ltcl_vs_ltcg;
+                
+                const net_capital_gains = net_stcg + net_ltcg;
+                
+                const cg_income = Math.max(0, net_capital_gains);
+                const os_income = Math.max(0, g.dividends);
+
+                const cg_tax_payable = Math.round((net_ltcg * 0.125) + (net_stcg * (slabRate / 100)));
+                const os_tax_payable = Math.round(os_income * (slabRate / 100));
+
+                const cg_default_tax_paid = 0;
+                let os_default_tax_paid = 0;
+                const isUS = (country.includes("UNITED STATES") || country.startsWith("2-"));
+                if (isUS) {
+                    os_default_tax_paid = Math.round(os_income * 0.25);
+                }
+
+                const cg_override_key = `${country}_cg`;
+                const os_override_key = `${country}_os`;
+
+                const cg_tax_paid = (cg_override_key in window._fsiTaxPaidOverrides) ? window._fsiTaxPaidOverrides[cg_override_key] : cg_default_tax_paid;
+                const os_tax_paid = (os_override_key in window._fsiTaxPaidOverrides) ? window._fsiTaxPaidOverrides[os_override_key] : os_default_tax_paid;
+
+                const cg_art_key = `${country}_cg_art`;
+                const os_art_key = `${country}_os_art`;
+                const cg_art = (cg_art_key in window._fsiDTAAArticles) ? window._fsiDTAAArticles[cg_art_key] : "";
+                const os_art = (os_art_key in window._fsiDTAAArticles) ? window._fsiDTAAArticles[os_art_key] : "90";
+
+                const cg_relief = Math.min(cg_tax_paid, cg_tax_payable);
+                const os_relief = Math.min(os_tax_paid, os_tax_payable);
+
+                const total_income = cg_income + os_income;
+                const total_tax_paid = cg_tax_paid + os_tax_paid;
+                const total_tax_payable = cg_tax_payable + os_tax_payable;
+                const total_relief = cg_relief + os_relief;
+
+                const inputStyle = `width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-card);color:var(--text-main);font-size:0.78rem;font-variant-numeric:tabular-nums;box-sizing:border-box;`;
+
+                html += `
+                    <tr style="border-top:1px solid var(--border);">
+                        <td rowspan="3" style="padding:10px;font-weight:700;border:1px solid var(--border);vertical-align:middle;text-align:center;">${cIdx + 1}</td>
+                        <td rowspan="3" style="padding:10px;font-weight:700;border:1px solid var(--border);vertical-align:middle;font-size:0.76rem;line-height:1.2;">${country}</td>
+                        
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:center;font-weight:600;">iii</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);font-weight:600;">Capital Gain</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${formatINR(cg_income)}</td>
+                        <td style="padding:4px 6px;border:1px solid var(--border);text-align:right;">
+                            <input type="number" class="fsi-paid-input" data-key="${cg_override_key}" value="${cg_tax_paid}" style="${inputStyle}text-align:right;">
+                        </td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--text-main);">${formatINR(cg_tax_payable)}</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--success);">${formatINR(cg_relief)}</td>
+                        <td style="padding:4px 6px;border:1px solid var(--border);text-align:center;">
+                            <input type="text" class="fsi-art-input" data-key="${cg_art_key}" value="${cg_art}" style="${inputStyle}text-align:center;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:center;font-weight:600;">iv</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);font-weight:600;">Other Sources</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${formatINR(os_income)}</td>
+                        <td style="padding:4px 6px;border:1px solid var(--border);text-align:right;">
+                            <input type="number" class="fsi-paid-input" data-key="${os_override_key}" value="${os_tax_paid}" style="${inputStyle}text-align:right;">
+                        </td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--text-main);">${formatINR(os_tax_payable)}</td>
+                        <td style="padding:6px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--success);">${formatINR(os_relief)}</td>
+                        <td style="padding:4px 6px;border:1px solid var(--border);text-align:center;">
+                            <input type="text" class="fsi-art-input" data-key="${os_art_key}" value="${os_art}" style="${inputStyle}text-align:center;">
+                        </td>
+                    </tr>
+                    <tr style="background:rgba(99, 102, 241, 0.08);font-weight:700;">
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:center;">v</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);">Total</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;">${formatINR(total_income)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;">${formatINR(total_tax_paid)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;">${formatINR(total_tax_payable)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;color:var(--success);">${formatINR(total_relief)}</td>
+                        <td style="padding:8px 10px;border:1px solid var(--border);text-align:center;color:var(--text-muted);">-</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+            tableContainer.innerHTML = html;
+
+            tableContainer.querySelectorAll(".fsi-paid-input").forEach(el => {
+                el.addEventListener("input", (e) => {
+                    const key = e.target.dataset.key;
+                    window._fsiTaxPaidOverrides[key] = parseFloat(e.target.value) || 0;
+                    redrawFSITable();
+                });
+            });
+
+            tableContainer.querySelectorAll(".fsi-art-input").forEach(el => {
+                el.addEventListener("input", (e) => {
+                    const key = e.target.dataset.key;
+                    window._fsiDTAAArticles[key] = e.target.value;
+                });
+            });
+        };
+
+        slabInput.addEventListener("input", redrawFSITable);
+        redrawFSITable();
+        block.appendChild(fsiCard);
     }
 
     container.appendChild(block);

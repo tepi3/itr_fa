@@ -137,7 +137,21 @@ class ETradeRollbackBuilder:
             qty = clean_float(row.get("Quantity", 0))
             sell_price = clean_float(row.get("Proceeds Per Share", 0))
             
-            buy_price = clean_float(row.get("Adjusted Cost Basis Per Share", 0))
+            # Use ONLY Purchase Date Fair Mkt. Value for ESPP, otherwise use Adjusted Cost Basis Per Share
+            plan_type = str(row.get("Plan Type") or "").strip().upper()
+            grant_type = str(row.get("Type") or "").strip().upper()
+            is_espp = (plan_type == "ESPP") or ("ESPP" in plan_type) or ("EMPLOYEE STOCK PURCHASE" in grant_type) or ("ESPP" in grant_type)
+
+            if is_espp:
+                espp_fmv = 0.0
+                for k, v in row.items():
+                    if k and k.strip().lower() in ("purchase date fair mkt. value", "purchase date fair market value"):
+                        espp_fmv = clean_float(v)
+                        break
+                buy_price = espp_fmv
+            else:
+                buy_price = clean_float(row.get("Adjusted Cost Basis Per Share", 0))
+
             if buy_price == 0:
                 self.skipped_count += 1
                 continue
