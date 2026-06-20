@@ -87,7 +87,7 @@ class ETradeRollbackBuilder:
             except:
                 continue
 
-            buy_price = clean_float(row.get("Est. Cost Basis (per share):")) or clean_float(row.get("Grant Date FMV")) or clean_float(row.get("Purchase Price"))
+            buy_price = clean_float(row.get("Purchase Date FMV"))
             sellable_qty = clean_float(row.get("Sellable Qty.", 0))
             
             lot = self._get_or_create_lot(symbol, buy_date)
