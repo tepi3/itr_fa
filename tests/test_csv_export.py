@@ -53,13 +53,16 @@ def test_export_utf8_encoding(sample_a3_rows):
     rows = list(reader)
     # Header row + 2 data rows
     assert len(rows) == 3
-    assert rows[0] == CSV_HEADERS
+    assert rows[0] == CSV_HEADERS + [""]
     
     # Validate the first data row conversion
     first_row = rows[1]
+    assert len(first_row) == 13
     assert first_row[0] == "UNITED STATES OF AMERICA"
     assert first_row[1] == "2-UNITED STATES OF AMERICA"
     assert first_row[2] == "Apple Inc. (AAPL)"
     assert first_row[6] == "15-01-2022"  # acquire_date converted to DD-MM-YYYY format
     assert first_row[7] == "625000"       # initial_value formatted as integer string
     assert first_row[11] == "300000"      # sale_proceeds formatted as integer string
+    assert first_row[12] == ""            # trailing empty column
+

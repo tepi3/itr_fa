@@ -60,6 +60,19 @@ def _format_number(value) -> str:
     return str(round(value))
 
 
+def _format_row_as_csv_line(row_fields: list) -> str:
+    """
+    Format list of fields as a CSV line where every field is double-quoted,
+    and a trailing comma is added at the end (matching e-filing template).
+    """
+    quoted = []
+    for field in row_fields:
+        s = str(field) if field is not None else ""
+        s_escaped = s.replace('"', '""')
+        quoted.append(f'"{s_escaped}"')
+    return ",".join(quoted) + ",\r\n"
+
+
 def export_a3_csv(rows: list, calendar_year: int) -> bytes:
     """
     Generate a CSV file with A3 table data matching the ITR template format.
@@ -71,11 +84,10 @@ def export_a3_csv(rows: list, calendar_year: int) -> bytes:
     Returns:
         CSV file as bytes (for download)
     """
-    output = StringIO()
-    writer = csv.writer(output)
+    lines = []
 
     # Write header
-    writer.writerow(CSV_HEADERS)
+    lines.append(_format_row_as_csv_line(CSV_HEADERS))
 
     # Write data rows
     for row_data in rows:
@@ -96,9 +108,9 @@ def export_a3_csv(rows: list, calendar_year: int) -> bytes:
             _format_number(row_data.get("total_dividends")),
             _format_number(row_data.get("sale_proceeds")),
         ]
+        lines.append(_format_row_as_csv_line(csv_row))
 
-        writer.writerow(csv_row)
-
-    csv_content = output.getvalue()
+    csv_content = "".join(lines)
     logger.info(f"Generated CSV with {len(rows)} data rows for CY{calendar_year}")
     return csv_content.encode("utf-8")
+
