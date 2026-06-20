@@ -25,8 +25,8 @@ def test_extract_country_region():
 
 @pytest.mark.unit
 def test_format_date_csv():
-    assert _format_date_csv("15/01/2024") == "15-01-2024"
-    assert _format_date_csv("2024-01-15") == "2024-01-15"
+    assert _format_date_csv("15/01/2024") == "15-Jan-2024"
+    assert _format_date_csv("2024-01-15") == "15-Jan-2024"
     assert _format_date_csv("") == ""
     assert _format_date_csv(None) == ""
 
@@ -61,8 +61,9 @@ def test_export_utf8_encoding(sample_a3_rows):
     assert first_row[0] == "UNITED STATES OF AMERICA"
     assert first_row[1] == "2-UNITED STATES OF AMERICA"
     assert first_row[2] == "Apple Inc. (AAPL)"
-    assert first_row[6] == "15-01-2022"  # acquire_date converted to DD-MM-YYYY format
+    assert first_row[6] == "15-Jan-2022"  # acquire_date converted to DD-MMM-YYYY format
     assert first_row[7] == "625000"       # initial_value formatted as integer string
+
     assert first_row[11] == "300000"      # sale_proceeds formatted as integer string
     assert first_row[12] == ""            # trailing empty column
 

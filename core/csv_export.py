@@ -46,11 +46,20 @@ def _extract_country_region(country_code: str) -> str:
 
 def _format_date_csv(date_str: str) -> str:
     """
-    Convert DD/MM/YYYY display date to DD-MM-YYYY format for CSV.
+    Convert DD/MM/YYYY or ISO date to DD-MMM-YYYY format (e.g., 16-Jun-2026).
     """
     if not date_str:
         return ""
-    return date_str.replace("/", "-")
+    from datetime import datetime
+    try:
+        if "/" in date_str:
+            d = datetime.strptime(date_str, "%d/%m/%Y")
+        else:
+            d = datetime.fromisoformat(date_str)
+        return d.strftime("%d-%b-%Y")
+    except Exception:
+        return date_str
+
 
 
 def _format_number(value) -> str:
