@@ -44,9 +44,22 @@ def _extract_country_region(country_code: str) -> str:
     return country_code
 
 
+def _extract_country_code(country_code: str) -> str:
+    """
+    Extract country code number from country code string.
+    E.g., '2-UNITED STATES OF AMERICA' -> '2'
+    """
+    if not country_code:
+        return ""
+    parts = country_code.split("-", 1)
+    if len(parts) == 2:
+        return parts[0].strip()
+    return country_code
+
+
 def _format_date_csv(date_str: str) -> str:
     """
-    Convert DD/MM/YYYY or ISO date to DD-MMM-YYYY format (e.g., 16-Jun-2026).
+    Convert DD/MM/YYYY or ISO date to YYYY-MM-DD format (e.g., 2026-06-16).
     """
     if not date_str:
         return ""
@@ -56,10 +69,9 @@ def _format_date_csv(date_str: str) -> str:
             d = datetime.strptime(date_str, "%d/%m/%Y")
         else:
             d = datetime.fromisoformat(date_str)
-        return d.strftime("%d-%b-%Y")
+        return d.strftime("%Y-%m-%d")
     except Exception:
         return date_str
-
 
 
 def _format_number(value) -> str:
@@ -69,17 +81,16 @@ def _format_number(value) -> str:
     return str(round(value))
 
 
-def _format_row_as_csv_line(row_fields: list) -> str:
+def _format_zip_code(zip_code: str) -> str:
     """
-    Format list of fields as a CSV line where every field is double-quoted,
-    and a trailing comma is added at the end (matching e-filing template).
+    Format ZIP code: limit to 8 chars and strip after '-' if present.
     """
-    quoted = []
-    for field in row_fields:
-        s = str(field) if field is not None else ""
-        s_escaped = s.replace('"', '""')
-        quoted.append(f'"{s_escaped}"')
-    return ",".join(quoted) + ",\r\n"
+    if not zip_code:
+        return ""
+    zip_str = str(zip_code).strip()
+    if "-" in zip_str:
+        zip_str = zip_str.split("-", 1)[0].strip()
+    return zip_str[:8]
 
 
 def export_a3_csv(rows: list, calendar_year: int) -> bytes:
@@ -93,22 +104,24 @@ def export_a3_csv(rows: list, calendar_year: int) -> bytes:
     Returns:
         CSV file as bytes (for download)
     """
-    lines = []
+    output = StringIO()
+    writer = csv.writer(output, lineterminator="\r\n")
 
     # Write header
-    lines.append(_format_row_as_csv_line(CSV_HEADERS))
+    writer.writerow(CSV_HEADERS)
 
     # Write data rows
     for row_data in rows:
-        country_code = row_data.get("country", "")
-        country_region = _extract_country_region(country_code)
+        country_raw = row_data.get("country", "")
+        country_region = _extract_country_region(country_raw)
+        country_code = _extract_country_code(country_raw)
 
         csv_row = [
             country_region,
             country_code,
             row_data.get("entity_name", ""),
             row_data.get("address", ""),
-            row_data.get("zip", ""),
+            _format_zip_code(row_data.get("zip", "")),
             row_data.get("nature", ""),
             _format_date_csv(row_data.get("acquire_date", "")),
             _format_number(row_data.get("initial_value")),
@@ -117,9 +130,11 @@ def export_a3_csv(rows: list, calendar_year: int) -> bytes:
             _format_number(row_data.get("total_dividends")),
             _format_number(row_data.get("sale_proceeds")),
         ]
-        lines.append(_format_row_as_csv_line(csv_row))
+        # Clean row: replace all commas with empty string to ensure no commas are output anywhere
+        cleaned_row = [str(field).replace(",", "") if field is not None else "" for field in csv_row]
+        writer.writerow(cleaned_row)
 
-    csv_content = "".join(lines)
+    csv_content = output.getvalue()
     logger.info(f"Generated CSV with {len(rows)} data rows for CY{calendar_year}")
     return csv_content.encode("utf-8")
 

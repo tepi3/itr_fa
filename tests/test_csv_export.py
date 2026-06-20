@@ -4,8 +4,10 @@ from io import StringIO
 from core.csv_export import (
     CSV_HEADERS,
     _extract_country_region,
+    _extract_country_code,
     _format_date_csv,
     _format_number,
+    _format_zip_code,
     export_a3_csv,
 )
 
@@ -24,9 +26,25 @@ def test_extract_country_region():
     assert _extract_country_region(None) == ""
 
 @pytest.mark.unit
+def test_extract_country_code():
+    assert _extract_country_code("2-UNITED STATES OF AMERICA") == "2"
+    assert _extract_country_code("91-INDIA") == "91"
+    assert _extract_country_code("NO_HYPHEN") == "NO_HYPHEN"
+    assert _extract_country_code("") == ""
+    assert _extract_country_code(None) == ""
+
+@pytest.mark.unit
+def test_format_zip_code():
+    assert _format_zip_code("92121-1714") == "92121"
+    assert _format_zip_code("92121") == "92121"
+    assert _format_zip_code("123456789") == "12345678"
+    assert _format_zip_code("") == ""
+    assert _format_zip_code(None) == ""
+
+@pytest.mark.unit
 def test_format_date_csv():
-    assert _format_date_csv("15/01/2024") == "15-Jan-2024"
-    assert _format_date_csv("2024-01-15") == "15-Jan-2024"
+    assert _format_date_csv("15/01/2024") == "2024-01-15"
+    assert _format_date_csv("2024-01-15") == "2024-01-15"
     assert _format_date_csv("") == ""
     assert _format_date_csv(None) == ""
 
@@ -42,6 +60,9 @@ def test_format_number_none():
 
 @pytest.mark.unit
 def test_export_utf8_encoding(sample_a3_rows):
+    # Add a ZIP code with hyphen to verify formatting
+    sample_a3_rows[0]["zip"] = "92121-1714"
+    
     csv_bytes = export_a3_csv(sample_a3_rows, 2024)
     assert isinstance(csv_bytes, bytes)
     
@@ -53,17 +74,17 @@ def test_export_utf8_encoding(sample_a3_rows):
     rows = list(reader)
     # Header row + 2 data rows
     assert len(rows) == 3
-    assert rows[0] == CSV_HEADERS + [""]
+    assert rows[0] == CSV_HEADERS
     
     # Validate the first data row conversion
     first_row = rows[1]
-    assert len(first_row) == 13
+    assert len(first_row) == 12
     assert first_row[0] == "UNITED STATES OF AMERICA"
-    assert first_row[1] == "2-UNITED STATES OF AMERICA"
+    assert first_row[1] == "2"
     assert first_row[2] == "Apple Inc. (AAPL)"
-    assert first_row[6] == "15-Jan-2022"  # acquire_date converted to DD-MMM-YYYY format
+    assert first_row[3] == "One Apple Park Way Cupertino CA"  # Comma removed
+    assert first_row[4] == "92121"  # Hyphenated ZIP code stripped
+    assert first_row[6] == "2022-01-15"  # acquire_date converted to YYYY-MM-DD format
     assert first_row[7] == "625000"       # initial_value formatted as integer string
-
     assert first_row[11] == "300000"      # sale_proceeds formatted as integer string
-    assert first_row[12] == ""            # trailing empty column
 
