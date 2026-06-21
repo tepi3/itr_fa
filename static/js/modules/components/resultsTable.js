@@ -1459,7 +1459,7 @@ export function renderTaxYearSummary(taxYears) {
             } else if (cat === "ltcg") {
                 hint = "(Refer B(I)8 below and fill quarterly in Schedule CG F5)";
             } else if (cat === "stcg") {
-                hint = "(Refer A(I)5 below and fill quarterly in Schedule CG F2)";
+                hint = "(Refer A(I)5 below and fill quarterly in Schedule CG F3)";
             }
 
             if (hint) {
@@ -1772,7 +1772,7 @@ export function renderConsolidatedTaxSummary(data) {
         } else if (cat === "ltcg") {
             hint = "(Refer B(I)8 below and fill quarterly in Schedule CG F5)";
         } else if (cat === "stcg") {
-            hint = "(Refer A(I)5 below and fill quarterly in Schedule CG F2)";
+            hint = "(Refer A(I)5 below and fill quarterly in Schedule CG F3)";
         }
 
         if (hint) {
@@ -1980,7 +1980,7 @@ export function renderConsolidatedTaxSummary(data) {
         const controlsRow = document.createElement("div");
         controlsRow.style.cssText = "display:flex;align-items:center;gap:12px;margin-bottom:8px;font-size:0.85rem;color:var(--text-main);font-weight:600;";
         controlsRow.innerHTML = `
-            <span>Tax Slab Rate for Other Sources:</span>
+            <span>Tax Slab Rate for STCG and Other Sources:</span>
             <div style="display:flex;align-items:center;gap:6px;">
                 <input type="number" id="fsiSlabInput" value="30" min="0" max="100" style="width:65px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);font-weight:700;text-align:center;">
                 <span>%</span>
@@ -2046,7 +2046,7 @@ export function renderConsolidatedTaxSummary(data) {
                 const cg_income = Math.max(0, net_capital_gains);
                 const os_income = Math.max(0, g.dividends);
 
-                const cg_tax_payable = Math.round((net_ltcg * 0.125) + (net_stcg * 0.30));
+                const cg_tax_payable = Math.round((net_ltcg * 0.125) + (net_stcg * (slabRate / 100)));
                 const os_tax_payable = Math.round(os_income * (slabRate / 100));
 
                 const cg_default_tax_paid = 0;
