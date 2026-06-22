@@ -1769,10 +1769,6 @@ export function renderConsolidatedTaxSummary(data) {
         let hint = "";
         if (cat === "dividends") {
             hint = "(Fill Total in Schedule OS 1ai and Quarterly in 10 3a)";
-        } else if (cat === "ltcg") {
-            hint = "(Refer B(I)8 below and fill quarterly in Schedule CG F5)";
-        } else if (cat === "stcg") {
-            hint = "(Refer A(I)5 below and fill quarterly in Schedule CG F3)";
         }
 
         if (hint) {
@@ -1929,6 +1925,100 @@ export function renderConsolidatedTaxSummary(data) {
             { code: "c", label: "Balance", sublabel: null, value: ltBalance, color: ltBalance >= 0 ? "var(--success)" : "var(--danger)", bold: true },
         ];
         renderItrSummaryCard("ITR Schedule CG — B(I)8 Summary - Long Term", ltRows, ltBalance);
+    }
+
+    function renderHorizontalSectionFTable(stcgData, ltcgData) {
+        if (!stcgData && !ltcgData) return;
+
+        const header = document.createElement("div");
+        header.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:24px 0 10px;";
+        header.textContent = "ITR Schedule CG — Section F (Information about accrual/receipt of capital gain)";
+        block.appendChild(header);
+
+        const card = document.createElement("div");
+        card.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:16px 20px;margin-bottom:16px;overflow-x:auto;";
+
+        const table = document.createElement("table");
+        table.style.cssText = "width:100%;border-collapse:collapse;font-size:0.84rem;";
+
+        const thead = document.createElement("thead");
+        const hrow = document.createElement("tr");
+        
+        const headers = [
+            "Type of Capital Gain",
+            "Upto 15/6 (i)",
+            "16/6 – 15/9 (ii)",
+            "16/9 – 15/12 (iii)",
+            "16/12 – 15/3 (iv)",
+            "16/3 – 31/3 (v)",
+            "Total"
+        ];
+        
+        headers.forEach((h, idx) => {
+            const th = document.createElement("th");
+            th.textContent = h;
+            th.style.cssText = `padding:8px 10px;background:var(--bg-card);color:var(--text-muted);font-weight:600;font-size:0.75rem;text-align:${idx === 0 ? "left" : "right"};border-bottom:2px solid var(--border);white-space:nowrap;`;
+            hrow.appendChild(th);
+        });
+        thead.appendChild(hrow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        const quarters = ["q1", "q2", "q3", "q4", "q5", "total"];
+
+        function appendRow(label, quartersData, color) {
+            if (!quartersData) return;
+            const tr = document.createElement("tr");
+            tr.addEventListener("mouseenter", () => tr.style.background = "var(--bg-card)");
+            tr.addEventListener("mouseleave", () => tr.style.background = "");
+
+            const lblTd = document.createElement("td");
+            lblTd.style.cssText = "padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;color:var(--text-main);white-space:nowrap;";
+            lblTd.textContent = label;
+            tr.appendChild(lblTd);
+
+            quarters.forEach(qk => {
+                const val = quartersData[qk] || 0;
+                const td = document.createElement("td");
+                td.style.cssText = `padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap;color:${val > 0 ? color : "var(--text-muted)"};`;
+                if (qk === "total") {
+                    td.style.fontWeight = "700";
+                    td.style.borderLeft = "1px solid var(--border)";
+                    td.style.background = color + "11";
+                }
+                
+                // Container for value and copy button
+                const content = document.createElement("div");
+                content.style.cssText = "display:inline-flex;align-items:center;justify-content:flex-end;width:100%;gap:2px;";
+                
+                const valSpan = document.createElement("span");
+                valSpan.textContent = val > 0 ? "₹" + formatINR(val) : "—";
+                content.appendChild(valSpan);
+                
+                if (val > 0) {
+                    content.appendChild(makeCopyBtn(val));
+                }
+                
+                td.appendChild(content);
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        }
+
+        appendRow("STCG Taxable at Applicable Rate", stcgData, "#22c55e");
+        appendRow("LTCG Taxable at 12.5%", ltcgData, "#10b981");
+
+        table.appendChild(tbody);
+        card.appendChild(table);
+        block.appendChild(card);
+    }
+
+    if (data.offset) {
+        renderHorizontalSectionFTable(
+            data.offset.net_stcg_quarters,
+            data.offset.net_ltcg_quarters
+        );
     }
 
     // Schedule FSI Section — Details of Income from Outside India and Tax Relief

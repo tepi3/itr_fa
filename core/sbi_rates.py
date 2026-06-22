@@ -743,3 +743,24 @@ def normalize_and_import_rbi_rates(till_year: int = None, till_month: int = None
         logger.info(f"Successfully filled {filled_count} missing rates with raw RBI fallback.")
     return filled_count
 
+
+def get_rbi_max_year_month() -> tuple:
+    """Return (year, month) of the latest date entry in RBI reference rates."""
+    try:
+        rbi_file = _get_static_path("data/rbi_reference_rates.json")
+        if not rbi_file.exists():
+            return None, None
+        with open(rbi_file, "r", encoding="utf-8") as f:
+            rbi_data = json.load(f)
+        max_date = None
+        for entry in rbi_data:
+            d = entry.get("date")
+            if d and entry.get("usd") is not None:
+                if max_date is None or d > max_date:
+                    max_date = d
+        if max_date:
+            return int(max_date[:4]), int(max_date[5:7])
+    except Exception as e:
+        logger.exception("Failed to get RBI max year-month")
+    return None, None
+

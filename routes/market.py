@@ -5,7 +5,7 @@ from core.sbi_rates import (
     get_sbi_tt_rate, get_monthly_rates, save_manual_rate,
     refresh_cache, lock_year_rates, unlock_year_rates, 
     is_year_locked, get_locked_years, get_daily_rates,
-    clear_sbi_cache, normalize_and_import_rbi_rates
+    clear_sbi_cache, normalize_and_import_rbi_rates, get_rbi_max_year_month
 )
 from core.stock_data import (
     get_company_info, get_price_on_date, get_dividends,
@@ -325,5 +325,20 @@ def api_sbi_cache_status():
             "empty": not bool(raw_rates)
         })
     except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@market_bp.route("/api/rbi-max-date", methods=["GET"])
+def api_rbi_max_date():
+    """Get the maximum available year and month from the RBI reference rates file."""
+    try:
+        y, m = get_rbi_max_year_month()
+        return jsonify({
+            "success": True,
+            "year": y,
+            "month": m
+        })
+    except Exception as e:
+        logger.exception("Failed to get RBI max date")
         return jsonify({"success": False, "error": str(e)}), 500
 

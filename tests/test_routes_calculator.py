@@ -88,3 +88,9 @@ def test_consolidated_tax_summary(client, sample_portfolio, full_2024_sbi_rates,
     assert data["consolidated"]["fy_start_year"] == 2024
     assert data["consolidated"]["has_cy_start"] is True
     assert data["consolidated"]["has_cy_end"] is True
+    
+    offset = data["consolidated"]["offset"]
+    assert "net_stcg_quarters" in offset
+    assert "net_ltcg_quarters" in offset
+    assert offset["net_stcg_quarters"]["total"] == offset["net_stcg"]
+    assert offset["net_ltcg_quarters"]["total"] == offset["net_ltcg"]

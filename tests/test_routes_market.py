@@ -142,3 +142,18 @@ def test_api_import_rbi_rates(client, monkeypatch):
     assert res.get_json()["success"] is True
     assert res.get_json()["imported"] == 42
     assert called_args == [(2024, 6, False)]
+
+
+@pytest.mark.unit
+def test_api_rbi_max_date(client, monkeypatch):
+    def mock_get_rbi_max_year_month():
+        return 2025, 12
+
+    monkeypatch.setattr("routes.market.get_rbi_max_year_month", mock_get_rbi_max_year_month)
+
+    res = client.get("/api/rbi-max-date")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["success"] is True
+    assert data["year"] == 2025
+    assert data["month"] == 12

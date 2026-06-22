@@ -265,3 +265,45 @@ def test_calculate_a3_rows_prev_year_closing(sbi_cache, sample_portfolio, full_2
     assert prev_close["rate"] == 83.15
     assert prev_close["rate_date"] == "2023-12-31"
 
+
+@pytest.mark.unit
+def test_compute_offset_summary_quarters():
+    tax_years = {
+        "prev": {
+            "totals": {
+                "stcg": {"total": 100, "q1": 100, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                "stcl": {"total": 50, "q1": 0, "q2": 0, "q3": 50, "q4": 0, "q5": 0},
+                "ltcg": {"total": 80, "q1": 80, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                "ltcl": {"total": 0, "q1": 0, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+            }
+        },
+        "curr": {
+            "totals": {
+                "stcg": {"total": 50, "q1": 50, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                "stcl": {"total": 100, "q1": 0, "q2": 0, "q3": 100, "q4": 0, "q5": 0},
+                "ltcg": {"total": 80, "q1": 80, "q2": 0, "q3": 0, "q4": 0, "q5": 0},
+                "ltcl": {"total": 20, "q1": 0, "q2": 0, "q3": 0, "q4": 20, "q5": 0},
+            }
+        }
+    }
+    
+    res = compute_offset_summary(tax_years)
+    
+    offset_prev = res["prev"]["offset"]
+    assert offset_prev["net_stcg"] == 50
+    assert offset_prev["net_stcg_quarters"]["q1"] == 50
+    assert offset_prev["net_stcg_quarters"]["q3"] == 0
+    assert offset_prev["net_stcg_quarters"]["total"] == 50
+    
+    offset_curr = res["curr"]["offset"]
+    assert offset_curr["net_stcg"] == 0
+    assert offset_curr["net_stcg_quarters"]["total"] == 0
+    
+    assert offset_curr["net_ltcg"] == 10
+    # Q1 gross LTCG = 80.
+    # STCL of 100 sets off STCG of 50 (leaves 50 residual STCL).
+    # Residual STCL of 50 sets off Q1 LTCG of 80 (leaves 30 LTCG).
+    # LTCL of 20 in Q4 sets off Q1 LTCG of 30 (leaves 10 LTCG).
+    assert offset_curr["net_ltcg_quarters"]["q1"] == 10
+    assert offset_curr["net_ltcg_quarters"]["total"] == 10
+

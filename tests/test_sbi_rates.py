@@ -345,4 +345,25 @@ def test_sbi_fetch_overwrites_rbi_even_in_missing_mode(tmp_path, monkeypatch):
     assert "2024-01-02" not in cache["rbi_USD"]
 
 
+def test_get_rbi_max_year_month(tmp_path, monkeypatch):
+    from core.sbi_rates import get_rbi_max_year_month
+    import json
+    
+    rbi_mock_file = tmp_path / "rbi_reference_rates.json"
+    rbi_mock_data = [
+        {"date": "2010-01-15", "usd": 45.67},
+        {"date": "2010-03-20", "usd": 46.12},
+        {"date": "2010-02-15", "usd": 46.38},
+        {"date": "2010-03-25", "usd": None} # Should ignore None
+    ]
+    with open(rbi_mock_file, "w") as f:
+        json.dump(rbi_mock_data, f)
+        
+    monkeypatch.setattr("core.sbi_rates._get_static_path", lambda f: rbi_mock_file)
+    
+    y, m = get_rbi_max_year_month()
+    assert y == 2010
+    assert m == 3
+
+
 

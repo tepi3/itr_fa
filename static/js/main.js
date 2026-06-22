@@ -344,18 +344,7 @@ function initYearSelectors() {
     }
 
     // Initialize RBI Import Modal Date Selectors
-    const importRbiYearSelect = document.getElementById("importRbiYearSelect");
-    const importRbiMonthSelect = document.getElementById("importRbiMonthSelect");
-    if (importRbiYearSelect && importRbiMonthSelect) {
-        for (let y = currentYear; y >= 2010; y--) {
-            const opt = document.createElement("option");
-            opt.value = y;
-            opt.textContent = y;
-            if (y === state.portfolio.calendar_year) opt.selected = true;
-            importRbiYearSelect.appendChild(opt);
-        }
-        importRbiMonthSelect.value = new Date().getMonth() + 1;
-    }
+    syncRbiImportSelectors();
     
     mainSelect.addEventListener("change", async (e) => {
         state.portfolio.calendar_year = parseInt(e.target.value);
@@ -678,6 +667,65 @@ async function fetchSbiRates(overwriteChoice = null) {
     } catch (e) {
         await hideLoading();
         showToast(`Error fetching SBI rates: ${e.message}`, "error");
+    }
+}
+
+async function syncRbiImportSelectors() {
+    let maxYear = new Date().getFullYear();
+    let maxMonth = new Date().getMonth() + 1;
+    
+    try {
+        const res = await apiGet("/api/rbi-max-date");
+        if (res.success && res.year && res.month) {
+            maxYear = res.year;
+            maxMonth = res.month;
+        }
+    } catch (e) {
+        console.error("Error fetching RBI max date:", e);
+    }
+    
+    const yearSelect = document.getElementById("importRbiYearSelect");
+    const monthSelect = document.getElementById("importRbiMonthSelect");
+    
+    if (yearSelect && monthSelect) {
+        const currentSelectedYear = parseInt(yearSelect.value) || (state.portfolio ? state.portfolio.calendar_year : maxYear);
+        const currentSelectedMonth = parseInt(monthSelect.value) || maxMonth;
+        
+        yearSelect.innerHTML = "";
+        for (let y = maxYear; y >= 2010; y--) {
+            const opt = document.createElement("option");
+            opt.value = y;
+            opt.textContent = y;
+            if (y === currentSelectedYear) {
+                opt.selected = true;
+            }
+            yearSelect.appendChild(opt);
+        }
+        
+        const updateMonthOptions = () => {
+            const selectedYear = parseInt(yearSelect.value);
+            const selMonth = parseInt(monthSelect.value) || currentSelectedMonth;
+            
+            monthSelect.innerHTML = "";
+            const months = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            
+            const maxAllowedMonth = (selectedYear === maxYear) ? maxMonth : 12;
+            for (let m = 1; m <= maxAllowedMonth; m++) {
+                const opt = document.createElement("option");
+                opt.value = m;
+                opt.textContent = months[m - 1];
+                if (m === selMonth || (m === maxAllowedMonth && selMonth > maxAllowedMonth)) {
+                    opt.selected = true;
+                }
+                monthSelect.appendChild(opt);
+            }
+        };
+        
+        yearSelect.onchange = updateMonthOptions;
+        updateMonthOptions();
     }
 }
 
@@ -2742,7 +2790,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     safeAddListener("openFileBtn", "click", openPortfolioFile);
     safeAddListener("fetchRatesBtn", "click", fetchSbiRates);
     safeAddListener("importSbiRatesBtn", "click", openSbiImportFile);
-    safeAddListener("importRbiRatesBtn", "click", () => {
+    safeAddListener("importRbiRatesBtn", "click", async () => {
         const normalizeCheck = document.getElementById("importRbiNormalizeCheckbox");
         if (normalizeCheck) {
             normalizeCheck.checked = true;
@@ -2751,6 +2799,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (confirmBtn) {
             confirmBtn.textContent = "Normalize & Import Gaps";
         }
+        await syncRbiImportSelectors();
         document.getElementById("rbiRatesModal").classList.remove("hidden");
     });
     safeAddListener("confirmRbiRatesBtn", "click", importRbiRates);

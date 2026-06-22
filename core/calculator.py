@@ -929,6 +929,91 @@ def compute_offset_summary(tax_years: dict) -> dict:
         remaining_ltcl = gross_ltcl - ltcl_vs_ltcg       # unabsorbed LTCL carry-forward
         net_ltcg = ltcg_after_stcl - ltcl_vs_ltcg        # >= 0
 
+        # Quarterly set-off calculations matching the annual offset logic
+        stcg_q = {q: float(totals["stcg"].get(q, 0.0)) for q in ["q1", "q2", "q3", "q4", "q5"]}
+        stcl_q = {q: float(totals["stcl"].get(q, 0.0)) for q in ["q1", "q2", "q3", "q4", "q5"]}
+        ltcg_q = {q: float(totals["ltcg"].get(q, 0.0)) for q in ["q1", "q2", "q3", "q4", "q5"]}
+        ltcl_q = {q: float(totals["ltcl"].get(q, 0.0)) for q in ["q1", "q2", "q3", "q4", "q5"]}
+        quarters = ["q1", "q2", "q3", "q4", "q5"]
+
+        # 1. Set off STCL vs STCG (Forward Pass)
+        for i, q_loss in enumerate(quarters):
+            if stcl_q[q_loss] <= 0:
+                continue
+            offset = min(stcl_q[q_loss], stcg_q[q_loss])
+            stcg_q[q_loss] -= offset
+            stcl_q[q_loss] -= offset
+
+            for q_gain in quarters[i+1:]:
+                if stcl_q[q_loss] <= 0:
+                    break
+                offset = min(stcl_q[q_loss], stcg_q[q_gain])
+                stcg_q[q_gain] -= offset
+                stcl_q[q_loss] -= offset
+
+        # 1b. Set off STCL vs STCG (Backward Pass)
+        for i, q_loss in enumerate(quarters):
+            if stcl_q[q_loss] <= 0:
+                continue
+            for q_gain in quarters[:i]:
+                if stcl_q[q_loss] <= 0:
+                    break
+                offset = min(stcl_q[q_loss], stcg_q[q_gain])
+                stcg_q[q_gain] -= offset
+                stcl_q[q_loss] -= offset
+
+        # 2. Set off LTCL vs LTCG (Forward Pass)
+        for i, q_loss in enumerate(quarters):
+            if ltcl_q[q_loss] <= 0:
+                continue
+            offset = min(ltcl_q[q_loss], ltcg_q[q_loss])
+            ltcg_q[q_loss] -= offset
+            ltcl_q[q_loss] -= offset
+
+            for q_gain in quarters[i+1:]:
+                if ltcl_q[q_loss] <= 0:
+                    break
+                offset = min(ltcl_q[q_loss], ltcg_q[q_gain])
+                ltcg_q[q_gain] -= offset
+                ltcl_q[q_loss] -= offset
+
+        # 2b. Set off LTCL vs LTCG (Backward Pass)
+        for i, q_loss in enumerate(quarters):
+            if ltcl_q[q_loss] <= 0:
+                continue
+            for q_gain in quarters[:i]:
+                if ltcl_q[q_loss] <= 0:
+                    break
+                offset = min(ltcl_q[q_loss], ltcg_q[q_gain])
+                ltcg_q[q_gain] -= offset
+                ltcl_q[q_loss] -= offset
+
+        # 3. Set off remaining STCL vs remaining LTCG (Forward Pass)
+        for i, q_loss in enumerate(quarters):
+            if stcl_q[q_loss] <= 0:
+                continue
+            offset = min(stcl_q[q_loss], ltcg_q[q_loss])
+            ltcg_q[q_loss] -= offset
+            stcl_q[q_loss] -= offset
+
+            for q_gain in quarters[i+1:]:
+                if stcl_q[q_loss] <= 0:
+                    break
+                offset = min(stcl_q[q_loss], ltcg_q[q_gain])
+                ltcg_q[q_gain] -= offset
+                stcl_q[q_loss] -= offset
+
+        # 3b. Set off remaining STCL vs remaining LTCG (Backward Pass)
+        for i, q_loss in enumerate(quarters):
+            if stcl_q[q_loss] <= 0:
+                continue
+            for q_gain in quarters[:i]:
+                if stcl_q[q_loss] <= 0:
+                    break
+                offset = min(stcl_q[q_loss], ltcg_q[q_gain])
+                ltcg_q[q_gain] -= offset
+                stcl_q[q_loss] -= offset
+
         ty["offset"] = {
             "gross_stcg":          round(gross_stcg),
             "gross_ltcg":          round(gross_ltcg),
@@ -941,7 +1026,11 @@ def compute_offset_summary(tax_years: dict) -> dict:
             "net_ltcg":            round(net_ltcg),
             "stcl_carry_forward":  round(remaining_stcl),
             "ltcl_carry_forward":  round(remaining_ltcl),
+            "net_stcg_quarters":   {q: round(stcg_q[q]) for q in quarters},
+            "net_ltcg_quarters":   {q: round(ltcg_q[q]) for q in quarters},
         }
+        ty["offset"]["net_stcg_quarters"]["total"] = sum(ty["offset"]["net_stcg_quarters"].values())
+        ty["offset"]["net_ltcg_quarters"]["total"] = sum(ty["offset"]["net_ltcg_quarters"].values())
 
     return tax_years
 
