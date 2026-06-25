@@ -1427,14 +1427,8 @@ async function calculateAll() {
         // Check for SBI lookback warnings and notify user
         if (state.sbi_tt_mode !== 'uniform' && state.sbiRatesUsed && state.sbiRatesUsed.length > 0) {
             const hasWarnings = state.sbiRatesUsed.some(entry => {
-                if (entry.eventDate && entry.rateDate && !entry.label.includes("Tax")) {
-                    const ev = parseAppDate(entry.eventDate);
-                    const rt = parseAppDate(entry.rateDate);
-                    if (ev && rt) {
-                        const diffTime = Math.abs(ev - rt);
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        return diffDays > 5; // 5-day lookback window without warning
-                    }
+                if (!entry.label.includes("Tax")) {
+                    return entry.is_lookback;
                 }
                 return false;
             });
