@@ -2526,17 +2526,19 @@ async function importEtradeDocs() {
 }
 
 async function importIbkrDocs() {
-    const ibkrFile = document.getElementById("ibkrFileInput").files[0];
+    const ibkrFiles = document.getElementById("ibkrFileInput").files;
 
-    if (!ibkrFile) {
-        showToast("Please choose an IBKR file to import", "warning");
+    if (!ibkrFiles || ibkrFiles.length === 0) {
+        showToast("Please choose one or more IBKR files to import", "warning");
         return;
     }
 
-    showLoading("Parsing IBKR Activity Statement...");
+    showLoading("Parsing IBKR Activity Statements...");
     try {
         const fd = new FormData();
-        fd.append("file", ibkrFile);
+        for (let i = 0; i < ibkrFiles.length; i++) {
+            fd.append("files", ibkrFiles[i]);
+        }
         fd.append("portfolio", JSON.stringify(state.portfolio));
         const resp = await fetch("/api/upload-ibkr", { method: "POST", body: fd });
         const result = await resp.json();
@@ -2551,6 +2553,11 @@ async function importIbkrDocs() {
                     "warning"
                 );
             }
+            if (result.unmatched_sells && result.unmatched_sells.length > 0) {
+                showToast(`⚠ ${result.unmatched_sells.length} sell(s) could not be matched to any buy lot (see console)`, "warning");
+                console.warn("Unmatched IBKR Sells:", result.unmatched_sells);
+            }
+
             closeIbkrModal();
             showImportReview(result.transactions || [], "IBKR Portfolio");
         } else {
@@ -2953,8 +2960,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     document.getElementById("ibkrFileInput").addEventListener("change", e => {
-        const f = e.target.files[0];
-        document.getElementById("ibkrFileName").textContent = f ? f.name : "No file chosen";
+        const files = e.target.files;
+        if (files.length === 0) {
+            document.getElementById("ibkrFileName").textContent = "No files chosen";
+        } else if (files.length === 1) {
+            document.getElementById("ibkrFileName").textContent = files[0].name;
+        } else {
+            document.getElementById("ibkrFileName").textContent = `${files.length} files selected`;
+        }
     });
 
     document.getElementById("msFileInput").addEventListener("change", e => {

@@ -300,6 +300,7 @@ def calculate_closing_balance(
             "remaining_qty": qty,
             "ttbr": rate,
             "rate_date": rate_date,
+            "event_date": dec31.isoformat(),
             "lot_id": lot.get("id"),
         },
     }

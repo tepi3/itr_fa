@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from core.utils import get_user_dir
 from core.etrade_parser import process_etrade_files
-from core.ibkr_parser import process_ibkr_file
+from core.ibkr_parser import process_ibkr_files
 from core.morgan_stanley_parser import process_morgan_stanley_file
 from core.stock_data import get_company_info
 from core.smart_import import group_and_deduplicate_transactions
@@ -134,10 +134,15 @@ def api_upload_etrade():
 
 @parsers_bp.route("/api/upload-ibkr", methods=["POST"])
 def api_upload_ibkr():
-    """Upload and parse IBKR CSV report."""
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files["file"]
+    """Upload and parse one or more IBKR Activity Statement CSV files."""
+    # Accept multiple files via 'files' key, or single file via 'file' key (backward compat)
+    files = request.files.getlist("files")
+    if not files or all(not f.filename for f in files):
+        single = request.files.get("file")
+        if single and single.filename:
+            files = [single]
+        else:
+            return jsonify({"error": "No file(s) uploaded"}), 400
     
     portfolio_data = request.form.get("portfolio")
     if portfolio_data:
@@ -146,19 +151,32 @@ def api_upload_ibkr():
     else:
         calendar_year = request.form.get("calendar_year", datetime.now().year)
         portfolio = {"calendar_year": int(calendar_year), "stocks": []}
-        
-    temp_portfolio = {"calendar_year": int(calendar_year), "stocks": []}
 
     try:
-        file_bytes = file.read()
-        result = process_ibkr_file(file_bytes, file.filename, temp_portfolio)
+        file_list = []
+        for f in files:
+            if f.filename:
+                file_list.append((f.read(), f.filename))
+        
+        if not file_list:
+            return jsonify({"error": "No valid files uploaded"}), 400
+
+        result = process_ibkr_files(file_list, int(calendar_year))
         smart_txs = group_and_deduplicate_transactions(result.get("transactions", []), portfolio)
-        return jsonify({
+        
+        response = {
             "success": True, 
             "transactions": smart_txs,
             "skipped_count": result.get("skipped_count", 0),
-            "calendar_year": int(calendar_year)
-        })
+            "calendar_year": int(calendar_year),
+        }
+        
+        # Surface unmatched sells as warnings
+        unmatched = result.get("unmatched_sells", [])
+        if unmatched:
+            response["unmatched_sells"] = unmatched
+        
+        return jsonify(response)
     except Exception as e:
         logger.exception("IBKR upload error")
         return jsonify({"success": False, "error": str(e)}), 500

@@ -223,7 +223,8 @@ export function renderValidationTable(rows) {
             } else if (col.key === "peak_value" && col.detail?.components) {
                 const c = col.detail.components;
                 const rd = col.detail.rate_date || (c && c.rate_date);
-                const mathText = `(${c.qty_on_peak_date}×$${c.peak_price.toFixed(2)})`;
+                const peakPriceStr = c.peak_price != null ? c.peak_price.toFixed(2) : "0.00";
+                const mathText = `(${c.qty_on_peak_date}×$${peakPriceStr})`;
                 const peakDateDisplay = formatAppDate(parseAppDate(col.detail.peak_date));
                 const peakDateLink = `<span class="validate-crosslink" data-jump-peak-lot="${lotId}" title="Jump to peak validation for this lot">Peak: ${peakDateDisplay}</span>`;
                 breakdown = `<div class="b-math" style="font-size:0.65rem;opacity:0.7;">${peakDateLink}</div>
@@ -792,7 +793,7 @@ export async function collectSbiRates(rows, taxYears = null) {
             const a3Cols = [
                 { label: `${ticker} — Buy (${formatAppDate(parseAppDate(row.acquire_date))})`, data: details.initial, field: 'initial_value', eventDate: row.acquire_date_raw || row.acquire_date },
                 { label: `${ticker} — Peak Value (${details.peak && details.peak.peak_date ? formatAppDate(parseAppDate(details.peak.peak_date)) : '?'})`, data: details.peak, field: 'peak_value', eventDate: details.peak?.peak_date },
-                { label: `${ticker} — Closing (Dec 31)`, data: details.closing, field: 'closing_balance', eventDate: details.closing?.components?.rate_date || `${state.portfolio.calendar_year}-12-31` },
+                { label: `${ticker} — Closing (Dec 31)`, data: details.closing, field: 'closing_balance', eventDate: details.closing?.components?.event_date || `${state.portfolio.calendar_year}-12-31` },
             ];
             a3Cols.forEach(entry => {
                 if (!entry.data) return;

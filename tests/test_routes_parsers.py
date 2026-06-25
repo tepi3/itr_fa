@@ -62,7 +62,7 @@ def test_upload_etrade_mocked(client, sample_portfolio, monkeypatch):
 @pytest.mark.unit
 def test_upload_ibkr_mocked(client, sample_portfolio, monkeypatch):
     # Mock ibkr processing
-    monkeypatch.setattr("routes.parsers.process_ibkr_file", lambda b, n, temp_p: {
+    monkeypatch.setattr("routes.parsers.process_ibkr_files", lambda files, cy: {
         "transactions": [
             {"symbol": "TSLA", "type": "BUY", "date": "15/01/2024", "price": 200.0, "qty": 5.0}
         ],
