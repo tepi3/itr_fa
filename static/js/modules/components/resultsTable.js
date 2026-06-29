@@ -1272,6 +1272,191 @@ export async function fetchTaxYearSummary() {
     }
 }
 
+/**
+ * Render the Estimated Advance Tax Installment Schedule section.
+ * Shows the 15/45/75/100% cumulative advance tax schedule on net capital gains.
+ *
+ * @param {HTMLElement} block - Container element to append the section into.
+ * @param {Object} offset - The offset object containing net_stcg_quarters & net_ltcg_quarters.
+ * @param {string} sectionNum - Section number label (e.g. "③" or empty).
+ * @param {Function|null} makeCopyBtnFn - Optional copy-button factory. If null, no copy buttons.
+ */
+function renderAdvanceTaxSchedule(block, offset, sectionNum, makeCopyBtnFn) {
+    if (!offset || !offset.net_stcg_quarters || !offset.net_ltcg_quarters) return;
+
+    const stcgQ = offset.net_stcg_quarters;
+    const ltcgQ = offset.net_ltcg_quarters;
+
+    // Check if there are any taxable gains at all (Q1-Q5)
+    const quarterKeys = ["q1", "q2", "q3", "q4", "q5"];
+    const hasAnyGains = quarterKeys.some(q => (stcgQ[q] || 0) > 0 || (ltcgQ[q] || 0) > 0);
+    if (!hasAnyGains) return;
+
+    // Section header
+    const secHeader = document.createElement("div");
+    secHeader.style.cssText = "font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin:24px 0 10px;padding:0 4px;";
+    secHeader.textContent = (sectionNum ? sectionNum + " " : "") + "Estimated Advance Tax Installment Schedule (§234B/234C)";
+    block.appendChild(secHeader);
+
+    // Container card
+    const card = document.createElement("div");
+    card.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:20px 24px;margin-bottom:16px;";
+
+    // Info note
+    const infoNote = document.createElement("div");
+    infoNote.style.cssText = "font-size:0.76rem;color:var(--text-muted);line-height:1.5;margin-bottom:14px;padding:10px 12px;border-radius:7px;background:var(--bg-card);border:1px solid var(--border);";
+    infoNote.innerHTML = `<strong style="color:var(--accent);">ℹ Note:</strong> Advance tax on capital gains follows the standard 15/45/75/100% cumulative schedule. Per <strong>proviso to §234C</strong>, shortfalls in earlier quarters due to unpredictable capital gains won't attract interest if the tax is paid in the remaining installments. Amounts shown are <strong>base tax only</strong> (excluding surcharge & cess), and LTCG is fixed at 12.5%.`;
+    card.appendChild(infoNote);
+
+    // Table container
+    const tableContainer = document.createElement("div");
+    tableContainer.style.cssText = "overflow-x:auto;";
+    card.appendChild(tableContainer);
+
+    const slabInput = document.getElementById("taxSlabRateInput");
+
+    const redrawTable = () => {
+        const slabRate = parseFloat(slabInput.value || "30") || 0;
+        const ltcgRate = 12.5;
+
+        const installments = [
+            { key: "q1", label: "Q1", dates: "Up to 15/6", dueDate: "15 Jun", pct: 15 },
+            { key: "q2", label: "Q2", dates: "16/6 – 15/9", dueDate: "15 Sep", pct: 45 },
+            { key: "q3", label: "Q3", dates: "16/9 – 15/12", dueDate: "15 Dec", pct: 75 },
+            { key: "q4", label: "Q4", dates: "16/12 – 15/3", dueDate: "15 Mar", pct: 100 },
+        ];
+
+        // Compute per-quarter gains and total (Q1-Q4 only for advance tax)
+        let totalStcg = 0, totalLtcg = 0;
+        installments.forEach(inst => {
+            totalStcg += (stcgQ[inst.key] || 0);
+            totalLtcg += (ltcgQ[inst.key] || 0);
+        });
+
+        const totalStcgTax = Math.round(totalStcg * (slabRate / 100));
+        const totalLtcgTax = Math.round(totalLtcg * (ltcgRate / 100));
+        const totalAdvanceTax = totalStcgTax + totalLtcgTax;
+
+        // Q5 separately
+        const q5Stcg = stcgQ["q5"] || 0;
+        const q5Ltcg = ltcgQ["q5"] || 0;
+        const q5StcgTax = Math.round(q5Stcg * (slabRate / 100));
+        const q5LtcgTax = Math.round(q5Ltcg * (ltcgRate / 100));
+        const q5Tax = q5StcgTax + q5LtcgTax;
+
+        const grandTotalTax = totalAdvanceTax + q5Tax;
+
+        // Build copy button HTML
+        const copyBtn = (val) => {
+            if (!makeCopyBtnFn || val === 0) return "";
+            return `<button type="button" class="adv-tax-copy-btn" data-value="${Math.round(val)}" title="Copy ${Math.round(val)}" style="background:none;border:none;cursor:pointer;padding:2px;margin-left:4px;opacity:0.4;transition:opacity 0.15s;vertical-align:middle;line-height:1;display:inline-flex;align-items:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>`;
+        };
+
+        const thStyle = `padding:8px 10px;background:var(--bg-card);color:var(--text-muted);font-weight:600;font-size:0.74rem;border-bottom:2px solid var(--border);white-space:nowrap;`;
+        const tdStyle = `padding:8px 10px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap;`;
+        const tdRight = `${tdStyle}text-align:right;`;
+        const tdCenter = `${tdStyle}text-align:center;`;
+
+        const fmtVal = (v) => v > 0 ? "₹" + formatINR(v) : "—";
+        const fmtTax = (v) => v > 0 ? "₹" + formatINR(v) : "₹0";
+
+        let html = `<table style="width:100%;border-collapse:collapse;font-size:0.84rem;">
+            <thead>
+                <tr>
+                    <th style="${thStyle}text-align:left;">Installment</th>
+                    <th style="${thStyle}text-align:center;">Due Date</th>
+                    <th style="${thStyle}text-align:right;">Net STCG (Qtr)</th>
+                    <th style="${thStyle}text-align:right;">Net LTCG (Qtr)</th>
+                    <th style="${thStyle}text-align:right;">STCG Tax (Qtr)</th>
+                    <th style="${thStyle}text-align:right;">LTCG Tax (Qtr)</th>
+                    <th style="${thStyle}text-align:center;">Cumul. %</th>
+                    <th style="${thStyle}text-align:right;color:var(--accent);font-weight:700;">Advance Tax Due</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        installments.forEach(inst => {
+            const qStcg = stcgQ[inst.key] || 0;
+            const qLtcg = ltcgQ[inst.key] || 0;
+            const qStcgTax = Math.round(qStcg * (slabRate / 100));
+            const qLtcgTax = Math.round(qLtcg * (ltcgRate / 100));
+            const advTaxDue = Math.round(totalAdvanceTax * (inst.pct / 100));
+
+            html += `<tr>
+                <td style="${tdStyle}font-weight:600;color:var(--text-main);">${inst.label} <span style="font-size:0.72rem;color:var(--text-muted);font-weight:normal;">(${inst.dates})</span></td>
+                <td style="${tdCenter}font-weight:600;">${inst.dueDate}</td>
+                <td style="${tdRight}color:${qStcg > 0 ? '#22c55e' : 'var(--text-muted)'};">${fmtVal(qStcg)}</td>
+                <td style="${tdRight}color:${qLtcg > 0 ? '#10b981' : 'var(--text-muted)'};">${fmtVal(qLtcg)}</td>
+                <td style="${tdRight}color:${qStcgTax > 0 ? '#22c55e' : 'var(--text-muted)'};">${fmtTax(qStcgTax)}</td>
+                <td style="${tdRight}color:${qLtcgTax > 0 ? '#10b981' : 'var(--text-muted)'};">${fmtTax(qLtcgTax)}</td>
+                <td style="${tdCenter}font-weight:700;color:var(--accent);">${inst.pct}%</td>
+                <td style="${tdRight}font-weight:700;color:var(--text-main);">${fmtTax(advTaxDue)}${copyBtn(advTaxDue)}</td>
+            </tr>`;
+        });
+
+        // Q5 row (self-assessment) — amber styled
+        if (q5Stcg > 0 || q5Ltcg > 0) {
+            html += `<tr style="background:#f9731612;">
+                <td style="${tdStyle}font-weight:600;color:#f97316;">Q5 <span style="font-size:0.72rem;font-weight:normal;">(16/3 – 31/3)</span></td>
+                <td style="${tdCenter}font-weight:600;color:#f97316;">31 Mar</td>
+                <td style="${tdRight}color:${q5Stcg > 0 ? '#22c55e' : 'var(--text-muted)'};">${fmtVal(q5Stcg)}</td>
+                <td style="${tdRight}color:${q5Ltcg > 0 ? '#10b981' : 'var(--text-muted)'};">${fmtVal(q5Ltcg)}</td>
+                <td style="${tdRight}color:${q5StcgTax > 0 ? '#22c55e' : 'var(--text-muted)'};">${fmtTax(q5StcgTax)}</td>
+                <td style="${tdRight}color:${q5LtcgTax > 0 ? '#10b981' : 'var(--text-muted)'};">${fmtTax(q5LtcgTax)}</td>
+                <td style="${tdCenter}font-size:0.72rem;color:#f97316;font-weight:600;">Self-Asmt</td>
+                <td style="${tdRight}font-weight:700;color:#f97316;">${fmtTax(q5Tax)}${copyBtn(q5Tax)}</td>
+            </tr>`;
+        }
+
+        // Separator + Total row
+        html += `<tr>
+            <td colspan="8" style="padding:0;border-top:2px solid var(--accent);"></td>
+        </tr>
+        <tr style="background:var(--bg-card);">
+            <td style="${tdStyle}font-weight:700;color:var(--text-main);" colspan="2">Total</td>
+            <td style="${tdRight}font-weight:700;color:#22c55e;">${fmtVal(totalStcg + q5Stcg)}</td>
+            <td style="${tdRight}font-weight:700;color:#10b981;">${fmtVal(totalLtcg + q5Ltcg)}</td>
+            <td style="${tdRight}font-weight:700;color:#22c55e;">${fmtTax(totalStcgTax + q5StcgTax)}</td>
+            <td style="${tdRight}font-weight:700;color:#10b981;">${fmtTax(totalLtcgTax + q5LtcgTax)}</td>
+            <td style="${tdCenter}"></td>
+            <td style="${tdRight}font-weight:800;font-size:0.95rem;color:var(--accent);border-left:1px solid var(--border);background:var(--accent)11;">${fmtTax(grandTotalTax)}${copyBtn(grandTotalTax)}</td>
+        </tr>`;
+
+        html += `</tbody></table>`;
+        tableContainer.innerHTML = html;
+
+        // Attach copy listeners
+        tableContainer.querySelectorAll(".adv-tax-copy-btn").forEach(btn => {
+            btn.addEventListener("mouseenter", () => btn.style.opacity = "1");
+            btn.addEventListener("mouseleave", () => btn.style.opacity = "0.4");
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const text = String(btn.dataset.value);
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(`Copied ${text}`, "success");
+                    btn.style.opacity = "1";
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    setTimeout(() => {
+                        btn.style.opacity = "0.4";
+                        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                    }, 1500);
+                });
+            });
+        });
+    };
+
+    if (window._advTaxSlabListener) {
+        slabInput.removeEventListener("input", window._advTaxSlabListener);
+    }
+    window._advTaxSlabListener = redrawTable;
+    slabInput.addEventListener("input", redrawTable);
+    redrawTable();
+
+    block.appendChild(card);
+}
+
 export function renderTaxYearSummary(taxYears) {
     const container = document.getElementById("taxYearBlocks");
     container.innerHTML = "";
@@ -1845,6 +2030,9 @@ export function renderConsolidatedTaxSummary(data) {
         ], "Net LTCG (Taxable)", off.net_ltcg));
 
         block.appendChild(offCard);
+
+        // Estimated Advance Tax Installment Schedule (right after net CG)
+        renderAdvanceTaxSchedule(block, data.offset, "", null);
     }
 
     // ITR Schedule CG Summaries — Short Term (A(I)5) & Long Term (B(I)8)
@@ -2068,17 +2256,6 @@ export function renderConsolidatedTaxSummary(data) {
         const fsiCard = document.createElement("div");
         fsiCard.style.cssText = "background:var(--bg-input);border-radius:10px;border:1px solid var(--border);padding:24px;display:flex;flex-direction:column;gap:16px;margin-bottom:8px;overflow-x:auto;";
 
-        const controlsRow = document.createElement("div");
-        controlsRow.style.cssText = "display:flex;align-items:center;gap:12px;margin-bottom:8px;font-size:0.85rem;color:var(--text-main);font-weight:600;";
-        controlsRow.innerHTML = `
-            <span>Tax Slab Rate for STCG and Other Sources:</span>
-            <div style="display:flex;align-items:center;gap:6px;">
-                <input type="number" id="fsiSlabInput" value="30" min="0" max="100" style="width:65px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);font-weight:700;text-align:center;">
-                <span>%</span>
-            </div>
-        `;
-        fsiCard.appendChild(controlsRow);
-
         const tableContainer = document.createElement("div");
         tableContainer.style.cssText = "width:100%;overflow-x:auto;overflow-y:hidden;";
         fsiCard.appendChild(tableContainer);
@@ -2086,7 +2263,7 @@ export function renderConsolidatedTaxSummary(data) {
         if (window._fsiTaxPaidOverrides === undefined) window._fsiTaxPaidOverrides = {};
         if (window._fsiDTAAArticles === undefined) window._fsiDTAAArticles = {};
 
-        const slabInput = controlsRow.querySelector("#fsiSlabInput");
+        const slabInput = document.getElementById("taxSlabRateInput");
 
         const redrawFSITable = () => {
             const slabRate = parseFloat(slabInput.value || "30") || 0;
@@ -2257,6 +2434,10 @@ export function renderConsolidatedTaxSummary(data) {
             });
         };
 
+        if (window._fsiSlabListener) {
+            slabInput.removeEventListener("input", window._fsiSlabListener);
+        }
+        window._fsiSlabListener = redrawFSITable;
         slabInput.addEventListener("input", redrawFSITable);
         redrawFSITable();
         block.appendChild(fsiCard);
@@ -2390,7 +2571,11 @@ export function renderConsolidatedTaxSummary(data) {
             });
         };
 
-        // Redraw Form 67 whenever FSI redraws (they share the same slab rate input)
+        // Redraw Form 67 whenever global slab rate input changes
+        if (window._f67SlabListener) {
+            slabInput.removeEventListener("input", window._f67SlabListener);
+        }
+        window._f67SlabListener = redrawForm67Table;
         slabInput.addEventListener("input", redrawForm67Table);
         redrawForm67Table();
         block.appendChild(form67Card);
