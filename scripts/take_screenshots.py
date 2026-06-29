@@ -206,6 +206,7 @@ def run_screenshot_flow():
             page.click("#tabA3")
             time.sleep(1.0)
             # Expand the SBI rates section
+            page.evaluate("document.getElementById('sbiRatesSection').classList.remove('hidden')")
             page.locator("#sbiRatesSection").scroll_into_view_if_needed()
             time.sleep(0.5)
             # Click collapsible header to expand if collapsed
@@ -245,6 +246,7 @@ def run_screenshot_flow():
             
             # 10. Asset Pie Chart (End-of-Year Assets by Stock)
             print("Capturing 10_asset_pie_chart.png...")
+            page.evaluate("document.getElementById('assetPieChartSection').classList.remove('hidden')")
             page.evaluate("""
                 const content = document.getElementById('assetPieChartContent');
                 if (content) content.classList.remove('collapsed');
@@ -255,6 +257,7 @@ def run_screenshot_flow():
             
             # 11. NAV Flow Sankey Chart
             print("Capturing 11_nav_flow_chart.png...")
+            page.evaluate("document.getElementById('navFlowSection').classList.remove('hidden')")
             page.evaluate("""
                 const content = document.getElementById('navFlowContent');
                 if (content) content.classList.remove('collapsed');
