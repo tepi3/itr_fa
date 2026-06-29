@@ -310,6 +310,23 @@ class TestEsppSales:
         assert sells[0]["buy_date"] == "31/01/2022"
         assert sells[0]["buy_price"] == 79.27  # Uses FMV
 
+    def test_espp_sell_with_commission(self):
+        """ESPP sell price should be calculated from Net Proceeds if available (deducting commissions/fees)."""
+        data = [
+            ["9999999", "Test", "User",
+             datetime(2025, 9, 22), datetime(2021, 8, 1), 77.58,
+             datetime(2022, 1, 31), 79.27, 65.94,
+             10.0, 150.00, 1480.00, 590.259999]
+        ]
+        wb_bytes = self._build_espp_sales_wb(data)
+        result = process_morgan_stanley_file(wb_bytes, "test.xlsx", target_year=2025, ticker_symbol="MU")
+        
+        sells = [t for t in result["transactions"] if t["type"] == "SELL"]
+        assert len(sells) == 1
+        assert sells[0]["qty"] == 10.0
+        # 1480.00 Net Proceeds / 10.0 Qty = 148.00 (instead of gross Sale Price 150.00)
+        assert sells[0]["price"] == 148.00
+
 
 # ────────────────────────────────────────────────────────────
 #  Unit Tests: Company Name Extraction

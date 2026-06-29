@@ -76,7 +76,7 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 
 ### Productivity
 - **Undo/Redo** — Up to 50 levels (`Ctrl+Z` / `Ctrl+Shift+Z`, `⌘` on Mac).
-- **Save/Open Anywhere** — Download/upload portfolio JSON to any folder, plus built-in server-side save.
+- **Save/Open Anywhere** — Download/upload portfolio JSON to any folder, plus built-in local app storage.
 - **Unsaved Changes Indicator** — Pulsing dot on Save button for unsaved modifications.
 - **Interactive Tutorial & Inline Help** — Guided walkthrough with spotlight highlights; `?` icons for context help.
 - **CSV Export** — Generates `.csv` exports perfectly aligned with the official ITR portal template (DD-MMM-YYYY date formats, exact column structures).

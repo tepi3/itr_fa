@@ -777,6 +777,13 @@
                         <select id="fyYearSelect" style="width:auto;min-width:160px;background:var(--bg-input);"></select>
                     </div>
                     <button id="generateFYBtn" class="btn btn-accent" style="height:28px;padding:0 14px;font-size:0.8rem;font-weight:600;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Generate Statement</button>
+                    <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+                        <label for="taxSlabRateInput" style="margin-bottom:0;font-weight:500;font-size:0.82rem;white-space:nowrap;">Tax Slab Rate:</label>
+                        <div style="display:flex;align-items:center;gap:4px;">
+                            <input type="number" id="taxSlabRateInput" value="30" min="0" max="100" step="0.5" style="width:60px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-input);color:var(--text-main);font-weight:700;text-align:center;font-size:0.85rem;">
+                            <span style="font-size:0.85rem;font-weight:600;">%</span>
+                        </div>
+                    </div>
                 </div>
                 <div id="consolidatedFYBlocks"></div>
             </section>

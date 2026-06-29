@@ -315,6 +315,7 @@ def _parse_espp_sales(ws, target_year: int, ticker: str):
     purchase_fmv_idx = col_map.get("purchase date fmv")
     sale_qty_idx = col_map.get("sale quantity")
     sale_price_idx = col_map.get("sale price")
+    sale_net_proceeds_idx = col_map.get("sale net proceeds")
 
     if sale_date_idx is None or purchase_date_idx is None or sale_qty_idx is None or sale_price_idx is None:
         logger.warning("ESPP Sales: Could not find required columns.")
@@ -340,7 +341,14 @@ def _parse_espp_sales(ws, target_year: int, ticker: str):
             continue
 
         qty = _clean_float(row[sale_qty_idx])
-        sell_price = _clean_float(row[sale_price_idx])
+        
+        # Use Net Proceeds if available, otherwise fallback to Sale Price
+        if sale_net_proceeds_idx is not None:
+            net_proceeds = _clean_float(row[sale_net_proceeds_idx])
+            sell_price = tax_round(net_proceeds / qty, 2)
+        else:
+            sell_price = _clean_float(row[sale_price_idx])
+
         # Use Purchase Date FMV as cost basis to match the acquisition lot
         buy_price = _clean_float(row[purchase_fmv_idx]) if purchase_fmv_idx is not None else 0.0
 

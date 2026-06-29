@@ -124,15 +124,26 @@ def run_screenshot_flow():
             
             # Screenshot FA Report Section A3
             print("Capturing 03_fa_report_preview.png...")
+            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#resultsSection").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#resultsSection").screenshot(path=str(SCREENSHOTS_DIR / "03_fa_report_preview.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = ''")
             
             # 4. Calculation breakdown: Validate A3
             print("Capturing 04_validate_a3.png...")
+            page.evaluate("""
+                document.getElementById('validateA3Section').classList.remove('hidden');
+                const content = document.getElementById('validateA3Content');
+                if (content) content.classList.remove('collapsed');
+                const icon = document.querySelector('#validateA3Section .toggle-icon');
+                if (icon) icon.style.transform = '';
+            """)
+            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#validateA3Section").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#validateA3Section").screenshot(path=str(SCREENSHOTS_DIR / "04_validate_a3.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = ''")
             
             # 5. ITR Capital Gains & Dividend Summary (hide sticky header for clean shot)
             print("Capturing 05_capital_gains_summary.png...")
@@ -144,9 +155,63 @@ def run_screenshot_flow():
             
             # 6. Validate Capital Gains & Dividends breakdown
             print("Capturing 06_validate_tax_details.png...")
+            page.evaluate("""
+                document.getElementById('validateTaxSection').classList.remove('hidden');
+                const content = document.getElementById('validateTaxContent');
+                if (content) content.classList.remove('collapsed');
+                const icon = document.querySelector('#validateTaxSection .toggle-icon');
+                if (icon) icon.style.transform = '';
+            """)
+            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#validateTaxSection").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#validateTaxSection").screenshot(path=str(SCREENSHOTS_DIR / "06_validate_tax_details.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = ''")
+
+            # 9. SBI TT Rates Used in Calculation
+            print("Capturing 09_sbi_rates_used.png...")
+            page.evaluate("""
+                document.getElementById('sbiRatesSection').classList.remove('hidden');
+                const content = document.getElementById('sbiRatesContent');
+                if (content) content.classList.remove('collapsed');
+                const icon = document.querySelector('#sbiRatesSection .toggle-icon');
+                if (icon) icon.style.transform = '';
+            """)
+            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
+            page.locator("#sbiRatesSection").scroll_into_view_if_needed()
+            time.sleep(0.5)
+            page.locator("#sbiRatesSection").screenshot(path=str(SCREENSHOTS_DIR / "09_sbi_rates_used.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = ''")
+            
+            # 10. Asset Pie Chart (End-of-Year Assets by Stock)
+            print("Capturing 10_asset_pie_chart.png...")
+            page.evaluate("""
+                document.getElementById('assetPieChartSection').classList.remove('hidden');
+                const content = document.getElementById('assetPieChartContent');
+                if (content) content.classList.remove('collapsed');
+                const icon = document.querySelector('#assetPieChartSection .toggle-icon');
+                if (icon) icon.style.transform = '';
+            """)
+            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
+            page.locator("#assetPieChartSection").scroll_into_view_if_needed()
+            time.sleep(2.0)  # Wait for SVG pie chart to render fully
+            page.locator("#assetPieChartSection").screenshot(path=str(SCREENSHOTS_DIR / "10_asset_pie_chart.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = ''")
+            
+            # 11. NAV Flow Sankey Chart
+            print("Capturing 11_nav_flow_chart.png...")
+            page.evaluate("""
+                document.getElementById('navFlowSection').classList.remove('hidden');
+                const content = document.getElementById('navFlowContent');
+                if (content) content.classList.remove('collapsed');
+                const icon = document.querySelector('#navFlowSection .toggle-icon');
+                if (icon) icon.style.transform = '';
+            """)
+            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
+            page.locator("#navFlowSection").scroll_into_view_if_needed()
+            time.sleep(2.0)  # Wait for SVG chart to render fully
+            page.locator("#navFlowSection").screenshot(path=str(SCREENSHOTS_DIR / "11_nav_flow_chart.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = ''")
             
             # 7. Switch to Sell Simulator tab
             print("Switching to Sell Simulator tab...")
@@ -178,41 +243,30 @@ def run_screenshot_flow():
             
             # Screenshot Sell Simulator
             print("Capturing 07_sell_simulator.png...")
+            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#shResultsSection").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#sellHelperPanel").screenshot(path=str(SCREENSHOTS_DIR / "07_sell_simulator.png"))
+            page.evaluate("document.getElementById('appHeader').style.display = ''")
             
             # 8. Switch to Tax Statement tab
             print("Switching to Tax Statement tab...")
             page.click("#tabTaxStatement")
             page.wait_for_selector("#taxStatementPanel", state="visible")
-            time.sleep(1.5)
+            time.sleep(1.0)
             
             # Click Generate Consolidated Statement button to show active statement details
             print("Clicking Generate Consolidated Statement button...")
             page.click("#generateFYBtn")
-            time.sleep(1.5)
+            page.wait_for_selector("#loadingOverlay", state="hidden")
+            page.wait_for_selector("#consolidatedFYBlocks .fy-source-note", state="visible")
+            time.sleep(1.0)
             
             print("Capturing 08_tax_statement.png...")
             page.evaluate("document.getElementById('appHeader').style.display = 'none'")
             page.locator("#taxStatementPanel").scroll_into_view_if_needed()
             time.sleep(0.5)
             page.locator("#taxStatementPanel").screenshot(path=str(SCREENSHOTS_DIR / "08_tax_statement.png"))
-            page.evaluate("document.getElementById('appHeader').style.display = ''")
-            
-            # 9. SBI TT Rates Used in Calculation (visible after report generation)
-            print("Capturing 09_sbi_rates_used.png...")
-            # Switch back to main tab first
-            page.click("#tabA3")
-            time.sleep(1.0)
-            # Expand the SBI rates section
-            page.locator("#sbiRatesSection").scroll_into_view_if_needed()
-            time.sleep(0.5)
-            # Click collapsible header to expand if collapsed
-            page.locator("#sbiRatesSection .collapsible-header").click()
-            time.sleep(0.5)
-            page.evaluate("document.getElementById('appHeader').style.display = 'none'")
-            page.locator("#sbiRatesSection").screenshot(path=str(SCREENSHOTS_DIR / "09_sbi_rates_used.png"))
             page.evaluate("document.getElementById('appHeader').style.display = ''")
             
             # 9b. SBI TT Rates Editor
@@ -242,26 +296,6 @@ def run_screenshot_flow():
             time.sleep(0.5)
             page.locator("#monthlyRatesSection").screenshot(path=str(SCREENSHOTS_DIR / "09b_sbi_rate_editor.png"))
             page.evaluate("document.getElementById('appHeader').style.display = ''")
-            
-            # 10. Asset Pie Chart (End-of-Year Assets by Stock)
-            print("Capturing 10_asset_pie_chart.png...")
-            page.evaluate("""
-                const content = document.getElementById('assetPieChartContent');
-                if (content) content.classList.remove('collapsed');
-            """)
-            page.locator("#assetPieChartSection").scroll_into_view_if_needed()
-            time.sleep(2.0)  # Wait for SVG pie chart to render fully
-            page.locator("#assetPieChartSection").screenshot(path=str(SCREENSHOTS_DIR / "10_asset_pie_chart.png"))
-            
-            # 11. NAV Flow Sankey Chart
-            print("Capturing 11_nav_flow_chart.png...")
-            page.evaluate("""
-                const content = document.getElementById('navFlowContent');
-                if (content) content.classList.remove('collapsed');
-            """)
-            page.locator("#navFlowSection").scroll_into_view_if_needed()
-            time.sleep(2.0)  # Wait for SVG chart to render fully
-            page.locator("#navFlowSection").screenshot(path=str(SCREENSHOTS_DIR / "11_nav_flow_chart.png"))
             
             print("Screenshots taken successfully!")
             browser.close()
