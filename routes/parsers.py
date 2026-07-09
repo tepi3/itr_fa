@@ -6,6 +6,7 @@ from core.utils import get_user_dir
 from core.etrade_parser import process_etrade_files
 from core.ibkr_parser import process_ibkr_files
 from core.morgan_stanley_parser import process_morgan_stanley_file
+from core.vested_parser import process_vested_files
 from core.stock_data import get_company_info
 from core.smart_import import group_and_deduplicate_transactions
 
@@ -217,4 +218,52 @@ def api_upload_morgan_stanley():
         })
     except Exception as e:
         logger.exception("Morgan Stanley upload error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@parsers_bp.route("/api/upload-vested", methods=["POST"])
+def api_upload_vested():
+    """Upload and parse one or more Vested statements (Excel format)."""
+    files = request.files.getlist("files")
+    if not files or all(not f.filename for f in files):
+        single = request.files.get("file")
+        if single and single.filename:
+            files = [single]
+        else:
+            return jsonify({"error": "No file(s) uploaded"}), 400
+
+    portfolio_data = request.form.get("portfolio")
+    if portfolio_data:
+        portfolio = json.loads(portfolio_data)
+        calendar_year = portfolio.get("calendar_year", datetime.now().year)
+    else:
+        calendar_year = request.form.get("calendar_year", datetime.now().year)
+        portfolio = {"calendar_year": int(calendar_year), "stocks": []}
+
+    try:
+        file_list = []
+        for f in files:
+            if f.filename:
+                file_list.append((f.read(), f.filename))
+
+        if not file_list:
+            return jsonify({"error": "No valid files uploaded"}), 400
+
+        result = process_vested_files(file_list, int(calendar_year))
+        smart_txs = group_and_deduplicate_transactions(result.get("transactions", []), portfolio)
+
+        response = {
+            "success": True,
+            "transactions": smart_txs,
+            "skipped_count": result.get("skipped_count", 0),
+            "calendar_year": int(calendar_year)
+        }
+
+        # Surface unmatched sells as warnings
+        unmatched = result.get("unmatched_sells", [])
+        if unmatched:
+            response["unmatched_sells"] = unmatched
+
+        return jsonify(response)
+    except Exception as e:
+        logger.exception("Vested upload error")
         return jsonify({"success": False, "error": str(e)}), 500

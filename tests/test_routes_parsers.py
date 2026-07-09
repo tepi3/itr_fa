@@ -80,3 +80,28 @@ def test_upload_ibkr_mocked(client, sample_portfolio, monkeypatch):
     assert res_json["success"] is True
     assert len(res_json["transactions"]) == 1
     assert res_json["transactions"][0]["symbol"] == "TSLA"
+
+
+@pytest.mark.unit
+def test_upload_vested_mocked(client, sample_portfolio, monkeypatch):
+    # Mock vested processing
+    monkeypatch.setattr("routes.parsers.process_vested_files", lambda files, cy: {
+        "transactions": [
+            {"symbol": "MSFT", "type": "BUY", "date": "15/01/2024", "price": 400.0, "qty": 8.0}
+        ],
+        "skipped_count": 0,
+        "unmatched_sells": []
+    })
+    
+    data = {
+        "file": (BytesIO(b"dummy excel contents"), "vested.xlsx"),
+        "portfolio": json.dumps(sample_portfolio)
+    }
+    
+    res = client.post("/api/upload-vested", data=data, content_type="multipart/form-data")
+    assert res.status_code == 200
+    res_json = res.get_json()
+    assert res_json["success"] is True
+    assert len(res_json["transactions"]) == 1
+    assert res_json["transactions"][0]["symbol"] == "MSFT"
+

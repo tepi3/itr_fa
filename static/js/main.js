@@ -2331,6 +2331,8 @@ function selectPlatform(platform) {
         document.getElementById("ibkrUploadModal").classList.remove("hidden");
     } else if (platform === "ms") {
         document.getElementById("msUploadModal").classList.remove("hidden");
+    } else if (platform === "vested") {
+        document.getElementById("vestedUploadModal").classList.remove("hidden");
     }
 }
 
@@ -2361,6 +2363,12 @@ function closeMSModal() {
     document.getElementById("msFileInput").value = "";
     document.getElementById("msFileName").textContent = "No file chosen";
     document.getElementById("msTickerInput").value = "";
+}
+
+function closeVestedModal() {
+    document.getElementById("vestedUploadModal").classList.add("hidden");
+    document.getElementById("vestedFileInput").value = "";
+    document.getElementById("vestedFileName").textContent = "No files chosen";
 }
 
 function closeImportReview() {
@@ -2608,6 +2616,51 @@ async function importMSDocs() {
     }
 }
 
+async function importVestedDocs() {
+    const vestedFiles = document.getElementById("vestedFileInput").files;
+
+    if (!vestedFiles || vestedFiles.length === 0) {
+        showToast("Please choose one or more Vested files to import", "warning");
+        return;
+    }
+
+    showLoading("Parsing Vested Transaction statements...");
+    try {
+        const fd = new FormData();
+        for (let i = 0; i < vestedFiles.length; i++) {
+            fd.append("files", vestedFiles[i]);
+        }
+        fd.append("portfolio", JSON.stringify(state.portfolio));
+        const resp = await fetch("/api/upload-vested", { method: "POST", body: fd });
+        const result = await resp.json();
+
+        if (result.success) {
+            const totalSkipped = result.skipped_count || 0;
+            const cy = result.calendar_year || "";
+
+            if (totalSkipped > 0) {
+                showToast(
+                    `⚠ ${totalSkipped} transaction${totalSkipped > 1 ? "s" : ""} skipped — dated after CY${cy}`,
+                    "warning"
+                );
+            }
+            if (result.unmatched_sells && result.unmatched_sells.length > 0) {
+                showToast(`⚠ ${result.unmatched_sells.length} sell(s) could not be matched to any buy lot (see console)`, "warning");
+                console.warn("Unmatched Vested Sells:", result.unmatched_sells);
+            }
+
+            closeVestedModal();
+            showImportReview(result.transactions || [], "Vested Portfolio");
+        } else {
+            showToast("Vested file error: " + result.error, "error");
+        }
+    } catch (err) {
+        showToast("Vested upload failed: " + err.message, "error");
+    } finally {
+        await hideLoading();
+    }
+}
+
 function toggleHistoryPanel() {
     const panel = document.getElementById("historyPanel");
     panel.classList.toggle("hidden");
@@ -2833,6 +2886,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     safeAddListener("etradeImportBtn", "click", importEtradeDocs);
     safeAddListener("ibkrImportBtn", "click", importIbkrDocs);
     safeAddListener("msImportBtn", "click", importMSDocs);
+    safeAddListener("vestedImportBtn", "click", importVestedDocs);
     safeAddListener("historyBtn", "click", toggleHistoryPanel);
     
     const switchUserBtn = document.getElementById("switchUserBtn");
@@ -2961,6 +3015,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("ibkrFileName").textContent = files[0].name;
         } else {
             document.getElementById("ibkrFileName").textContent = `${files.length} files selected`;
+        }
+    });
+
+    document.getElementById("vestedFileInput").addEventListener("change", e => {
+        const files = e.target.files;
+        if (files.length === 0) {
+            document.getElementById("vestedFileName").textContent = "No files chosen";
+        } else if (files.length === 1) {
+            document.getElementById("vestedFileName").textContent = files[0].name;
+        } else {
+            document.getElementById("vestedFileName").textContent = `${files.length} files selected`;
         }
     });
 
@@ -3188,6 +3253,7 @@ window.selectPlatform = selectPlatform;
 window.closeEtradeModal = closeEtradeModal;
 window.closeIbkrModal = closeIbkrModal;
 window.closeMSModal = closeMSModal;
+window.closeVestedModal = closeVestedModal;
 window.closeImportReview = closeImportReview;
 window.closeAboutModal = closeAboutModal;
 window.openFifoModalReference = openFifoModalReference;
@@ -3215,5 +3281,6 @@ window.openPlatformModal = openPlatformModal;
 window.importEtradeDocs = importEtradeDocs;
 window.importIbkrDocs = importIbkrDocs;
 window.importMSDocs = importMSDocs;
+window.importVestedDocs = importVestedDocs;
 window.showImportReview = showImportReview;
 window.renderPortfolio = renderPortfolio;
