@@ -36,6 +36,7 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 - **E-Trade Import** — Parse Holdings reports (Expanded "By Status" View) or Gain & Loss `.xlsx` exports.
 - **IBKR Import** — Upload Interactive Brokers CSV transaction history with automatic FIFO sells.
 - **Morgan Stanley Import** — Upload MS at Work "Share Sale Cost Basis Report" (.xlsx) for RSU and ESPP history.
+- **Vested Import** — Upload Vested Transaction Excel statements (.xlsx) with automatic FIFO lot matching.
 - **Tax-Lot Matching** — Supports partial sells and fractional shares.
 - **Multi-User Profiles** — Separate portfolios per individual with dedicated local storage.
 - **Manual Override** — Click any calculated cell to adjust values.
@@ -86,7 +87,7 @@ git clone https://github.com/tepi3/itr_fa.git && cd itr_fa && pip3 install -r re
 
 1. **Select User & Year** — Choose or create a profile; auto-loads previous portfolio.
 2. **Fetch SBI Rates** — If rates are missing for your year.
-3. **Import Data** — Upload E-Trade/IBKR docs or import from a previous year.
+3. **Import Data** — Upload E-Trade/IBKR/Morgan Stanley/Vested docs or import from a previous year.
 4. **Add Stocks/Lots** — Enter tickers and acquisition details manually.
 5. **Fetch Dividends** — Pull exact dates and amounts from Nasdaq.
 6. **Generate FA Report** — Compute all 12 portal columns.
