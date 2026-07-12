@@ -144,3 +144,40 @@ def test_upload_vested_mocked(client, sample_portfolio, monkeypatch):
     assert len(res_json["transactions"]) == 1
     assert res_json["transactions"][0]["symbol"] == "MSFT"
 
+@pytest.mark.unit
+def test_upload_fidelity_mocked(client, sample_portfolio, monkeypatch):
+    # Mock fidelity processing
+    monkeypatch.setattr("routes.parsers.process_fidelity_files", lambda open_b, open_n, closed_b, closed_n, ticker, target_year: {
+        "transactions": [
+            {"symbol": "MSFT", "type": "BUY", "date": "15/01/2024", "price": 400.0, "qty": 8.0, "lot_id": "open_0", "lot_type": "espp", "original_price": 340.0, "fmv_price": 400.0}
+        ],
+        "skipped_count": 0
+    })
+    
+    data = {
+        "openLotsFile": (BytesIO(b"dummy open lots csv"), "open.csv"),
+        "closedLotsFile": (BytesIO(b"dummy closed lots csv"), "closed.csv"),
+        "ticker": "MSFT",
+        "portfolio": json.dumps(sample_portfolio)
+    }
+    
+    res = client.post("/api/upload-fidelity", data=data, content_type="multipart/form-data")
+    assert res.status_code == 200
+    res_json = res.get_json()
+    assert res_json["success"] is True
+    assert len(res_json["transactions"]) == 1
+    assert res_json["transactions"][0]["symbol"] == "MSFT"
+    assert res_json["transactions"][0]["lot_id"] == "open_0"
+
+@pytest.mark.unit
+def test_upload_fidelity_missing_open_lots_fails(client, sample_portfolio):
+    data = {
+        "ticker": "MSFT",
+        "portfolio": json.dumps(sample_portfolio)
+    }
+    res = client.post("/api/upload-fidelity", data=data, content_type="multipart/form-data")
+    assert res.status_code == 400
+    res_json = res.get_json()
+    assert "error" in res_json
+    assert "Open Lots CSV file is required" in res_json["error"]
+

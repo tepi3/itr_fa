@@ -7,6 +7,7 @@ from core.etrade_parser import process_etrade_files
 from core.ibkr_parser import process_ibkr_files
 from core.morgan_stanley_parser import process_morgan_stanley_file
 from core.vested_parser import process_vested_files
+from core.fidelity_parser import process_fidelity_files
 from core.stock_data import get_company_info
 from core.smart_import import group_and_deduplicate_transactions
 
@@ -219,6 +220,52 @@ def api_upload_morgan_stanley():
         })
     except Exception as e:
         logger.exception("Morgan Stanley upload error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@parsers_bp.route("/api/upload-fidelity", methods=["POST"])
+def api_upload_fidelity():
+    """Upload and parse Fidelity NetBenefits open/closed lots CSV files."""
+    open_lots_file = request.files.get("openLotsFile")
+    closed_lots_file = request.files.get("closedLotsFile")
+
+    if not open_lots_file:
+        return jsonify({"error": "Open Lots CSV file is required"}), 400
+
+    ticker = request.form.get("ticker", "").strip().upper()
+    if not ticker:
+        return jsonify({"error": "Ticker symbol is required"}), 400
+
+    portfolio_data = request.form.get("portfolio")
+    if portfolio_data:
+        portfolio = json.loads(portfolio_data)
+        calendar_year = portfolio.get("calendar_year", datetime.now().year)
+    else:
+        calendar_year = request.form.get("calendar_year", datetime.now().year)
+        portfolio = {"calendar_year": int(calendar_year), "stocks": []}
+
+    try:
+        open_bytes = open_lots_file.read()
+        closed_bytes = b""
+        closed_name = ""
+        if closed_lots_file and closed_lots_file.filename:
+            closed_bytes = closed_lots_file.read()
+            closed_name = closed_lots_file.filename
+
+        result = process_fidelity_files(
+            open_bytes, open_lots_file.filename,
+            closed_bytes, closed_name,
+            ticker=ticker,
+            target_year=int(calendar_year)
+        )
+        smart_txs = group_and_deduplicate_transactions(result.get("transactions", []), portfolio)
+        return jsonify({
+            "success": True,
+            "transactions": smart_txs,
+            "skipped_count": result.get("skipped_count", 0),
+            "calendar_year": int(calendar_year)
+        })
+    except Exception as e:
+        logger.exception("Fidelity upload error")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @parsers_bp.route("/api/upload-vested", methods=["POST"])

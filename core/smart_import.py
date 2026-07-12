@@ -41,6 +41,11 @@ def group_and_deduplicate_transactions(transactions: list, portfolio: dict) -> l
                 grouped[key]["buy_date"] = buy_date
                 grouped[key]["buy_price"] = buy_price
                 
+            # Carry forward any extra metadata properties (e.g. lot_id, lot_type, original_price)
+            for k, v in tx.items():
+                if k not in grouped[key]:
+                    grouped[key][k] = v
+                
         grouped[key]["qty"] += qty
 
     # 2. Check against portfolio

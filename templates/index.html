@@ -1273,6 +1273,11 @@
                     <span style="font-size: 2rem;">V</span>
                     <strong>Vested</strong>
                 </button>
+                <button onclick="selectPlatform('fidelity')" class="btn btn-outline" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 20px; grid-column: span 2;">
+                    <span style="font-size: 2rem;">F</span>
+                    <strong>Fidelity (NetBenefits)</strong>
+                    <span style="font-size: 0.8rem; opacity: 0.7;">(Beta)</span>
+                </button>
             </div>
         </div>
     </div>
@@ -1417,6 +1422,55 @@
     </div>
     <!-- ===== END Vested Upload Modal ===== -->
 
+    <!-- ===== Fidelity Upload Modal ===== -->
+    <div id="fidelityUploadModal" class="modal-backdrop hidden" onclick="if(event.target===this)closeFidelityModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 style="margin:0;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 10px; display: inline-block; vertical-align: middle;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>Upload Fidelity NetBenefits Docs</h2>
+                <button class="btn btn-sm btn-outline" onclick="closeFidelityModal()"><svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>Close</button>
+            </div>
+            <p class="hint" style="margin:12px 0 20px;">Import your Fidelity stock plan CSV files. You must upload the Open Lots file; the Closed Lots file is optional but recommended if you have sold shares.</p>
+
+            <div class="modal-file-row">
+                <div class="modal-file-label">
+                    <span class="modal-file-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>
+                    <div>
+                        <strong>Open Lots CSV <span style="color:var(--danger);">*</span></strong>
+                        <p class="hint" style="margin:2px 0 0;">Download <strong>View Open Lots</strong> CSV from the stock plans page.</p>
+                    </div>
+                </div>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="fidelityOpenFileInput">Choose File</label>
+                <input type="file" id="fidelityOpenFileInput" style="display:none;" accept=".csv">
+                <span id="fidelityOpenFileName" class="modal-file-chosen">No file chosen</span>
+            </div>
+
+            <div class="modal-file-row" style="margin-top:14px;">
+                <div class="modal-file-label">
+                    <span class="modal-file-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline><polyline points="17 18 23 18 23 12"></polyline></svg></span>
+                    <div>
+                        <strong>Closed Lots CSV <span style="font-weight:400;color:var(--text-muted);">(optional)</span></strong>
+                        <p class="hint" style="margin:2px 0 0;">Download <strong>View Closed Lots</strong> CSV if you sold shares.</p>
+                    </div>
+                </div>
+                <label class="btn btn-outline btn-sm modal-file-pick" for="fidelityClosedFileInput">Choose File</label>
+                <input type="file" id="fidelityClosedFileInput" style="display:none;" accept=".csv">
+                <span id="fidelityClosedFileName" class="modal-file-chosen">No file chosen</span>
+            </div>
+
+            <div style="margin-top:14px;">
+                <label for="fidelityTickerInput" style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:6px;">Ticker Symbol <span style="color:var(--danger);">*</span></label>
+                <input type="text" id="fidelityTickerInput" placeholder="e.g. MSFT" style="width: 120px; text-transform: uppercase;">
+                <span class="hint" style="margin-left:8px;">Enter the stock symbol manually (e.g. MSFT).</span>
+            </div>
+
+            <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-outline" onclick="closeFidelityModal()">Cancel</button>
+                <button id="fidelityImportBtn" class="btn btn-accent"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; display: inline-block; vertical-align: middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Import Portfolio</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END Fidelity Upload Modal ===== -->
+
     <!-- ===== Import Review Modal ===== -->
     <div id="importReviewModal" class="modal-backdrop hidden">
         <div class="modal-box large">
@@ -1428,6 +1482,35 @@
                 <p class="hint" style="margin-bottom:16px;">
                     The following transactions were found in your file. Review them before they are added to your portfolio.
                 </p>
+
+                <!-- Fidelity ESPP confirmation section -->
+                <div id="fidelityEsppReviewSection" class="hidden" style="margin-bottom:20px; padding:16px; background-color:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:var(--radius-sm);">
+                    <h3 style="margin:0 0 8px 0; font-size:1rem; color:var(--success); display:flex; align-items:center; gap:8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        Fidelity ESPP Cost Basis Adjustment
+                    </h3>
+                    <p class="hint" style="margin:0 0 16px 0;">
+                        Fidelity stock plan exports do not specify the share source for sold lots. We have auto-detected likely ESPP lots. Verify and adjust below: ESPP lots will use the historical closing price (FMV) on acquisition date as cost basis, while RSU vests will use the CSV price.
+                    </p>
+                    <div class="table-wrapper" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px;">
+                        <table style="width:100%; border-collapse:collapse; text-align:left;">
+                            <thead>
+                                <tr>
+                                    <th style="padding:8px; border-bottom:1px solid var(--border);">Date Acquired</th>
+                                    <th style="padding:8px; border-bottom:1px solid var(--border);">Quantity</th>
+                                    <th style="padding:8px; border-bottom:1px solid var(--border);">Original Cost Basis</th>
+                                    <th style="padding:8px; border-bottom:1px solid var(--border);">Corrected FMV</th>
+                                    <th style="padding:8px; border-bottom:1px solid var(--border);">Confidence / Source</th>
+                                    <th style="padding:8px; border-bottom:1px solid var(--border);">Lot Type Option</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fidelityEsppReviewTbody">
+                                <!-- Dynamically populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="table-wrapper" style="max-height:400px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm);">
                     <table id="importReviewTable">
                         <thead>

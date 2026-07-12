@@ -2333,6 +2333,8 @@ function selectPlatform(platform) {
         document.getElementById("msUploadModal").classList.remove("hidden");
     } else if (platform === "vested") {
         document.getElementById("vestedUploadModal").classList.remove("hidden");
+    } else if (platform === "fidelity") {
+        document.getElementById("fidelityUploadModal").classList.remove("hidden");
     }
 }
 
@@ -2371,6 +2373,15 @@ function closeVestedModal() {
     document.getElementById("vestedFileName").textContent = "No files chosen";
 }
 
+function closeFidelityModal() {
+    document.getElementById("fidelityUploadModal").classList.add("hidden");
+    document.getElementById("fidelityOpenFileInput").value = "";
+    document.getElementById("fidelityClosedFileInput").value = "";
+    document.getElementById("fidelityOpenFileName").textContent = "No file chosen";
+    document.getElementById("fidelityClosedFileName").textContent = "No file chosen";
+    document.getElementById("fidelityTickerInput").value = "";
+}
+
 function closeImportReview() {
     document.getElementById("importReviewModal").classList.add("hidden");
     proposedTransactions = [];
@@ -2389,10 +2400,29 @@ function showImportReview(transactions, label) {
     proposedTransactions = transactions;
     const modal = document.getElementById("importReviewModal");
     const tbody = document.getElementById("importReviewTableBody");
+    
+    // Save current checkbox states if they exist
+    const checkedMap = {};
+    document.querySelectorAll(".tx-import-check").forEach(c => {
+        checkedMap[c.dataset.idx] = c.checked;
+    });
+
     tbody.innerHTML = "";
 
     const selectAllBtn = document.getElementById("selectAllImportBtn");
     selectAllBtn.checked = true;
+
+    // Show/Hide Fidelity ESPP section
+    const isFidelity = label.startsWith("Fidelity");
+    const esppSection = document.getElementById("fidelityEsppReviewSection");
+    if (esppSection) {
+        if (isFidelity) {
+            esppSection.classList.remove("hidden");
+            renderFidelityEsppConfirmations(label);
+        } else {
+            esppSection.classList.add("hidden");
+        }
+    }
 
     if (!transactions || transactions.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);">No new transactions found for this year.</td></tr>';
@@ -2424,14 +2454,21 @@ function showImportReview(transactions, label) {
 
             const qtyDisplay = isUpdate ? `+${tx.qty.toLocaleString()} <span style="font-size: 0.75rem; color: var(--text-muted);">(of ${tx.original_qty})</span>` : tx.qty.toLocaleString();
 
+            const isChecked = checkedMap[idx] !== undefined ? checkedMap[idx] : !isDuplicate;
+
+            let priceDisplay = `$${tx.price.toFixed(2)}`;
+            if (tx.type === "SELL" && tx.buy_price !== undefined) {
+                priceDisplay += ` <span style="font-size:0.75rem;color:var(--text-muted);" title="Acquisition Cost Basis">(cost: $${tx.buy_price.toFixed(2)})</span>`;
+            }
+
             tr.innerHTML = `
-                <td><input type="checkbox" class="tx-import-check" data-idx="${idx}" ${isDuplicate ? '' : 'checked'} ${isDuplicate ? 'disabled' : ''}></td>
+                <td><input type="checkbox" class="tx-import-check" data-idx="${idx}" ${isChecked ? 'checked' : ''} ${isDuplicate ? 'disabled' : ''}></td>
                 <td>${statusBadge}</td>
                 <td><span class="badge ${tx.type === 'BUY' ? 'badge-success' : 'badge-danger'}">${tx.type}</span></td>
                 <td>${tx.date}</td>
                 <td><strong>${tx.symbol}</strong></td>
                 <td>${qtyDisplay}</td>
-                <td>$${tx.price.toFixed(2)}</td>
+                <td>${priceDisplay}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -2472,6 +2509,8 @@ function showImportReview(transactions, label) {
                 closeEtradeModal();
                 closeIbkrModal();
                 closeMSModal();
+                closeVestedModal();
+                closeFidelityModal();
                 showToast(`${label} imported successfully (${selectedTxs.length} tx)`, "success");
                 // Enrich missing company info for new stocks
                 if (state.portfolio.stocks.length > 0) {
@@ -2487,6 +2526,77 @@ function showImportReview(transactions, label) {
             await hideLoading();
         }
     };
+}
+
+function renderFidelityEsppConfirmations(label) {
+    const esppTbody = document.getElementById("fidelityEsppReviewTbody");
+    if (!esppTbody) return;
+    esppTbody.innerHTML = "";
+
+    const buyTxs = proposedTransactions.filter(t => t.type === "BUY");
+    if (buyTxs.length === 0) {
+        esppTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:12px;color:var(--text-muted);">No buy lots found.</td></tr>';
+        return;
+    }
+
+    buyTxs.forEach(tx => {
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--border)";
+
+        let sourceBadge = "";
+        if (tx.espp_source === "open_lot") {
+            sourceBadge = '<span class="badge" style="background-color: var(--success); color: white;">Open Lot (SP)</span>';
+        } else if (tx.espp_source === "cross_ref") {
+            sourceBadge = '<span class="badge" style="background-color: var(--accent); color: white;">Cross-Ref</span>';
+        } else if (tx.espp_source === "heuristic") {
+            sourceBadge = '<span class="badge" style="background-color: var(--warning); color: white;">Auto-Detected</span>';
+        } else {
+            sourceBadge = '<span class="badge" style="background-color: var(--text-muted); color: white;">RSU / Direct</span>';
+        }
+
+        const isEspSelected = (tx.lot_type === "espp" || tx.lot_type === "likely_espp");
+
+        tr.innerHTML = `
+            <td style="padding:8px;">${tx.date}</td>
+            <td style="padding:8px;">${tx.qty.toLocaleString()}</td>
+            <td style="padding:8px;">$${tx.original_price.toFixed(2)}</td>
+            <td style="padding:8px; font-weight:bold; color:var(--success);">$${tx.fmv_price.toFixed(2)}</td>
+            <td style="padding:8px;">${sourceBadge}</td>
+            <td style="padding:8px;">
+                <select class="btn btn-outline btn-sm" style="padding:2px 6px; font-size:0.8rem; background:var(--bg-main); color:var(--text);" onchange="window.updateFidelityLotType('${tx.lot_id}', this.value, '${label}')">
+                    <option value="espp" ${isEspSelected ? 'selected' : ''}>ESPP (FMV Cost Basis)</option>
+                    <option value="rsu" ${!isEspSelected ? 'selected' : ''}>RSU Vest (CSV Cost Basis)</option>
+                </select>
+            </td>
+        `;
+        esppTbody.appendChild(tr);
+    });
+}
+
+function updateFidelityLotType(lotId, value, label) {
+    const buyTx = proposedTransactions.find(t => t.lot_id === lotId && t.type === "BUY");
+    if (buyTx) {
+        if (value === "espp") {
+            buyTx.lot_type = "espp";
+            buyTx.price = buyTx.fmv_price;
+        } else {
+            buyTx.lot_type = "rsu";
+            buyTx.price = buyTx.original_price;
+        }
+    }
+
+    const sellTx = proposedTransactions.find(t => t.lot_id === lotId && t.type === "SELL");
+    if (sellTx) {
+        if (value === "espp") {
+            sellTx.lot_type = "espp";
+            sellTx.buy_price = sellTx.fmv_buy_price;
+        } else {
+            sellTx.lot_type = "rsu";
+            sellTx.buy_price = sellTx.original_buy_price;
+        }
+    }
+
+    showImportReview(proposedTransactions, label);
 }
 
 async function importEtradeDocs() {
@@ -2616,6 +2726,55 @@ async function importMSDocs() {
     } catch (err) {
         await hideLoading();
         showToast("Morgan Stanley upload failed: " + err.message, "error");
+    }
+}
+
+async function importFidelityDocs() {
+    const openFile = document.getElementById("fidelityOpenFileInput").files[0];
+    const closedFile = document.getElementById("fidelityClosedFileInput").files[0];
+    const ticker = document.getElementById("fidelityTickerInput").value.trim().toUpperCase();
+
+    if (!openFile) {
+        showToast("Please choose the Fidelity Open Lots file to import", "warning");
+        return;
+    }
+    if (!ticker) {
+        showToast("Please enter the ticker symbol (e.g. MSFT)", "warning");
+        return;
+    }
+
+    showLoading("Parsing Fidelity NetBenefits Reports...");
+    try {
+        const fd = new FormData();
+        fd.append("openLotsFile", openFile);
+        if (closedFile) {
+            fd.append("closedLotsFile", closedFile);
+        }
+        fd.append("ticker", ticker);
+        fd.append("portfolio", JSON.stringify(state.portfolio));
+        
+        const resp = await fetch("/api/upload-fidelity", { method: "POST", body: fd });
+        const result = await resp.json();
+
+        await hideLoading();
+        if (result.success) {
+            const totalSkipped = result.skipped_count || 0;
+            const cy = result.calendar_year || "";
+
+            if (totalSkipped > 0) {
+                showToast(
+                    `⚠ ${totalSkipped} transaction${totalSkipped > 1 ? "s" : ""} skipped — outside CY${cy} scope`,
+                    "warning"
+                );
+            }
+            closeFidelityModal();
+            showImportReview(result.transactions || [], `Fidelity (${ticker})`);
+        } else {
+            showToast("Fidelity import error: " + result.error, "error");
+        }
+    } catch (err) {
+        await hideLoading();
+        showToast("Fidelity upload failed: " + err.message, "error");
     }
 }
 
@@ -2890,6 +3049,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     safeAddListener("ibkrImportBtn", "click", importIbkrDocs);
     safeAddListener("msImportBtn", "click", importMSDocs);
     safeAddListener("vestedImportBtn", "click", importVestedDocs);
+    safeAddListener("fidelityImportBtn", "click", importFidelityDocs);
     safeAddListener("historyBtn", "click", toggleHistoryPanel);
     
     const switchUserBtn = document.getElementById("switchUserBtn");
@@ -3035,6 +3195,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("msFileInput").addEventListener("change", e => {
         const f = e.target.files[0];
         document.getElementById("msFileName").textContent = f ? f.name : "No file chosen";
+    });
+
+    document.getElementById("fidelityOpenFileInput").addEventListener("change", e => {
+        const f = e.target.files[0];
+        document.getElementById("fidelityOpenFileName").textContent = f ? f.name : "No file chosen";
+    });
+
+    document.getElementById("fidelityClosedFileInput").addEventListener("change", e => {
+        const f = e.target.files[0];
+        document.getElementById("fidelityClosedFileName").textContent = f ? f.name : "No file chosen";
     });
 
     // Native open file input reader
@@ -3257,6 +3427,7 @@ window.closeEtradeModal = closeEtradeModal;
 window.closeIbkrModal = closeIbkrModal;
 window.closeMSModal = closeMSModal;
 window.closeVestedModal = closeVestedModal;
+window.closeFidelityModal = closeFidelityModal;
 window.closeImportReview = closeImportReview;
 window.closeAboutModal = closeAboutModal;
 window.openFifoModalReference = openFifoModalReference;
@@ -3285,5 +3456,7 @@ window.importEtradeDocs = importEtradeDocs;
 window.importIbkrDocs = importIbkrDocs;
 window.importMSDocs = importMSDocs;
 window.importVestedDocs = importVestedDocs;
+window.importFidelityDocs = importFidelityDocs;
+window.updateFidelityLotType = updateFidelityLotType;
 window.showImportReview = showImportReview;
 window.renderPortfolio = renderPortfolio;
