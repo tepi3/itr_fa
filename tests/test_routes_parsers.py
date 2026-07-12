@@ -60,6 +60,45 @@ def test_upload_etrade_mocked(client, sample_portfolio, monkeypatch):
     assert res_json["transactions"][0]["symbol"] == "AAPL"
 
 @pytest.mark.unit
+def test_upload_etrade_no_holdings_only_gnl(client, sample_portfolio, monkeypatch):
+    # Mock etrade processing to verify it receives empty bytes for holdings
+    received_bytes = None
+    def mock_process(et_bytes, et_name, gnl_files_data, target_year):
+        nonlocal received_bytes
+        received_bytes = et_bytes
+        return {
+            "transactions": [
+                {"symbol": "TSLA", "type": "SELL", "date": "20/01/2024", "price": 210.0, "qty": 5.0}
+            ],
+            "skipped_count": 0
+        }
+    monkeypatch.setattr("routes.parsers.process_etrade_files", mock_process)
+    
+    data = {
+        "sellFiles": (BytesIO(b"dummy gnl csv content"), "etrade_gnl.csv"),
+        "portfolio": json.dumps(sample_portfolio)
+    }
+    
+    res = client.post("/api/upload-etrade", data=data, content_type="multipart/form-data")
+    assert res.status_code == 200
+    res_json = res.get_json()
+    assert res_json["success"] is True
+    assert len(res_json["transactions"]) == 1
+    assert res_json["transactions"][0]["symbol"] == "TSLA"
+    assert received_bytes == b""
+
+@pytest.mark.unit
+def test_upload_etrade_missing_both_fails(client, sample_portfolio):
+    data = {
+        "portfolio": json.dumps(sample_portfolio)
+    }
+    res = client.post("/api/upload-etrade", data=data, content_type="multipart/form-data")
+    assert res.status_code == 400
+    res_json = res.get_json()
+    assert "error" in res_json
+    assert "At least one Holdings (ByStatus) or Gain & Loss file is required" in res_json["error"]
+
+@pytest.mark.unit
 def test_upload_ibkr_mocked(client, sample_portfolio, monkeypatch):
     # Mock ibkr processing
     monkeypatch.setattr("routes.parsers.process_ibkr_files", lambda files, cy: {

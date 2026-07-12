@@ -96,8 +96,9 @@ def api_upload_etrade():
     # Multiple G&L files
     sell_files = request.files.getlist("sellFiles")
 
-    if not etrade_file:
-        return jsonify({"error": "Holdings (ByStatus) file is required"}), 400
+    has_sell_files = any(sf.filename for sf in sell_files)
+    if not etrade_file and not has_sell_files:
+        return jsonify({"error": "At least one Holdings (ByStatus) or Gain & Loss file is required"}), 400
 
     portfolio_data = request.form.get("portfolio")
     if portfolio_data:
@@ -108,8 +109,8 @@ def api_upload_etrade():
         portfolio = {"calendar_year": int(calendar_year), "stocks": []}
     
     try:
-        et_bytes = etrade_file.read()
-        et_name = etrade_file.filename
+        et_bytes = etrade_file.read() if etrade_file else b""
+        et_name = etrade_file.filename if etrade_file else ""
         
         gnl_files_data = []
         for sf in sell_files:

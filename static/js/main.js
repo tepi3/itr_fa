@@ -2493,15 +2493,18 @@ async function importEtradeDocs() {
     const etradeFile = document.getElementById("etradeFileInput").files[0];
     const sellFiles   = document.getElementById("sellDetailsFileInput").files;
 
-    if (!etradeFile) {
-        showToast("Please choose the Holdings (ByStatus) file to import", "warning");
+    const hasSellFiles = sellFiles && sellFiles.length > 0;
+    if (!etradeFile && !hasSellFiles) {
+        showToast("Please select at least one file (Holdings or Gain & Loss) to import.", "warning");
         return;
     }
 
     showLoading("Parsing E*TRADE files for Roll-Back...");
     try {
         const fd = new FormData();
-        fd.append("etradeFile", etradeFile);
+        if (etradeFile) {
+            fd.append("etradeFile", etradeFile);
+        }
         for (let i = 0; i < sellFiles.length; i++) {
             fd.append("sellFiles", sellFiles[i]);
         }
