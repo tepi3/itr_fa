@@ -2734,8 +2734,8 @@ async function importFidelityDocs() {
     const closedFile = document.getElementById("fidelityClosedFileInput").files[0];
     const ticker = document.getElementById("fidelityTickerInput").value.trim().toUpperCase();
 
-    if (!openFile) {
-        showToast("Please choose the Fidelity Open Lots file to import", "warning");
+    if (!openFile && !closedFile) {
+        showToast("Please choose at least one of Open Lots or Closed Lots files to import", "warning");
         return;
     }
     if (!ticker) {
@@ -2746,7 +2746,9 @@ async function importFidelityDocs() {
     showLoading("Parsing Fidelity NetBenefits Reports...");
     try {
         const fd = new FormData();
-        fd.append("openLotsFile", openFile);
+        if (openFile) {
+            fd.append("openLotsFile", openFile);
+        }
         if (closedFile) {
             fd.append("closedLotsFile", closedFile);
         }

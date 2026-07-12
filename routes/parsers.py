@@ -227,9 +227,10 @@ def api_upload_fidelity():
     """Upload and parse Fidelity NetBenefits open/closed lots CSV files."""
     open_lots_file = request.files.get("openLotsFile")
     closed_lots_file = request.files.get("closedLotsFile")
-
-    if not open_lots_file:
-        return jsonify({"error": "Open Lots CSV file is required"}), 400
+    has_open = open_lots_file and open_lots_file.filename != ""
+    has_closed = closed_lots_file and closed_lots_file.filename != ""
+    if not has_open and not has_closed:
+        return jsonify({"error": "At least one of Open Lots or Closed Lots CSV files is required"}), 400
 
     ticker = request.form.get("ticker", "").strip().upper()
     if not ticker:
@@ -244,15 +245,20 @@ def api_upload_fidelity():
         portfolio = {"calendar_year": int(calendar_year), "stocks": []}
 
     try:
-        open_bytes = open_lots_file.read()
+        open_bytes = b""
+        open_name = ""
+        if has_open:
+            open_bytes = open_lots_file.read()
+            open_name = open_lots_file.filename
+            
         closed_bytes = b""
         closed_name = ""
-        if closed_lots_file and closed_lots_file.filename:
+        if has_closed:
             closed_bytes = closed_lots_file.read()
             closed_name = closed_lots_file.filename
 
         result = process_fidelity_files(
-            open_bytes, open_lots_file.filename,
+            open_bytes, open_name,
             closed_bytes, closed_name,
             ticker=ticker,
             target_year=int(calendar_year)

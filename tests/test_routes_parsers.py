@@ -170,7 +170,7 @@ def test_upload_fidelity_mocked(client, sample_portfolio, monkeypatch):
     assert res_json["transactions"][0]["lot_id"] == "open_0"
 
 @pytest.mark.unit
-def test_upload_fidelity_missing_open_lots_fails(client, sample_portfolio):
+def test_upload_fidelity_missing_both_files_fails(client, sample_portfolio):
     data = {
         "ticker": "MSFT",
         "portfolio": json.dumps(sample_portfolio)
@@ -179,5 +179,5 @@ def test_upload_fidelity_missing_open_lots_fails(client, sample_portfolio):
     assert res.status_code == 400
     res_json = res.get_json()
     assert "error" in res_json
-    assert "Open Lots CSV file is required" in res_json["error"]
+    assert "At least one of Open Lots or Closed Lots CSV files is required" in res_json["error"]
 
