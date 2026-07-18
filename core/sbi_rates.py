@@ -79,22 +79,26 @@ def _save_cache(cache: dict):
         json.dump(cache, f, indent=2, sort_keys=True)
 
 
-def download_sbi_csv() -> dict:
+def parse_sbi_csv_rates(csv_text: str) -> dict:
     """
-    Download the full SBI USD rate CSV from GitHub and parse into a dict.
+    Parse SBI ratekeeper CSV content into a date->TT BUY mapping.
+
+    Supports the sahilgupta/sbi-fx-ratekeeper CSV files:
+    DATE,PDF FILE,TT BUY,TT SELL,...
+
     Returns: { "YYYY-MM-DD": tt_buy_rate, ... }
     Only includes dates where TT BUY > 0.
     """
-    logger.info("Downloading SBI USD rates from GitHub...")
-    resp = requests.get(SBI_CSV_URL, timeout=60)
-    resp.raise_for_status()
-
     rates = {}
     # Handle BOM and different line endings
-    text = resp.text.replace("\r\n", "\n").replace("\r", "\n")
+    text = (csv_text or "").replace("\r\n", "\n").replace("\r", "\n")
     reader = csv.reader(StringIO(text))
 
-    header = next(reader)
+    try:
+        header = next(reader)
+    except StopIteration:
+        return rates
+
     # Find TT BUY column index (should be index 2)
     tt_buy_idx = None
     for i, col in enumerate(header):
@@ -117,6 +121,34 @@ def download_sbi_csv() -> dict:
 
     logger.info(f"Parsed {len(rates)} USD rate entries")
     return rates
+
+
+def download_sbi_csv() -> dict:
+    """
+    Download the full SBI USD rate CSV from GitHub and parse into a dict.
+    Returns: { "YYYY-MM-DD": tt_buy_rate, ... }
+    Only includes dates where TT BUY > 0.
+    """
+    logger.info("Downloading SBI USD rates from GitHub...")
+    resp = requests.get(SBI_CSV_URL, timeout=60)
+    resp.raise_for_status()
+    return parse_sbi_csv_rates(resp.text)
+
+
+def import_sbi_rates_from_csv(csv_text: str) -> int:
+    """Import official SBI TT BUY rates from a ratekeeper CSV into the local cache."""
+    rates = parse_sbi_csv_rates(csv_text)
+    if not rates:
+        raise ValueError("No valid TT BUY rates found in CSV.")
+
+    cache = {
+        "rates": {"USD": rates},
+        "manual_USD": [],
+        "rbi_USD": [],
+        "locked_years": [],
+    }
+    _save_cache(cache)
+    return len(rates)
 
 
 def refresh_cache(overwrite: bool = True):

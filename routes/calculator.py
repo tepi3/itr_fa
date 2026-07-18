@@ -9,6 +9,48 @@ from core.utils import get_user_dir
 logger = logging.getLogger(__name__)
 calculator_bp = Blueprint("calculator", __name__)
 
+
+def _ensure_year_dividends(portfolio: dict, year: int):
+    """Merge fetched dividends for the calculation year without removing manual rows."""
+    from core.stock_data import get_dividends
+
+    for stock in portfolio.get("stocks", []):
+        if stock.get("skip_dividends"):
+            continue
+        ticker = stock.get("yahoo_ticker") or stock.get("ticker")
+        if not ticker:
+            continue
+
+        fetched = get_dividends(ticker, year)
+        if not fetched:
+            continue
+
+        existing = stock.setdefault("dividends", [])
+        existing_keys = {
+            (
+                d.get("ex_date"),
+                d.get("payment_date") or d.get("ex_date"),
+                round(float(d.get("amount", 0)), 6),
+            )
+            for d in existing
+            if d.get("ex_date")
+        }
+        for fd in fetched:
+            key = (
+                fd.get("ex_date"),
+                fd.get("payment_date") or fd.get("ex_date"),
+                round(float(fd.get("amount", 0)), 6),
+            )
+            if key in existing_keys:
+                continue
+            existing.append({
+                "ex_date": fd["ex_date"],
+                "payment_date": fd.get("payment_date") or fd["ex_date"],
+                "amount": fd["amount"],
+                "is_manual": False,
+            })
+            existing_keys.add(key)
+
 @calculator_bp.route("/api/consolidated-tax-summary", methods=["POST"])
 def api_consolidated_tax_summary():
     """
@@ -46,36 +88,7 @@ def api_consolidated_tax_summary():
                         return None
             
             if portfolio:
-                from core.stock_data import get_dividends
-                from core.calculator import _parse_date
-                # Ensure dividends for the requested year are present
-                for stock in portfolio.get("stocks", []):
-                    if stock.get("skip_dividends"):
-                        continue
-                    ticker = stock.get("yahoo_ticker") or stock.get("ticker")
-                    if not ticker:
-                        continue
-                    
-                    divs = stock.get("dividends", [])
-                    has_year_divs = False
-                    for d in divs:
-                        ex_str = d.get("ex_date")
-                        if ex_str and _parse_date(ex_str).year == year:
-                            has_year_divs = True
-                            break
-                    
-                    if not has_year_divs:
-                        fetched = get_dividends(ticker, year)
-                        if fetched:
-                            if "dividends" not in stock:
-                                stock["dividends"] = []
-                            for fd in fetched:
-                                stock["dividends"].append({
-                                    "ex_date": fd["ex_date"],
-                                    "payment_date": fd.get("payment_date") or fd["ex_date"],
-                                    "amount": fd["amount"],
-                                    "is_manual": False
-                                })
+                _ensure_year_dividends(portfolio, year)
                 return calculate_tax_year_summary(portfolio, mode=sbi_tt_mode)
             return None
 
@@ -166,6 +179,7 @@ def api_calculate():
     try:
         portfolio = data
         mode = data.get("sbi_tt_mode", "split")
+        _ensure_year_dividends(portfolio, int(portfolio.get("calendar_year", 2024)))
         result = calculate_a3_rows(portfolio, mode=mode)
         return jsonify({"success": True, **result})
     except Exception as e:
@@ -180,6 +194,7 @@ def api_tax_year_summary():
         return jsonify({"error": "Data required"}), 400
     try:
         mode = data.get("sbi_tt_mode", "split")
+        _ensure_year_dividends(data, int(data.get("calendar_year", 2024)))
         result = calculate_tax_year_summary(data, mode=mode)
         return jsonify({"success": True, **result})
     except Exception as e:

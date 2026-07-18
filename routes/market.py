@@ -5,7 +5,8 @@ from core.sbi_rates import (
     get_sbi_tt_rate, get_monthly_rates, save_manual_rate,
     refresh_cache, lock_year_rates, unlock_year_rates, 
     is_year_locked, get_locked_years, get_daily_rates,
-    clear_sbi_cache, normalize_and_import_rbi_rates, get_rbi_max_year_month
+    clear_sbi_cache, normalize_and_import_rbi_rates, get_rbi_max_year_month,
+    import_sbi_rates_from_csv
 )
 from core.stock_data import (
     get_company_info, get_price_on_date, get_dividends,
@@ -216,12 +217,21 @@ def api_export_sbi_rates():
 
 @market_bp.route("/api/import-sbi-rates", methods=["POST"])
 def api_import_sbi_rates():
-    """Import SBI rates cache from uploaded JSON."""
+    """Import SBI rates from exported cache JSON or ratekeeper CSV content."""
     try:
         from core.sbi_rates import _save_cache
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({"success": False, "error": "Invalid import payload."}), 400
+
+        filename = str(data.get("filename", "")).lower() if isinstance(data, dict) else ""
+        csv_content = data.get("content") if isinstance(data, dict) else None
+        if isinstance(csv_content, str) and (filename.endswith(".csv") or "TT BUY" in csv_content[:500].upper()):
+            imported = import_sbi_rates_from_csv(csv_content)
+            return jsonify({"success": True, "imported": imported, "format": "csv"})
+
         if not data or "rates" not in data:
-            return jsonify({"success": False, "error": "Invalid format: 'rates' key is required."}), 400
+            return jsonify({"success": False, "error": "Invalid format: upload exported rates JSON or SBI_REFERENCE_RATES_USD.csv."}), 400
         
         # Validation
         if not isinstance(data["rates"], dict) or "USD" not in data["rates"] or not isinstance(data["rates"]["USD"], dict):
@@ -246,7 +256,7 @@ def api_import_sbi_rates():
         }
         
         _save_cache(cleaned_data)
-        return jsonify({"success": True})
+        return jsonify({"success": True, "imported": len(cleaned_usd), "format": "json"})
     except Exception as e:
         logger.exception("Failed to import SBI rates")
         return jsonify({"success": False, "error": str(e)}), 500

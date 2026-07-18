@@ -10,20 +10,39 @@ Provides: company info, historical prices, dividend data.
 import logging
 import json
 import sqlite3
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 from config import COUNTRY_CODES, DATA_DIR
 
 logger = logging.getLogger(__name__)
 
 # yfinance is lazy-loaded inside functions to speed up app startup
 yf = None
+yf_cache_configured = False
 
 def _get_yf():
     global yf
     if yf is None:
         import yfinance as yf_mod
+        _configure_yfinance_cache(yf_mod)
         yf = yf_mod
     return yf
+
+
+def _configure_yfinance_cache(yf_mod):
+    """Point yfinance's internal SQLite cache at the app data dir when possible."""
+    global yf_cache_configured
+    if yf_cache_configured:
+        return
+    yf_cache_configured = True
+    try:
+        cache_dir = DATA_DIR / "yfinance_runtime_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        if hasattr(yf_mod, "set_tz_cache_location"):
+            yf_mod.set_tz_cache_location(str(cache_dir))
+        if hasattr(yf_mod, "cache") and hasattr(yf_mod.cache, "set_cache_location"):
+            yf_mod.cache.set_cache_location(str(cache_dir))
+    except Exception as e:
+        logger.warning(f"Could not configure yfinance runtime cache: {e}")
 
 # Ticker suffix mapping for non-US exchanges
 EXCHANGE_SUFFIXES = {
@@ -38,6 +57,7 @@ EXCHANGE_SUFFIXES = {
 CACHE_DB = DATA_DIR / "yfinance_cache.db"
 
 def _get_cache_conn():
+    CACHE_DB.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(CACHE_DB), timeout=10)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS yfinance_cache (
@@ -47,6 +67,83 @@ def _get_cache_conn():
         )
     """)
     return conn
+
+
+def _to_unix_ts(date_str: str) -> int:
+    d = date.fromisoformat(date_str)
+    return int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp())
+
+
+def _fetch_yahoo_chart(ticker: str, start_date: str, end_date: str, events: str = "history") -> dict:
+    """Fetch Yahoo chart data directly, avoiding yfinance's SQLite cache layer."""
+    import requests
+
+    yahoo_ticker = resolve_yahoo_ticker(ticker)
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_ticker}"
+    params = {
+        "period1": _to_unix_ts(start_date),
+        "period2": _to_unix_ts(end_date),
+        "interval": "1d",
+        "events": events,
+        "includeAdjustedClose": "false",
+    }
+    headers = {"User-Agent": "Mozilla/5.0"}
+    resp = requests.get(url, params=params, headers=headers, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    error = data.get("chart", {}).get("error")
+    if error:
+        raise ValueError(error)
+    results = data.get("chart", {}).get("result") or []
+    if not results:
+        return {}
+    return results[0]
+
+
+def _fetch_prices_from_yahoo_chart(ticker: str, start_date: str, end_date: str) -> list:
+    try:
+        result = _fetch_yahoo_chart(ticker, start_date, end_date, events="history")
+        timestamps = result.get("timestamp") or []
+        quote = (result.get("indicators", {}).get("quote") or [{}])[0]
+        closes = quote.get("close") or []
+        prices = []
+        for ts, close in zip(timestamps, closes):
+            if close is None:
+                continue
+            prices.append({
+                "date": datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%d/%m/%Y"),
+                "close": round(float(close), 4),
+            })
+        return prices
+    except Exception as e:
+        logger.error(f"Yahoo chart price fallback failed for {ticker}: {e}")
+        return []
+
+
+def _fetch_dividends_from_yahoo_chart(ticker: str, year: int) -> list:
+    try:
+        result = _fetch_yahoo_chart(ticker, f"{year}-01-01", f"{year + 1}-01-01", events="div")
+        events = result.get("events", {}).get("dividends", {})
+        divs = []
+        for event in events.values():
+            ts = event.get("date")
+            amount = event.get("amount")
+            if ts is None or amount is None:
+                continue
+            ex_dt = datetime.fromtimestamp(ts, tz=timezone.utc).date()
+            if ex_dt.year != year or ex_dt >= date.today():
+                continue
+            ex_date = ex_dt.strftime("%d/%m/%Y")
+            divs.append({
+                "ex_date": ex_date,
+                "payment_date": ex_date,
+                "amount": round(float(amount), 6),
+            })
+        divs.sort(key=lambda item: datetime.strptime(item["ex_date"], "%d/%m/%Y").date())
+        return divs
+    except Exception as e:
+        logger.error(f"Yahoo chart dividend fallback failed for {ticker}: {e}")
+        return []
 
 def get_cached_val(key: str):
     try:
@@ -190,8 +287,11 @@ def get_historical_prices(ticker: str, start_date: str, end_date: str) -> list:
             
         return prices
     except Exception as e:
-        logger.error(f"Error fetching prices for {ticker}: {e}")
-        return []
+        logger.error(f"Error fetching prices for {ticker} via yfinance: {e}")
+        prices = _fetch_prices_from_yahoo_chart(yahoo_ticker, start_date, end_date)
+        if prices and end_date < date.today().isoformat():
+            set_cached_val(cache_key, prices)
+        return prices
 
 
 def get_dividends(ticker: str, year: int) -> list:
@@ -205,13 +305,15 @@ def get_dividends(ticker: str, year: int) -> list:
     # If it's a non-US stock, we fallback to yfinance logic (ex-date only)
     yahoo_ticker = resolve_yahoo_ticker(ticker)
 
-    # We use v4 for exact payment dates from finance-calendars
-    cache_key = f"dividends_v4:{yahoo_ticker.upper()}:{year}"
+    # v5 avoids stale v4 caches that may have been created before late-year dividends posted.
+    cache_key = f"dividends_v5:{yahoo_ticker.upper()}:{year}"
+    legacy_cache_key = f"dividends_v4:{yahoo_ticker.upper()}:{year}"
 
     cached = get_cached_val(cache_key)
     if cached is not None:
-        logger.info(f"Loaded dividends (v4) from cache for {yahoo_ticker} in {year}")
+        logger.info(f"Loaded dividends (v5) from cache for {yahoo_ticker} in {year}")
         return cached
+    legacy_cached = get_cached_val(legacy_cache_key)
 
     logger.info(f"Fetching exact dividends (Nasdaq) for {yahoo_ticker} in {year}")
     year_divs = []
@@ -295,8 +397,16 @@ def get_dividends(ticker: str, year: int) -> list:
         except Exception as yf_err:
             logger.error(f"yfinance fallback error for {ticker}: {yf_err}")
 
-    # Cache if this year is in the past
-    if year < date.today().year:
+    if not year_divs:
+        year_divs = _fetch_dividends_from_yahoo_chart(yahoo_ticker, year)
+
+    if not year_divs and legacy_cached is not None:
+        logger.info(f"Using legacy cached dividends for {yahoo_ticker} in {year}")
+        return legacy_cached
+
+    # Cache successful fetches if this year is in the past.
+    # Do not cache an empty result after network/cache failures.
+    if year_divs and year < date.today().year:
         set_cached_val(cache_key, year_divs)
 
     return year_divs
@@ -323,7 +433,14 @@ def get_yearly_max_price(ticker: str, year: int) -> dict:
         hist = t.history(start=f"{year}-01-01", end=f"{year + 1}-01-01", auto_adjust=False)
 
         if hist.empty:
-            res = {"max_price": None, "max_price_date": None}
+            prices = _fetch_prices_from_yahoo_chart(yahoo_ticker, f"{year}-01-01", f"{year + 1}-01-01")
+            if not prices:
+                res = {"max_price": None, "max_price_date": None}
+                if year < date.today().year:
+                    set_cached_val(cache_key, res)
+                return res
+            best = max(prices, key=lambda item: item["close"])
+            res = {"max_price": best["close"], "max_price_date": best["date"]}
             if year < date.today().year:
                 set_cached_val(cache_key, res)
             return res
@@ -340,8 +457,15 @@ def get_yearly_max_price(ticker: str, year: int) -> dict:
             
         return res
     except Exception as e:
-        logger.error(f"Error fetching yearly max price for {ticker}: {e}")
-        return {"max_price": None, "max_price_date": None}
+        logger.error(f"Error fetching yearly max price for {ticker} via yfinance: {e}")
+        prices = _fetch_prices_from_yahoo_chart(yahoo_ticker, f"{year}-01-01", f"{year + 1}-01-01")
+        if not prices:
+            return {"max_price": None, "max_price_date": None}
+        best = max(prices, key=lambda item: item["close"])
+        res = {"max_price": best["close"], "max_price_date": best["date"]}
+        if year < date.today().year:
+            set_cached_val(cache_key, res)
+        return res
 
 
 def get_price_on_date(ticker: str, target_date: str) -> float:
@@ -393,8 +517,21 @@ def get_price_on_date(ticker: str, target_date: str) -> float:
             
         return price
     except Exception as e:
-        logger.error(f"Error getting price for {ticker} on {target_date}: {e}")
-        return None
+        logger.error(f"Error getting price for {ticker} on {target_date} via yfinance: {e}")
+        prices = _fetch_prices_from_yahoo_chart(
+            yahoo_ticker,
+            (d - timedelta(days=10)).isoformat(),
+            (d + timedelta(days=1)).isoformat(),
+        )
+        price = None
+        for entry in reversed(prices):
+            entry_date = datetime.strptime(entry["date"], "%d/%m/%Y").date().isoformat()
+            if entry_date <= iso_date:
+                price = entry["close"]
+                break
+        if price is not None and iso_date < date.today().isoformat():
+            set_cached_val(cache_key, price)
+        return price
 
 
 def has_dividends(ticker: str) -> bool:

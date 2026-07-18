@@ -345,6 +345,47 @@ def test_sbi_fetch_overwrites_rbi_even_in_missing_mode(tmp_path, monkeypatch):
     assert "2024-01-02" not in cache["rbi_USD"]
 
 
+def test_parse_sbi_ratekeeper_csv_skips_zero_rates():
+    from core.sbi_rates import parse_sbi_csv_rates
+
+    csv_text = """DATE,PDF FILE,TT BUY,TT SELL,BILL BUY
+2020-01-04 09:00,file.pdf,0.00,0.00,71.29
+2020-01-06 09:00,file.pdf,71.65,72.50,71.59
+2020-01-07 09:00,file.pdf,71.32,72.17,71.26
+"""
+
+    rates = parse_sbi_csv_rates(csv_text)
+
+    assert rates == {
+        "2020-01-06": 71.65,
+        "2020-01-07": 71.32,
+    }
+
+
+def test_import_sbi_rates_from_csv_writes_official_cache(tmp_path, monkeypatch):
+    from core.sbi_rates import import_sbi_rates_from_csv, _load_cache
+
+    fake_cache_file = tmp_path / "sbi_cache.json"
+    monkeypatch.setattr("core.sbi_rates.SBI_CACHE_FILE", fake_cache_file)
+    monkeypatch.setattr("core.sbi_rates._load_baseline_rates", lambda: {})
+
+    csv_text = """DATE,PDF FILE,TT BUY,TT SELL
+2024-07-30 09:00,file.pdf,83.45,84.20
+2024-07-31 09:00,file.pdf,83.50,84.25
+"""
+
+    imported = import_sbi_rates_from_csv(csv_text)
+    cache = _load_cache()
+
+    assert imported == 2
+    assert cache["rates"]["USD"] == {
+        "2024-07-30": 83.45,
+        "2024-07-31": 83.50,
+    }
+    assert cache["manual_USD"] == []
+    assert cache["rbi_USD"] == []
+
+
 def test_get_rbi_max_year_month(tmp_path, monkeypatch):
     from core.sbi_rates import get_rbi_max_year_month
     import json

@@ -522,7 +522,7 @@ def calculate_a3_rows(portfolio: dict, mode: str = 'split') -> dict:
 
     for stock in portfolio.get("stocks", []):
         ticker = stock["ticker"]
-        yahoo_ticker = stock.get("yahoo_ticker", ticker)
+        yahoo_ticker = stock.get("yahoo_ticker") or ticker
         company = stock.get("company_info", {})
         skip_divs = stock.get("skip_dividends", False)
 
@@ -1330,7 +1330,7 @@ def calculate_current_balance(portfolio: dict, mode: str = 'split') -> dict:
 
     for stock in portfolio.get("stocks", []):
         ticker = stock["ticker"]
-        yahoo_ticker = stock.get("yahoo_ticker", ticker)
+        yahoo_ticker = stock.get("yahoo_ticker") or ticker
         company = stock.get("company_info", {})
         entity_name = company.get("display_name", ticker)
 

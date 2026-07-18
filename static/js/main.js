@@ -815,11 +815,14 @@ async function handleSbiImportFileSelect(e) {
     const reader = new FileReader();
     reader.onload = async (event) => {
         try {
-            const data = JSON.parse(event.target.result);
+            const text = event.target.result;
+            const isCsv = file.name.toLowerCase().endsWith(".csv");
+            const data = isCsv ? { filename: file.name, content: text } : JSON.parse(text);
             const res = await apiPost("/api/import-sbi-rates", data);
             await hideLoading();
             if (res.success) {
-                showToast("SBI TT Rates database imported successfully!", "success");
+                const detail = res.imported ? ` (${res.imported} rates)` : "";
+                showToast(`SBI TT Rates database imported successfully${detail}!`, "success");
                 
                 // Reload calendar rates if it is visible
                 const ratesSection = document.getElementById("monthlyRatesSection");
