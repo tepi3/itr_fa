@@ -191,3 +191,16 @@ def test_multi_stock_merge(empty_portfolio):
     assert len(res["stocks"]) == 2
     tickers = {s["ticker"] for s in res["stocks"]}
     assert tickers == {"AAPL", "MSFT"}
+
+@pytest.mark.unit
+def test_apply_transactions_ignores_duplicate_status(empty_portfolio):
+    txs = [
+        {"type": "BUY", "date": "2024-01-01", "symbol": "AAPL", "qty": 10, "price": 150, "import_status": "NEW"},
+        {"type": "BUY", "date": "2024-01-01", "symbol": "AAPL", "qty": 10, "price": 150, "import_status": "DUPLICATE"},
+    ]
+    res = apply_transactions(empty_portfolio, txs)
+    assert len(res["stocks"]) == 1
+    stock = res["stocks"][0]
+    assert len(stock["lots"]) == 1
+    assert stock["lots"][0]["quantity"] == 10.0
+
