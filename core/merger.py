@@ -22,6 +22,8 @@ def apply_transactions(portfolio: dict, transactions: list) -> dict:
     transactions.sort(key=_sort_key)
 
     for tx in transactions:
+        if tx.get("import_status") == "DUPLICATE":
+            continue
         sym = tx["symbol"]
         t_type = tx["type"].upper()
         qty = float(tx["qty"])

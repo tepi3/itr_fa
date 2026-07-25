@@ -2401,12 +2401,6 @@ function showImportReview(transactions, label) {
     const modal = document.getElementById("importReviewModal");
     const tbody = document.getElementById("importReviewTableBody");
     
-    // Save current checkbox states if they exist
-    const checkedMap = {};
-    document.querySelectorAll(".tx-import-check").forEach(c => {
-        checkedMap[c.dataset.idx] = c.checked;
-    });
-
     tbody.innerHTML = "";
 
     const selectAllBtn = document.getElementById("selectAllImportBtn");
@@ -2454,7 +2448,7 @@ function showImportReview(transactions, label) {
 
             const qtyDisplay = isUpdate ? `+${tx.qty.toLocaleString()} <span style="font-size: 0.75rem; color: var(--text-muted);">(of ${tx.original_qty})</span>` : tx.qty.toLocaleString();
 
-            const isChecked = checkedMap[idx] !== undefined ? checkedMap[idx] : !isDuplicate;
+            const isChecked = !isDuplicate;
 
             let priceDisplay = `$${tx.price.toFixed(2)}`;
             if (tx.type === "SELL" && tx.buy_price !== undefined) {
@@ -2487,7 +2481,7 @@ function showImportReview(transactions, label) {
     // Set up confirmation button
     const confirmBtn = document.getElementById("confirmImportBtn");
     confirmBtn.onclick = async () => {
-        const selectedIndices = Array.from(document.querySelectorAll(".tx-import-check:checked")).map(c => parseInt(c.dataset.idx));
+        const selectedIndices = Array.from(document.querySelectorAll(".tx-import-check:checked:not([disabled])")).map(c => parseInt(c.dataset.idx));
         if (selectedIndices.length === 0) {
             showToast("No transactions selected", "warning");
             return;
