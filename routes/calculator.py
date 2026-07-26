@@ -59,8 +59,8 @@ def api_consolidated_tax_summary():
                     divs = stock.get("dividends", [])
                     has_year_divs = False
                     for d in divs:
-                        ex_str = d.get("ex_date")
-                        if ex_str and _parse_date(ex_str).year == year:
+                        pay_str = d.get("payment_date") or d.get("ex_date")
+                        if pay_str and _parse_date(pay_str).year == year:
                             has_year_divs = True
                             break
                     

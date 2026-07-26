@@ -1205,7 +1205,10 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
                     continue
                 ex_date = _parse_date(ex_date_str)
 
-                if ex_date.year != calendar_year:
+                pay_date_str = div.get("payment_date") or div.get("ex_date")
+                pay_date = _parse_date(pay_date_str)
+
+                if pay_date.year != calendar_year:
                     continue
 
                 # Skip if lot didn't exist yet on ex_date
@@ -1226,9 +1229,6 @@ def calculate_tax_year_summary(portfolio: dict, mode: str = 'split') -> dict:
 
                 # Qualification was on Ex-Date (already checked above)
                 # Tax Year Placement & Rule 115 Conversion: Use Payment Date
-                pay_date_str = div.get("payment_date") or div.get("ex_date")
-                pay_date = _parse_date(pay_date_str)
-
                 # Use Payment Date for tax year key and Rule 115 rate
                 ty_key = _get_tax_year_key(pay_date, calendar_year)
                 qkey = _get_quarter_key(pay_date, ty_key)

@@ -205,12 +205,12 @@ def get_dividends(ticker: str, year: int) -> list:
     # If it's a non-US stock, we fallback to yfinance logic (ex-date only)
     yahoo_ticker = resolve_yahoo_ticker(ticker)
 
-    # We use v4 for exact payment dates from finance-calendars
-    cache_key = f"dividends_v4:{yahoo_ticker.upper()}:{year}"
+    # We use v5 for exact payment dates filtering from finance-calendars
+    cache_key = f"dividends_v5:{yahoo_ticker.upper()}:{year}"
 
     cached = get_cached_val(cache_key)
     if cached is not None:
-        logger.info(f"Loaded dividends (v4) from cache for {yahoo_ticker} in {year}")
+        logger.info(f"Loaded dividends (v5) from cache for {yahoo_ticker} in {year}")
         return cached
 
     logger.info(f"Fetching exact dividends (Nasdaq) for {yahoo_ticker} in {year}")
@@ -226,27 +226,25 @@ def get_dividends(ticker: str, year: int) -> list:
             for idx, row in df.iterrows():
                 # idx is the ex-date string
                 try:
-                    # Filter by year
-                    # index is exOrEffDate, paymentDate is MM/DD/YYYY or YYYY-MM-DD
-                    ex_date_str = idx
-                    ex_year = int(ex_date_str.split('/')[2]) if '/' in ex_date_str else int(ex_date_str.split('-')[0])
+                    ex_date_str = str(idx)
 
-                    if ex_year == year:
-                        # Clean amount (remove '$')
-                        amt_str = str(row['amount']).replace('$', '').strip()
+                    # Clean amount (remove '$')
+                    amt_str = str(row['amount']).replace('$', '').strip()
 
-                        # Normalize payment date to DD/MM/YYYY
-                        pay_date_raw = str(row['paymentDate'])
-                        try:
-                            if '/' in pay_date_raw:
-                                m, d, y = pay_date_raw.split('/')
-                                pay_date_dt = date(int(y), int(m), int(d))
-                            else:
-                                pay_date_dt = date.fromisoformat(pay_date_raw)
-                        except Exception:
-                            logger.warning(f"Invalid payment date: {pay_date_raw}")
-                            continue
+                    # Normalize payment date to DD/MM/YYYY
+                    pay_date_raw = str(row['paymentDate'])
+                    try:
+                        if '/' in pay_date_raw:
+                            m, d, y = pay_date_raw.split('/')
+                            pay_date_dt = date(int(y), int(m), int(d))
+                        else:
+                            pay_date_dt = date.fromisoformat(pay_date_raw)
+                    except Exception:
+                        logger.warning(f"Invalid payment date: {pay_date_raw}")
+                        continue
 
+                    # Filter by payment date year (instead of ex_date year)
+                    if pay_date_dt.year == year:
                         # Feature 3: Only fetch a dividend if payment date is less than current date
                         if pay_date_dt >= date.today():
                             continue

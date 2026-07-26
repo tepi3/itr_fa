@@ -7,6 +7,7 @@ from core.calculator import (
     calculate_tax_year_summary,
     calculate_current_balance,
     compute_offset_summary,
+    calculate_dividends,
 )
 
 @pytest.mark.unit
@@ -184,6 +185,32 @@ def test_calculate_tax_year_summary_dividends(sbi_cache, sample_portfolio, full_
     res = calculate_tax_year_summary(sample_portfolio)
     assert res["tax_years"]["prev"]["totals"]["dividends"]["total"] > 0
     assert res["tax_years"]["curr"]["totals"]["dividends"]["total"] > 0
+
+@pytest.mark.unit
+def test_dividend_payment_date_filtering(sbi_cache, full_2024_sbi_rates):
+    rates = {**full_2024_sbi_rates, "2025-01-10": 83.50, "2024-12-31": 83.00}
+    sbi_cache(rates)
+
+    lot = {"id": "lot_1", "buy_date": "2024-01-15", "quantity": 10, "buy_price": 100.0, "sells": []}
+    stock = {
+        "ticker": "AAPL",
+        "lots": [lot],
+        "dividends": [
+            # Ex-date Dec 2024, Payment Date Jan 2025
+            {"id": "div_1", "ex_date": "2024-12-20", "payment_date": "2025-01-10", "amount": 1.0},
+            # Ex-date Dec 2025, Payment Date Jan 2026
+            {"id": "div_2", "ex_date": "2025-12-20", "payment_date": "2026-01-10", "amount": 1.0},
+        ]
+    }
+
+    # For CY 2025: div_1 (pay date Jan 2025) should be included, div_2 (pay date Jan 2026) should NOT
+    res_2025 = calculate_dividends(lot, stock, calendar_year=2025, sbi_overrides={})
+    assert len(res_2025["dividend_entries"]) == 1
+    assert res_2025["dividend_entries"][0]["div_id"] == "div_1"
+
+    # For CY 2024: div_1 (pay date Jan 2025) should NOT be included
+    res_2024 = calculate_dividends(lot, stock, calendar_year=2024, sbi_overrides={})
+    assert len(res_2024["dividend_entries"]) == 0
 
 @pytest.mark.unit
 def test_calculate_current_balance(sbi_cache, sample_portfolio, full_2024_sbi_rates, monkeypatch):
