@@ -186,6 +186,32 @@ def test_calculate_tax_year_summary_dividends(sbi_cache, sample_portfolio, full_
     assert res["tax_years"]["curr"]["totals"]["dividends"]["total"] > 0
 
 @pytest.mark.unit
+def test_calculate_tax_year_summary_boundary_dividend(sbi_cache, sample_portfolio, full_2024_sbi_rates, monkeypatch):
+    sbi_cache(full_2024_sbi_rates)
+    monkeypatch.setattr("core.calculator.get_historical_prices", lambda ticker, start, end: [{"date": "2024-01-15", "close": 150.0}])
+    
+    # Boundary dividend where ex-date is in late 2023 but payment is in early 2024.
+    sample_portfolio["calendar_year"] = 2024
+    sample_portfolio["stocks"][0]["dividends"] = [
+        {"id": "div_boundary", "ex_date": "2023-12-28", "payment_date": "2024-01-10", "amount": 10.0}
+    ]
+    
+    # Clear other stocks to keep things simple
+    sample_portfolio["stocks"] = [sample_portfolio["stocks"][0]]
+    
+    res = calculate_tax_year_summary(sample_portfolio)
+    
+    # 2024-01-10 is Jan 2024, which falls in 'prev' tax year (FY 2023-24) of CY 2024.
+    prev_div_total = res["tax_years"]["prev"]["totals"]["dividends"]["total"]
+    assert prev_div_total > 0
+    
+    # Verify that running for CY 2023 skips it (since payment is in 2024, not 2023)
+    sample_portfolio["calendar_year"] = 2023
+    res_2023 = calculate_tax_year_summary(sample_portfolio)
+    assert res_2023["tax_years"]["prev"]["totals"]["dividends"]["total"] == 0
+    assert res_2023["tax_years"]["curr"]["totals"]["dividends"]["total"] == 0
+
+@pytest.mark.unit
 def test_calculate_current_balance(sbi_cache, sample_portfolio, full_2024_sbi_rates, monkeypatch):
     from datetime import date as dt_date
     today_str = dt_date.today().isoformat()

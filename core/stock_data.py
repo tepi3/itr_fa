@@ -226,26 +226,28 @@ def get_dividends(ticker: str, year: int) -> list:
             for idx, row in df.iterrows():
                 # idx is the ex-date string
                 try:
-                    # Filter by year
+                    # Filter by year: either ex-date or payment-date falls in the target year
                     # index is exOrEffDate, paymentDate is MM/DD/YYYY or YYYY-MM-DD
                     ex_date_str = idx
                     ex_year = int(ex_date_str.split('/')[2]) if '/' in ex_date_str else int(ex_date_str.split('-')[0])
 
-                    if ex_year == year:
+                    # Normalize payment date to DD/MM/YYYY
+                    pay_date_raw = str(row['paymentDate'])
+                    try:
+                        if '/' in pay_date_raw:
+                            m, d, y = pay_date_raw.split('/')
+                            pay_date_dt = date(int(y), int(m), int(d))
+                        else:
+                            pay_date_dt = date.fromisoformat(pay_date_raw)
+                    except Exception:
+                        logger.warning(f"Invalid payment date: {pay_date_raw}")
+                        continue
+
+                    pay_year = pay_date_dt.year
+
+                    if ex_year == year or pay_year == year:
                         # Clean amount (remove '$')
                         amt_str = str(row['amount']).replace('$', '').strip()
-
-                        # Normalize payment date to DD/MM/YYYY
-                        pay_date_raw = str(row['paymentDate'])
-                        try:
-                            if '/' in pay_date_raw:
-                                m, d, y = pay_date_raw.split('/')
-                                pay_date_dt = date(int(y), int(m), int(d))
-                            else:
-                                pay_date_dt = date.fromisoformat(pay_date_raw)
-                        except Exception:
-                            logger.warning(f"Invalid payment date: {pay_date_raw}")
-                            continue
 
                         # Feature 3: Only fetch a dividend if payment date is less than current date
                         if pay_date_dt >= date.today():
